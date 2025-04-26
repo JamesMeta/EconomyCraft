@@ -19,3 +19,7 @@ def serve_file(path):
 # Only needed for local development
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
+
+
+# testing the auto deploy on new commit
