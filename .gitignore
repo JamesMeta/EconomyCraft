@@ -172,3 +172,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+front-end/economycraft/build_web.bat
+front-end/economycraft/debug.bat
+front-end/economycraft/build.bat
