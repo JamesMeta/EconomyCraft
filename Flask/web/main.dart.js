@@ -1,4 +1,3 @@
-const supabaseKey = process.env.SUPABASE_KEY;
 (function dartProgram(){function copyProperties(a,b){var s=Object.keys(a)
 for(var r=0;r<s.length;r++){var q=s[r]
 b[q]=a[q]}}function mixinPropertiesHard(a,b){var s=Object.keys(a)
@@ -7505,7 +7504,7 @@ _.f=!1},
 aq8(){var s=0,r=A.D(t.H),q,p,o,n,m,l,k
 var $async$aq8=A.z(function(a,b){if(a===1)return A.A(b,r)
 while(true)switch(s){case 0:s=2
-return A.y(A.aeL(supabaseKey,B.D9,"https://ylgfgklcypqtbqrkhsba.supabase.co"),$async$aq8)
+return A.y(A.aeL("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZ2Zna2xjeXBxdGJxcmtoc2JhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3MDA4NzcsImV4cCI6MjA2MTI3Njg3N30.o3uGNWrn-AFnTZa4eWiTPGDZ01EI_6FjojV3W-mAIoc",B.D9,"https://ylgfgklcypqtbqrkhsba.supabase.co"),$async$aq8)
 case 2:if($.a0==null)A.asD()
 q=$.a0
 q.toString
