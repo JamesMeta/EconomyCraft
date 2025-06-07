@@ -1,5 +1,6 @@
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/player.dart';
+import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/classes/share.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' as developer;
@@ -210,19 +211,12 @@ class SupabaseHelper {
 
   static Future<double> getPlayerAssetEvaluation(int playerId) async {
     try {
-      final companyEvaluations = await _client
-          .from('companies')
-          .select('evaluation')
-          .eq('user_id', playerId);
       final shareEvaluations = await _client
           .from('shares')
           .select('value')
           .eq('user_id', playerId);
 
       double totalEvaluation = 0.0;
-      for (var evaluation in companyEvaluations) {
-        totalEvaluation += evaluation['evaluation']?.toDouble() ?? 0.0;
-      }
       for (var evaluation in shareEvaluations) {
         totalEvaluation += evaluation['value']?.toDouble() ?? 0.0;
       }
@@ -239,19 +233,13 @@ class SupabaseHelper {
       return 0.0;
     }
     try {
-      final companyEvaluations = await _client
-          .from('companies')
-          .select('evaluation')
-          .eq('user_id', user.id);
+      final userRowId = await getPlayerId();
       final shareEvaluations = await _client
           .from('shares')
           .select('value')
-          .eq('user_id', user.id);
+          .eq('user_id', userRowId);
 
       double totalEvaluation = 0.0;
-      for (var evaluation in companyEvaluations) {
-        totalEvaluation += evaluation['evaluation']?.toDouble() ?? 0.0;
-      }
       for (var evaluation in shareEvaluations) {
         totalEvaluation += evaluation['value']?.toDouble() ?? 0.0;
       }
@@ -283,6 +271,25 @@ class SupabaseHelper {
     } catch (e) {
       developer.log('Error fetching player ID: $e');
       return 0;
+    }
+  }
+
+  static Future<String> getPlayerNameByUserRowID(int userRowId) async {
+    try {
+      final response =
+          await _client
+              .from('users')
+              .select('minecraft_username')
+              .eq('id', userRowId)
+              .limit(1)
+              .single();
+      if (response.isEmpty) {
+        return '';
+      }
+      return response['minecraft_username'] ?? '';
+    } catch (e) {
+      developer.log('Error fetching player name by user row ID: $e');
+      return '';
     }
   }
 
@@ -339,6 +346,99 @@ class SupabaseHelper {
   // COMPANY RELATED SUPABASE FUNCTIONS
   //
   //
+
+  static Future<bool> createCompany(
+    String name,
+    String slogan,
+    String companyAvatarUrl,
+    int lotNumber,
+    bool notificationEnabled,
+  ) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      final userRowId = await getPlayerId();
+      final companyRowId = await _client
+          .from('companies')
+          .insert({
+            'name': name,
+            'slogan': slogan,
+            'avatar_url': companyAvatarUrl,
+            'lot_number': lotNumber,
+            'user_id': userRowId,
+            'notification': notificationEnabled,
+          })
+          .select('id');
+      if (companyRowId.isEmpty) {
+        developer.log('Error: Company creation failed');
+        return false;
+      }
+      await newCompanyStockOptions(userRowId, companyRowId[0]['id']);
+      return true;
+    } catch (e) {
+      developer.log('Error creating company: $e');
+      return false;
+    }
+  }
+
+  static Future<String> addCompanyAvatar() async {
+    final url = await uploadFile('company-avatars');
+    if (url != null) {
+      try {
+        developer.log('Company avatar updated: $url');
+        return url;
+      } catch (e) {
+        developer.log('Error updating company avatar: $e');
+        return '';
+      }
+    } else {
+      developer.log('Error: URL is null after uploading company avatar');
+      return '';
+    }
+  }
+
+  static Future<bool> checkForLotNumber(int lotNumber) async {
+    try {
+      final response =
+          await _client
+              .from('companies')
+              .select('lot_number')
+              .eq('lot_number', lotNumber)
+              .limit(1)
+              .maybeSingle();
+
+      if (response == null) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      developer.log('Error checking for lot number: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> checkForCompanyName(String name) async {
+    try {
+      final response =
+          await _client
+              .from('companies')
+              .select('name')
+              .eq('name', name)
+              .limit(1)
+              .maybeSingle();
+
+      if (response == null) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      developer.log('Error checking for company name: $e');
+      return false;
+    }
+  }
 
   static Future<List<Company>> getCompanies() async {
     try {
@@ -481,40 +581,6 @@ class SupabaseHelper {
     }
   }
 
-  static Future<List<Share>> getSharesByUser() async {
-    final userRowId = await getPlayerId();
-
-    try {
-      final response = await _client
-          .from('shares')
-          .select()
-          .eq('user_id', userRowId)
-          .order('created_at', ascending: false);
-      if (response.isEmpty) {
-        return [];
-      }
-      final List<Share> shares = await Future.wait(
-        response.map<Future<Share>>((share) async {
-          return Share(
-            id: share['id'],
-            createdAt: DateTime.parse(share['created_at']),
-            companyId: share['company_id'],
-            stake: share['stake'],
-            purchasePrice: share['purchased_price'],
-            value: share['value'],
-            purchasable: share['purchasable'],
-            userId: share['user_id'],
-            company: await getCompanyById(share['company_id']),
-          );
-        }).toList(),
-      );
-      return shares;
-    } catch (e) {
-      developer.log('Error fetching shares by user ID: $e');
-      return [];
-    }
-  }
-
   static Future<void> updateCompanySlogan(
     int companyId,
     String newSlogan,
@@ -635,7 +701,7 @@ class SupabaseHelper {
     String description,
     double price,
     int quantity,
-    String avatarUrl,
+    String productTag,
   ) async {
     try {
       await _client
@@ -645,7 +711,7 @@ class SupabaseHelper {
             'description': description,
             'price': price,
             'quantity': quantity,
-            'avatar_url': avatarUrl,
+            'minecraft_tag': productTag,
           })
           .eq('id', productId);
     } catch (e) {
@@ -848,46 +914,6 @@ class SupabaseHelper {
     return false;
   }
 
-  static Future<bool> makeSharesPurchasable(List<Share> shares) async {
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      return false;
-    }
-    try {
-      for (var share in shares) {
-        await _client
-            .from('shares')
-            .update({'purchasable': true})
-            .eq('id', share.id);
-        developer.log('Share made purchasable: ${share.id}');
-      }
-      return true;
-    } catch (e) {
-      developer.log('Error making shares purchasable: $e');
-      return false;
-    }
-  }
-
-  static Future<bool> makeSharesUnpurchasable(List<Share> shares) async {
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      return false;
-    }
-    try {
-      for (var share in shares) {
-        await _client
-            .from('shares')
-            .update({'purchasable': false})
-            .eq('id', share.id);
-        developer.log('Share made unpurchasable: ${share.id}');
-      }
-      return true;
-    } catch (e) {
-      developer.log('Error making shares unpurchasable: $e');
-      return false;
-    }
-  }
-
   static Future<bool> cancelOrder(int orderId) async {
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -995,6 +1021,160 @@ class SupabaseHelper {
       await _client.from('orders').update({'complete': true}).eq('id', orderId);
     } catch (e) {
       developer.log('Error marking order as complete: $e');
+    }
+  }
+
+  //
+  //
+  // SHARE RELATED SUPABASE FUNCTIONS
+  //
+  //
+
+  static Future<void> newCompanyStockOptions(userRowId, companyRowId) async {
+    try {
+      await _client.from('shares').insert({
+        'user_id': userRowId,
+        'company_id': companyRowId,
+        'stake': 1.0,
+        'purchased_price': 0.0,
+        'value': 0.0,
+        'purchasable': false,
+      });
+      developer.log(
+        'New company stock options created for user ID: $userRowId',
+      );
+    } catch (e) {
+      developer.log('Error creating new company stock options: $e');
+    }
+  }
+
+  static Future<bool> makeSharesPurchasable(List<Share> shares) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+    try {
+      for (var share in shares) {
+        await _client
+            .from('shares')
+            .update({'purchasable': true, 'sale_price': share.salePrice})
+            .eq('id', share.id);
+        developer.log('Share made purchasable: ${share.id}');
+      }
+      return true;
+    } catch (e) {
+      developer.log('Error making shares purchasable: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> makeSharesUnpurchasable(List<Share> shares) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+    try {
+      for (var share in shares) {
+        await _client
+            .from('shares')
+            .update({'purchasable': false})
+            .eq('id', share.id);
+        developer.log('Share made unpurchasable: ${share.id}');
+      }
+      return true;
+    } catch (e) {
+      developer.log('Error making shares unpurchasable: $e');
+      return false;
+    }
+  }
+
+  static Future<List<Share>> getSharesByUser() async {
+    final userRowId = await getPlayerId();
+
+    try {
+      final response = await _client
+          .from('shares')
+          .select()
+          .eq('user_id', userRowId)
+          .order('value', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<Share> shares = await Future.wait(
+        response.map<Future<Share>>((share) async {
+          return Share(
+            id: share['id'],
+            createdAt: DateTime.parse(share['created_at']),
+            companyId: share['company_id'],
+            stake: share['stake'],
+            purchasePrice: share['purchased_price'],
+            value: share['value'],
+            salePrice: share['sale_price'] ?? 0.0,
+            purchasable: share['purchasable'],
+            userId: share['user_id'],
+            company: await getCompanyById(share['company_id']),
+            isPublic: share['is_public'] ?? false,
+          );
+        }).toList(),
+      );
+      return shares;
+    } catch (e) {
+      developer.log('Error fetching shares by user ID: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> splitSharePrivate(int shareId, int numNewShares) async {
+    try {
+      await _client.rpc(
+        'split_share_private',
+        params: {'input_share_id': shareId, 'split_count': numNewShares},
+      );
+      developer.log(
+        'Share split successfully: $shareId into $numNewShares shares',
+      );
+      return true;
+    } catch (e) {
+      developer.log('Error splitting share: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> splitSharePublic(int companyId, int splitFactor) async {
+    try {
+      await _client.rpc(
+        'split_share_public',
+        params: {'target_company_id': companyId, 'split_factor': splitFactor},
+      );
+      developer.log('Share split successfully: $companyId into public shares');
+      return true;
+    } catch (e) {
+      developer.log('Error splitting share: $e');
+      return false;
+    }
+  }
+
+  static Future<List<PriceVsTime>> getSharePriceHistory(int shareId) async {
+    try {
+      final response = await _client
+          .from('share_history')
+          .select()
+          .eq('share_id', shareId)
+          .order('created_at', ascending: true);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<PriceVsTime> priceHistory =
+          response.map<PriceVsTime>((price) {
+            return PriceVsTime(
+              time: DateTime.parse(price['created_at']),
+              price: price['value']?.toDouble() ?? 0.0,
+            );
+          }).toList();
+      return priceHistory;
+    } catch (e) {
+      developer.log('Error fetching share price history: $e');
+      return [];
     }
   }
 }

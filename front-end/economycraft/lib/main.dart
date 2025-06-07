@@ -1,4 +1,5 @@
 import 'package:economycraft/classes/company.dart';
+import 'package:economycraft/classes/share.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/screens/home_screen.dart';
@@ -17,6 +18,8 @@ import 'package:economycraft/screens/company/company_page_screen.dart';
 import 'package:economycraft/screens/shopping_cart_screen.dart';
 import 'package:economycraft/screens/holding/company_page_backend_screen.dart';
 import 'package:economycraft/screens/holding/make_new_company_screen.dart';
+import 'package:economycraft/screens/holding/share_modification_screen.dart';
+import 'package:economycraft/screens/holding/sell_holding_screen.dart';
 
 const supabaseUrl = 'https://ylgfgklcypqtbqrkhsba.supabase.co';
 const supabaseKey =
@@ -60,6 +63,20 @@ final GoRouter _router = GoRouter(
               path: 'make_new_company',
               builder: (BuildContext context, GoRouterState state) {
                 return const MakeNewCompanyScreen();
+              },
+            ),
+            GoRoute(
+              path: 'modify_share',
+              builder: (BuildContext context, GoRouterState state) {
+                final data = state.extra as Share;
+                return ShareModificationScreen(share: data);
+              },
+            ),
+            GoRoute(
+              path: 'sell_share',
+              builder: (BuildContext context, GoRouterState state) {
+                final data = state.extra as Share;
+                return SellHoldingScreen(share: data);
               },
             ),
           ],

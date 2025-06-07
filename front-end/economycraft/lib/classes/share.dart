@@ -7,8 +7,10 @@ class Share {
   final double stake;
   final double purchasePrice;
   final double value;
+  double salePrice;
   bool purchasable;
   final int userId;
+  final bool isPublic;
 
   Company? company;
 
@@ -19,9 +21,11 @@ class Share {
     required this.stake,
     required this.purchasePrice,
     required this.value,
+    required this.salePrice,
     required this.purchasable,
     required this.userId,
     this.company,
+    required this.isPublic,
   });
 
   @override

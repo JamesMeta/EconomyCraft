@@ -441,9 +441,9 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ElevatedButton.icon(
-          onPressed: () {
+          onPressed: () async {
             if (_selectedShares.isNotEmpty) {
-              makeSharesPurchasable();
+              await quickSell();
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('No shares selected.')),
@@ -452,7 +452,7 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           },
           icon: const Icon(Icons.sell, color: Colors.white),
           label: Text(
-            'Place on Market (${_selectedShares.length})',
+            'Quick Sell (${_selectedShares.length})',
             style: const TextStyle(color: Colors.white),
           ),
           style: ElevatedButton.styleFrom(
@@ -478,6 +478,44 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blueGrey,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+        ),
+
+        if (_selectedShares.isNotEmpty) ...[
+          const SizedBox(width: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              setState(() {
+                _selectedShares.clear();
+              });
+            },
+            icon: const Icon(Icons.clear, color: Colors.white),
+            label: const Text(
+              'Clear Selection',
+              style: TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 187, 187, 187),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+        ],
+        const SizedBox(width: 16),
+        ElevatedButton.icon(
+          onPressed: () {
+            _sharesFuture = getUsersShares();
+            setState(() {
+              _selectedShares.clear();
+            });
+          },
+          icon: const Icon(Icons.clear, color: Colors.white),
+          label: const Text(
+            'Refresh Shares',
+            style: TextStyle(color: Colors.white),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromARGB(255, 75, 210, 214),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
         ),
@@ -827,6 +865,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
             : 0.0;
     final isProfit = share.value >= share.purchasePrice;
 
+    final TextEditingController splitController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) {
@@ -899,9 +939,9 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
                     ],
                   ),
 
-                const SizedBox(height: 24),
-                const Divider(),
                 const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
 
                 // Share details
                 _buildDetailRow(
@@ -926,8 +966,16 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
                   share.purchasable ? 'Listed for Sale' : 'Not on Market',
                   textColor: share.purchasable ? Colors.orange : Colors.blue,
                 ),
+                _buildDetailRow(
+                  'Share Type',
+                  share.isPublic ? 'Public' : 'Private',
+                  textColor:
+                      share.isPublic
+                          ? const Color.fromARGB(255, 105, 199, 93)
+                          : const Color.fromARGB(255, 250, 72, 72),
+                ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 const Divider(),
                 const SizedBox(height: 8),
 
@@ -978,23 +1026,11 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Close',
-                style: TextStyle(color: Color.fromARGB(255, 74, 237, 217)),
-              ),
-            ),
             if (!share.purchasable)
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  setState(() {
-                    if (!_selectedShares.contains(share)) {
-                      _selectedShares.add(share);
-                    }
-                    makeSharesPurchasable();
-                  });
+                  context.go('/home/holdings/sell_share', extra: share);
                 },
                 icon: const Icon(Icons.sell, color: Colors.white),
                 label: const Text(
@@ -1028,6 +1064,35 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
                   backgroundColor: Colors.blueGrey,
                 ),
               ),
+            if (!share.isPublic)
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go('/home/holdings/modify_share', extra: share);
+                },
+                icon: const Icon(Icons.call_split, color: Colors.white),
+                label: const Text(
+                  'Split Share',
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 0, 204, 255),
+                ),
+              ),
+            ElevatedButton.icon(
+              icon: const Icon(
+                Icons.close,
+                color: Color.fromARGB(255, 255, 255, 255),
+              ),
+              label: const Text(
+                'Close',
+                style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 187, 187, 187),
+              ),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ],
         );
       },
@@ -1036,7 +1101,7 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
 
   Widget _buildDetailRow(String label, String value, {Color? textColor}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1068,6 +1133,13 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
 
   Future<List<Company>> getUsersCompanies() async {
     return await SupabaseHelper.getCompaniesByUser();
+  }
+
+  Future<void> quickSell() async {
+    for (var share in _selectedShares) {
+      share.salePrice = share.value; // Set sale price to current value
+    }
+    await makeSharesPurchasable();
   }
 
   Future<void> makeSharesPurchasable() async {
