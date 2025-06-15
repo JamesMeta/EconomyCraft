@@ -7,6 +7,7 @@ import 'dart:developer' as developer;
 import 'package:file_picker/file_picker.dart';
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/product.dart';
+import 'package:fraction/fraction.dart';
 
 class SupabaseHelper {
   static final _client = Supabase.instance.client;
@@ -347,6 +348,87 @@ class SupabaseHelper {
   //
   //
 
+  static Future<double> getPlayersCompanyStake(
+    int userRowId,
+    int companyId,
+  ) async {
+    final response = await _client
+        .from('shares')
+        .select('id, stake')
+        .eq('user_id', userRowId)
+        .eq('company_id', companyId);
+
+    if (response.isEmpty) {
+      developer.log('Error: User does not own shares in this company');
+      return 0.0;
+    }
+
+    final totalStakeUser = response.fold<double>(
+      0.0,
+      (previousValue, share) =>
+          previousValue + (share['stake']?.toDouble() ?? 0.0),
+    );
+
+    developer.log(
+      'Total stake for user $userRowId in company $companyId: $totalStakeUser',
+    );
+    return totalStakeUser;
+  }
+
+  static Future<bool> takeOverCompany(companyId) async {
+    try {
+      final user = _client.auth.currentUser;
+      if (user == null) {
+        return false;
+      }
+
+      final userRowId = await getPlayerId();
+
+      final companyOwnerId = await getCompanyOwnerId(companyId);
+
+      if (companyOwnerId == userRowId) {
+        developer.log('Error: User is already the owner of this company');
+        return false;
+      }
+
+      final totalStakeUser = await getPlayersCompanyStake(userRowId, companyId);
+      final totalStakeOwner = await getPlayersCompanyStake(
+        companyOwnerId,
+        companyId,
+      );
+
+      if (totalStakeUser <= totalStakeOwner) {
+        developer.log('Error: User does not have enough shares to take over');
+        return false;
+      }
+      await changeCompanyOwner(companyId, userRowId);
+      developer.log('Company taken over successfully: $companyId');
+      return true;
+    } catch (e) {
+      developer.log('Error taking over company: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> changeCompanyOwner(int companyId, int newOwnerId) async {
+    try {
+      final response = await _client
+          .from('companies')
+          .update({'user_id': newOwnerId})
+          .eq('id', companyId)
+          .select('id');
+      if (response.isEmpty) {
+        developer.log('Error: Company owner change failed');
+        return false;
+      }
+      developer.log('Company owner changed successfully: $companyId');
+      return true;
+    } catch (e) {
+      developer.log('Error changing company owner: $e');
+      return false;
+    }
+  }
+
   static Future<bool> createCompany(
     String name,
     String slogan,
@@ -382,6 +464,199 @@ class SupabaseHelper {
       developer.log('Error creating company: $e');
       return false;
     }
+  }
+
+  static Future<Map<String, double>> getCompanyShareOwnershipBreakdown(
+    int companyId,
+  ) async {
+    try {
+      final response = await _client
+          .from('shares')
+          .select('user_id, stake')
+          .eq('company_id', companyId);
+
+      if (response.isEmpty) {
+        return {};
+      }
+
+      final Map<String, double> ownershipBreakdown = {};
+
+      for (var share in response) {
+        final userId = share['user_id'].toString();
+        final stake = share['stake']?.toDouble() ?? 0.0;
+        if (ownershipBreakdown.containsKey(userId)) {
+          ownershipBreakdown[userId] = ownershipBreakdown[userId]! + stake;
+        } else {
+          ownershipBreakdown[userId] = stake;
+        }
+      }
+
+      return ownershipBreakdown;
+    } catch (e) {
+      developer.log('Error fetching company share ownership breakdown: $e');
+      return {};
+    }
+  }
+
+  static int findLCD(Map<String, double> ownershipBreakdown) {
+    if (ownershipBreakdown.isEmpty) {
+      return 1;
+    }
+    int lcm(int a, int b) => (a * b) ~/ a.gcd(b);
+    List<Fraction> fractions =
+        ownershipBreakdown.values.map((d) => d.toFraction()).toList();
+    List<int> denominators = fractions.map((f) => f.denominator).toList();
+    int lcd = denominators.reduce(lcm);
+    return lcd;
+  }
+
+  static Future<Map<String, double>> getShareSplitRequirementByUser(
+    int companyId,
+  ) async {
+    final ownershipBreakdown = await getCompanyShareOwnershipBreakdown(
+      companyId,
+    );
+    if (ownershipBreakdown.isEmpty) {
+      return {};
+    }
+    final lcd = findLCD(ownershipBreakdown);
+    final Map<String, double> shareSplitRequirement = {};
+    for (var entry in ownershipBreakdown.entries) {
+      final userId = entry.key;
+      final stake = entry.value;
+      final requiredShares = (stake * lcd).toInt();
+      shareSplitRequirement[userId] = requiredShares.toDouble();
+    }
+    developer.log(
+      'Share split requirement for company $companyId: $shareSplitRequirement',
+    );
+    return shareSplitRequirement;
+  }
+
+  /// Makes a company public by splitting its shares among current owners and updating the company status.
+  ///
+  /// This function:
+  /// 1. Calculates the required share split for each user based on their ownership.
+  /// 2. Fetches the company's current evaluation to determine the value of each new share.
+  /// 3. Ensures only the company owner can perform this action.
+  /// 4. Sets the company as public in the database.
+  /// 5. Deletes all non-original shares for the company (to reset the share structure).
+  /// 6. Updates the original stock share to be public and have the new stake/value.
+  /// 7. Inserts new shares for each user according to the calculated split.
+  ///
+  /// Returns true if successful, false otherwise.
+  static Future<bool> goPublic(int companyId) async {
+    // 1. Calculate how many shares each user should have after the split.
+    final Map<String, double> shareSplitRequirement =
+        await getShareSplitRequirementByUser(companyId);
+
+    // 2. Get the company's evaluation to determine the value of each share.
+    final shareValueResonse =
+        await _client
+            .from('companies')
+            .select('evaluation')
+            .eq('id', companyId)
+            .limit(1)
+            .single();
+
+    if (shareValueResonse.isEmpty) {
+      developer.log('Error: Share value response is empty');
+      return false;
+    }
+
+    // Calculate the stake and value for each new share.
+    final double shareStake =
+        1 / shareSplitRequirement.values.reduce((a, b) => a + b);
+    final double shareValue = shareValueResonse['evaluation'] * shareStake;
+    developer.log('Share value for company $companyId: $shareValue');
+
+    if (shareSplitRequirement.isEmpty) {
+      developer.log('Error: No share split requirement found');
+      return false;
+    }
+
+    try {
+      // 3. Only the company owner can make the company public.
+      final userRowId = await getPlayerId();
+      final companyOwnerId = await getCompanyOwnerId(companyId);
+      if (userRowId != companyOwnerId) {
+        developer.log('Error: User is not the owner of this company');
+        return false;
+      }
+
+      // 4. Update the company to be public.
+      final response = await _client
+          .from('companies')
+          .update({'is_public': true})
+          .eq('id', companyId)
+          .select('id');
+
+      if (response.isEmpty) {
+        developer.log('Error: Company public status update failed');
+        return false;
+      }
+
+      // 5. Delete all non-original shares for this company.
+      final delResponse = await _client
+          .from('shares')
+          .delete()
+          .eq('company_id', companyId)
+          .eq('original_stock', false);
+
+      // 6. Find the owner of the original stock share.
+      final originalStockOwnerResponse =
+          await _client
+              .from('shares')
+              .select('user_id')
+              .eq('company_id', companyId)
+              .eq('original_stock', true)
+              .limit(1)
+              .maybeSingle();
+
+      if (originalStockOwnerResponse == null) {
+        developer.log('Error: No original stock owner found');
+        return false;
+      }
+
+      final String originalStockOwnerId =
+          originalStockOwnerResponse['user_id'].toString();
+
+      // The original stock owner already has one share, so subtract one from their requirement.
+      shareSplitRequirement[originalStockOwnerId] =
+          shareSplitRequirement[originalStockOwnerId]! - 1;
+
+      // 7. Update the original stock share to be public and have the new stake/value.
+      final originalStockUpdateResponse = await _client
+          .from('shares')
+          .update({'stake': shareStake, 'value': shareValue, 'is_public': true})
+          .eq('company_id', companyId)
+          .eq('original_stock', true);
+
+      // 8. Insert new shares for each user as needed.
+      for (final entry in shareSplitRequirement.entries) {
+        final userId = entry.key;
+        final requiredShares = entry.value.toInt();
+        for (int i = 0; i < requiredShares; i++) {
+          await _client.from('shares').insert({
+            'user_id': userId,
+            'company_id': companyId,
+            'stake': shareStake,
+            'value': shareValue,
+            'is_public': true,
+          });
+        }
+      }
+
+      developer.log('Company made public successfully: $companyId');
+      return true;
+    } catch (e) {
+      developer.log('Error making company public: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> goPrivate(int companyId) async {
+    return true; // Placeholder for future implementation
   }
 
   static Future<String> addCompanyAvatar() async {
@@ -948,8 +1223,8 @@ class SupabaseHelper {
         response.map<Future<Order>>((order) async {
           return Order(
             id: order['id'],
-            productId: order['product_id'],
-            companyId: order['company_id'],
+            productId: order['product_id'] ?? 0,
+            companyId: order['company_id'] ?? 0,
             userId: order['user_id'],
             quantity: order['quantity'],
             payment: order['payment'],
@@ -1039,6 +1314,7 @@ class SupabaseHelper {
         'purchased_price': 0.0,
         'value': 0.0,
         'purchasable': false,
+        'original_stock': true,
       });
       developer.log(
         'New company stock options created for user ID: $userRowId',
@@ -1154,12 +1430,26 @@ class SupabaseHelper {
     }
   }
 
-  static Future<List<PriceVsTime>> getSharePriceHistory(int shareId) async {
+  static Future<List<PriceVsTime>> getSharePriceHistory(int companyId) async {
     try {
+      final originalShareId =
+          await _client
+              .from('shares')
+              .select('id')
+              .eq('company_id', companyId)
+              .eq('original_stock', true)
+              .limit(1)
+              .single();
+      if (originalShareId.isEmpty) {
+        developer.log(
+          'Error: Original share ID not found for company $companyId',
+        );
+        return [];
+      }
       final response = await _client
           .from('share_history')
           .select()
-          .eq('share_id', shareId)
+          .eq('share_id', originalShareId['id'])
           .order('created_at', ascending: true);
       if (response.isEmpty) {
         return [];
@@ -1174,6 +1464,33 @@ class SupabaseHelper {
       return priceHistory;
     } catch (e) {
       developer.log('Error fetching share price history: $e');
+      return [];
+    }
+  }
+
+  static Future<List<PriceVsTime>> getCompanyPriceHistory(
+    int companyId,
+    double stake,
+  ) async {
+    try {
+      final response = await _client
+          .from('company_history')
+          .select()
+          .eq('company_id', companyId)
+          .order('created_at', ascending: true);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<PriceVsTime> priceHistory =
+          response.map<PriceVsTime>((price) {
+            return PriceVsTime(
+              time: DateTime.parse(price['created_at']),
+              price: (price['evaluation']?.toDouble()) * stake ?? 0.0,
+            );
+          }).toList();
+      return priceHistory;
+    } catch (e) {
+      developer.log('Error fetching company price history: $e');
       return [];
     }
   }

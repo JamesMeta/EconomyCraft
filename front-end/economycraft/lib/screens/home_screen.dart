@@ -201,6 +201,51 @@ class _MyHomePageState extends State<MyHomePage> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
+                            context.go('/home/server_info');
+                          },
+                          style: ButtonStyle(
+                            padding: WidgetStatePropertyAll(EdgeInsets.zero),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: WidgetStatePropertyAll(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.zero,
+                              ),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Server Info',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            context.go('/home/withdrawl_deposit_funds');
+                          },
+                          style: ButtonStyle(
+                            padding: WidgetStatePropertyAll(EdgeInsets.zero),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: WidgetStatePropertyAll(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.zero,
+                              ),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Withdrawl/Deposit Funds',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
                             showDialog(
                               context: context,
                               builder: (context) {
