@@ -22,8 +22,6 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
   @override
   void initState() {
     super.initState();
-
-    // Any initialization logic can go here
   }
 
   @override
@@ -48,10 +46,7 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/home/market'),
         ),
-        actions:
-            isOwner
-                ? [_manageCompanyButton(), ShoppingCartWidget()]
-                : [ShoppingCartWidget()],
+        actions: [_takeOverCompanyButton(), ShoppingCartWidget()],
       ),
       body: Stack(
         children: [
@@ -442,5 +437,378 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
     final companyId = widget.company.id;
     final response = await SupabaseHelper.getProductsByCompanyId(companyId);
     return response;
+  }
+
+  Widget _takeOverCompanyButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          if (!isOwner) {
+            _showTakeOverDialog();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('You are already the owner of this company!'),
+                backgroundColor: Color.fromARGB(255, 74, 237, 217),
+              ),
+            );
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color.fromARGB(255, 23, 221, 97),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          elevation: 2,
+        ),
+        icon: const Icon(Icons.business_center, color: Colors.white),
+        label: const Text(
+          'Take Over',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  void _showTakeOverDialog() async {
+    // Show loading indicator while fetching stake data
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Color.fromARGB(255, 74, 237, 217),
+              ),
+            ),
+          ),
+    );
+
+    try {
+      // Fetch stake data
+      final double usersStake = await SupabaseHelper.getPlayersCompanyStake(
+        await SupabaseHelper.getPlayerId(),
+        widget.company.id,
+      );
+      final double ownerStake = await SupabaseHelper.getPlayersCompanyStake(
+        widget.company.userId,
+        widget.company.id,
+      );
+
+      // Close loading indicator
+      if (context.mounted) Navigator.of(context).pop();
+
+      if (!context.mounted) return;
+
+      final currencyFormat = NumberFormat.percentPattern();
+
+      // Show takeover dialog
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          final bool canTakeOver = usersStake > ownerStake;
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  Icons.business_center,
+                  color: const Color.fromARGB(255, 74, 237, 217),
+                  size: 24,
+                ),
+                const SizedBox(width: 10),
+                const Text('Company Takeover'),
+              ],
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+            content: Container(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'To take ownership of this company, you must have more shares than the current owner.',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Stake comparison visualization
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Your stake
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Your Stake:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              currencyFormat.format(usersStake),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Color.fromARGB(255, 23, 221, 97),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        LinearProgressIndicator(
+                          value: usersStake,
+                          backgroundColor: Colors.grey[300],
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color.fromARGB(255, 23, 221, 97),
+                          ),
+                          minHeight: 12,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Owner stake
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Owner Stake:',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              currencyFormat.format(ownerStake),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.deepOrangeAccent,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        LinearProgressIndicator(
+                          value: ownerStake,
+                          backgroundColor: Colors.grey[300],
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.deepOrangeAccent,
+                          ),
+                          minHeight: 12,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Status indicator
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color:
+                          canTakeOver
+                              ? const Color.fromARGB(255, 232, 255, 242)
+                              : const Color.fromARGB(255, 255, 232, 232),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color:
+                            canTakeOver
+                                ? const Color.fromARGB(255, 23, 221, 97)
+                                : Colors.red,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          canTakeOver
+                              ? Icons.check_circle
+                              : Icons.error_outline,
+                          color:
+                              canTakeOver
+                                  ? const Color.fromARGB(255, 23, 221, 97)
+                                  : Colors.red,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            canTakeOver
+                                ? 'You have sufficient shares to take over this company!'
+                                : 'You need more shares than the current owner (${((ownerStake - usersStake) * 100 + 0.01).toStringAsFixed(2)}% more needed)',
+                            style: TextStyle(
+                              color:
+                                  canTakeOver
+                                      ? const Color.fromARGB(255, 23, 221, 97)
+                                      : Colors.red,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  side: BorderSide(color: Colors.grey[400]!),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                onPressed:
+                    canTakeOver
+                        ? () async {
+                          // Show loading indicator
+                          Navigator.of(context).pop();
+                          _processTakeoverRequest();
+                        }
+                        : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 23, 221, 97),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey[300],
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                icon: const Icon(Icons.gavel, size: 18),
+                label: const Text('Take Over Company'),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      // Close loading indicator if error occurs
+      if (context.mounted) Navigator.of(context).pop();
+
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // New helper method to process the takeover
+  Future<void> _processTakeoverRequest() async {
+    // Show loading dialog during processing
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color.fromARGB(255, 74, 237, 217),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Processing Takeover Request...',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('This may take a moment.'),
+                ],
+              ),
+            ),
+          ),
+    );
+
+    try {
+      final response = await SupabaseHelper.takeOverCompany(widget.company.id);
+
+      // Close loading dialog
+      if (context.mounted) Navigator.of(context).pop();
+
+      if (response) {
+        setState(() {
+          isOwner = true;
+        });
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text('You are now the owner of this company!'),
+                ],
+              ),
+              backgroundColor: Color.fromARGB(255, 23, 221, 97),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text(
+                    'Failed to take over the company. The owner has more shares than you.',
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if error occurs
+      if (context.mounted) Navigator.of(context).pop();
+
+      // Show error message
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

@@ -20,6 +20,8 @@ import 'package:economycraft/screens/holding/company_page_backend_screen.dart';
 import 'package:economycraft/screens/holding/make_new_company_screen.dart';
 import 'package:economycraft/screens/holding/share_modification_screen.dart';
 import 'package:economycraft/screens/holding/sell_holding_screen.dart';
+import 'package:economycraft/screens/server_info_screen.dart';
+import 'package:economycraft/screens/withdrawl_deposit_funds_screen.dart';
 
 const supabaseUrl = 'https://ylgfgklcypqtbqrkhsba.supabase.co';
 const supabaseKey =
@@ -128,6 +130,19 @@ final GoRouter _router = GoRouter(
             return const PlayerProfileScreen();
           },
         ),
+        GoRoute(
+          path: 'server_info',
+          builder: (BuildContext context, GoRouterState state) {
+            return const ServerInfoScreen();
+          },
+        ),
+        GoRoute(
+          path: 'withdrawl_deposit_funds',
+          builder: (BuildContext context, GoRouterState state) {
+            return const WithdrawlDepositFundsScreen();
+          },
+        ),
+
         GoRoute(
           path: 'shopping_cart',
           builder: (BuildContext context, GoRouterState state) {

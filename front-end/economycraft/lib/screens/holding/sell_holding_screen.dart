@@ -698,7 +698,16 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
 
   Future<List<PriceVsTime>> _getPriceVsTimeData() async {
     try {
-      return await SupabaseHelper.getSharePriceHistory(widget.share.id);
+      if (widget.share.isPublic) {
+        return await SupabaseHelper.getSharePriceHistory(
+          widget.share!.companyId,
+        );
+      } else {
+        return await SupabaseHelper.getCompanyPriceHistory(
+          widget.share.company!.id,
+          widget.share.stake,
+        );
+      }
     } catch (e) {
       debugPrint('Error fetching price history: $e');
       rethrow;

@@ -571,12 +571,36 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      company.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          company.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (company.isPublic) ...{
+                          Tooltip(
+                            message: 'Publicly traded company',
+                            child: const Icon(
+                              Icons.public,
+                              color: Color.fromARGB(255, 0, 0, 0),
+                              size: 16,
+                            ),
+                          ),
+                        } else ...{
+                          Tooltip(
+                            message: 'Privately held company',
+                            child: const Icon(
+                              Icons.lock,
+                              color: Color.fromARGB(255, 0, 0, 0),
+                              size: 16,
+                            ),
+                          ),
+                        },
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -741,16 +765,28 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            if (share.purchasable)
+
+                            if (share.isPublic) ...{
+                              const SizedBox(width: 8),
                               Tooltip(
-                                message: 'Listed on the market',
+                                message: 'Public Share',
                                 child: const Icon(
-                                  Icons.sell,
+                                  Icons.public,
                                   color: Color.fromARGB(255, 0, 0, 0),
                                   size: 16,
                                 ),
                               ),
+                            } else ...{
+                              const SizedBox(width: 8),
+                              Tooltip(
+                                message: 'Private Share',
+                                child: const Icon(
+                                  Icons.lock,
+                                  color: Color.fromARGB(255, 0, 0, 0),
+                                  size: 16,
+                                ),
+                              ),
+                            },
                           ],
                         ),
                         const SizedBox(height: 4),
