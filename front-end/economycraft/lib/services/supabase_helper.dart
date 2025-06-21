@@ -1638,7 +1638,12 @@ class SupabaseHelper {
           }).toList();
 
       priceHistory.sort((a, b) => a.time.compareTo(b.time)); // Sort by time
+
+      // return last 30 days of data
       developer.log('S&P 500 price history fetched successfully');
+      if (priceHistory.length > 30) {
+        return priceHistory.sublist(priceHistory.length - 30);
+      }
       return priceHistory;
     } catch (e) {
       developer.log('Error fetching S&P 500 price history: $e');
@@ -1739,7 +1744,8 @@ class SupabaseHelper {
           .from('networth_history')
           .select()
           .eq('user_id', userRowId)
-          .order('created_at', ascending: true);
+          .order('created_at', ascending: false)
+          .limit(10);
       if (response.isEmpty) {
         developer.log('No net worth history found for user ID: $userRowId');
         return [];
@@ -1751,6 +1757,7 @@ class SupabaseHelper {
               price: entry['networth']?.toDouble() ?? 0.0,
             );
           }).toList();
+      networthHistory.sort((a, b) => a.time.compareTo(b.time)); // Sort by time
       return networthHistory;
     } catch (e) {
       developer.log('Error fetching net worth history: $e');

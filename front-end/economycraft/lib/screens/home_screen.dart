@@ -433,10 +433,6 @@ class _MyHomePageState extends State<MyHomePage>
                         horizontal: 8,
                       ),
                       child: Row(
-                        mainAxisAlignment:
-                            _isNavExpanded
-                                ? MainAxisAlignment.start
-                                : MainAxisAlignment.center,
                         children: [
                           Icon(
                             item['icon'],
@@ -448,22 +444,26 @@ class _MyHomePageState extends State<MyHomePage>
                           ),
                           if (_isNavExpanded) ...[
                             const SizedBox(width: 12),
-                            Text(
-                              item['title'],
-                              style: TextStyle(
-                                color:
-                                    isActive
-                                        ? const Color.fromARGB(
-                                          255,
-                                          74,
-                                          237,
-                                          217,
-                                        )
-                                        : Colors.grey[800],
-                                fontWeight:
-                                    isActive
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
+                            // Use Flexible to prevent overflow
+                            Flexible(
+                              child: Text(
+                                item['title'],
+                                style: TextStyle(
+                                  color:
+                                      isActive
+                                          ? const Color.fromARGB(
+                                            255,
+                                            74,
+                                            237,
+                                            217,
+                                          )
+                                          : Colors.grey[800],
+                                  fontWeight:
+                                      isActive
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -499,19 +499,19 @@ class _MyHomePageState extends State<MyHomePage>
                   horizontal: 8,
                 ),
                 child: Row(
-                  mainAxisAlignment:
-                      _isNavExpanded
-                          ? MainAxisAlignment.start
-                          : MainAxisAlignment.center,
                   children: [
                     Icon(Icons.logout, color: Colors.red[400], size: 24),
                     if (_isNavExpanded) ...[
                       const SizedBox(width: 12),
-                      Text(
-                        'Logout',
-                        style: TextStyle(
-                          color: Colors.red[400],
-                          fontWeight: FontWeight.bold,
+                      // Use Flexible here too
+                      Flexible(
+                        child: Text(
+                          'Logout',
+                          style: TextStyle(
+                            color: Colors.red[400],
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -1154,7 +1154,7 @@ class _MyHomePageState extends State<MyHomePage>
 
   Widget _buildChangeIndicator(double startValue, double endValue) {
     final change = endValue - startValue;
-    final percentChange = startValue != 0 ? (change / startValue) * 100 : 0;
+    final percentChange = (change / (startValue + 1)) * 100;
     final isPositive = change >= 0;
 
     return Row(
