@@ -2,6 +2,7 @@ import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/player.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/classes/share.dart';
+import 'package:economycraft/classes/share_changes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' as developer;
 import 'package:file_picker/file_picker.dart';
@@ -207,6 +208,54 @@ class SupabaseHelper {
     } catch (e) {
       developer.log('Error fetching all players: $e');
       return [];
+    }
+  }
+
+  static Future<String> getUserName() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return '';
+    }
+
+    try {
+      final response =
+          await _client
+              .from('users')
+              .select('minecraft_username')
+              .eq('user_id', user.id)
+              .limit(1)
+              .single();
+      if (response.isEmpty) {
+        return '';
+      }
+      return response['minecraft_username'] ?? '';
+    } catch (e) {
+      developer.log('Error fetching user name: $e');
+      return '';
+    }
+  }
+
+  static Future<String> getUserAvatar() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return '';
+    }
+
+    try {
+      final response =
+          await _client
+              .from('users')
+              .select('avatar_url')
+              .eq('user_id', user.id)
+              .limit(1)
+              .single();
+      if (response.isEmpty) {
+        return '';
+      }
+      return response['avatar_url'] ?? '';
+    } catch (e) {
+      developer.log('Error fetching user avatar: $e');
+      return '';
     }
   }
 
@@ -546,6 +595,24 @@ class SupabaseHelper {
   ///
   /// Returns true if successful, false otherwise.
   static Future<bool> goPublic(int companyId) async {
+    // 0. Check if the company is already public.
+    final companyResponse =
+        await _client
+            .from('companies')
+            .select('is_public')
+            .eq('id', companyId)
+            .limit(1)
+            .maybeSingle();
+
+    if (companyResponse == null || companyResponse.isEmpty) {
+      developer.log('Error: Company not found or response is empty');
+      return false;
+    }
+    if (companyResponse['is_public'] == true) {
+      developer.log('Error: Company is already public');
+      return false;
+    }
+
     // 1. Calculate how many shares each user should have after the split.
     final Map<String, double> shareSplitRequirement =
         await getShareSplitRequirementByUser(companyId);
@@ -656,7 +723,42 @@ class SupabaseHelper {
   }
 
   static Future<bool> goPrivate(int companyId) async {
-    return true; // Placeholder for future implementation
+    try {
+      // Check if the company is already private
+      final companyResponse =
+          await _client
+              .from('companies')
+              .select('is_public')
+              .eq('id', companyId)
+              .limit(1)
+              .maybeSingle();
+      if (companyResponse == null || companyResponse.isEmpty) {
+        developer.log('Error: Company not found or response is empty');
+        return false;
+      }
+      if (companyResponse['is_public'] == false) {
+        developer.log('Error: Company is already private');
+        return false;
+      }
+
+      await _client
+          .from("companies")
+          .update({'is_public': false})
+          .eq('id', companyId);
+      developer.log('Company made private successfully: $companyId');
+
+      // Set all shares to private
+      await _client
+          .from('shares')
+          .update({'is_public': false})
+          .eq('company_id', companyId);
+
+      developer.log('All shares for company $companyId set to private');
+      return true;
+    } catch (e) {
+      developer.log('Error making company private: $e');
+      return false;
+    }
   }
 
   static Future<String> addCompanyAvatar() async {
@@ -1491,6 +1593,192 @@ class SupabaseHelper {
       return priceHistory;
     } catch (e) {
       developer.log('Error fetching company price history: $e');
+      return [];
+    }
+  }
+
+  //
+  //
+  // Homepage related functions
+  //
+  //
+
+  static Future<List<PriceVsTime>> getSnP500PriceHistory() async {
+    try {
+      final response = await _client
+          .from('company_history')
+          .select('id, created_at, evaluation');
+
+      if (response.isEmpty) {
+        developer.log('No S&P 500 price history found');
+        return [];
+      }
+
+      // Daily Value of the Exchange
+
+      final Map<String, double> dailyPrices = {};
+      for (var entry in response) {
+        final String date = entry['created_at'].split('T')[0];
+        final double value = entry['evaluation']?.toDouble() ?? 0.0;
+
+        if (dailyPrices.containsKey(date)) {
+          dailyPrices[date] =
+              (dailyPrices[date]! + value); // Average the values
+        } else {
+          dailyPrices[date] = value;
+        }
+      }
+
+      final List<PriceVsTime> priceHistory =
+          dailyPrices.entries.map((entry) {
+            return PriceVsTime(
+              time: DateTime.parse('${entry.key}T00:00:00Z'),
+              price: entry.value,
+            );
+          }).toList();
+
+      priceHistory.sort((a, b) => a.time.compareTo(b.time)); // Sort by time
+      developer.log('S&P 500 price history fetched successfully');
+      return priceHistory;
+    } catch (e) {
+      developer.log('Error fetching S&P 500 price history: $e');
+      return [];
+    }
+  }
+
+  static Future<List<ShareChanges>> getShareChanges() async {
+    try {
+      final originalShareIds = await _client
+          .from('shares')
+          .select()
+          .eq('original_stock', true)
+          .eq('is_public', true)
+          .order('value', ascending: true);
+      if (originalShareIds.isEmpty) {
+        developer.log('No original shares found');
+        return [];
+      }
+
+      final List<ShareChanges> shareChanges = [];
+      for (var shareId in originalShareIds) {
+        final response = await _client
+            .from('share_history')
+            .select()
+            .eq('share_id', shareId['id'])
+            .order('created_at', ascending: false)
+            .limit(2);
+        if (response.isEmpty) {
+          developer.log(
+            'No share history found for share ID: ${shareId['id']}',
+          );
+          continue;
+        }
+
+        final Share share = Share(
+          id: shareId['id'],
+          createdAt: DateTime.parse(shareId['created_at']),
+          companyId: shareId['company_id'],
+          stake: shareId['stake'],
+          purchasePrice: shareId['purchased_price'],
+          value: shareId['value'],
+          salePrice: shareId['sale_price'] ?? 0.0,
+          purchasable: shareId['purchasable'],
+          userId: shareId['user_id'],
+          company: await getCompanyById(shareId['company_id']),
+          isPublic: shareId['is_public'] ?? false,
+        );
+        if (share.company == null) {
+          developer.log(
+            'Error: Company not found for share ID: ${shareId['id']}',
+          );
+          continue;
+        }
+        // Extract the latest and previous prices from the response
+        if (response.length < 2) {
+          developer.log(
+            'Error: Not enough data to calculate changes for share ID: ${shareId['id']}',
+          );
+          continue;
+        }
+        // Assuming the response is sorted by created_at in descending order
+        // and contains at least two entries for latest and previous prices
+        final double? latestPrice = response[0]['value']?.toDouble();
+        final double? previousPrice =
+            response.length > 1 ? response[1]['value']?.toDouble() : null;
+        if (latestPrice != null) {
+          final double change =
+              previousPrice != null
+                  ? ((latestPrice - previousPrice) / previousPrice) * 100
+                  : 0.0; // Calculate percentage change
+          shareChanges.add(
+            ShareChanges(
+              share: share,
+              latestValue: latestPrice ?? 0.0,
+              previousValue: previousPrice ?? 0.0,
+              change: change,
+            ),
+          );
+        } else {
+          developer.log(
+            'Error: Latest price is null for share ID: ${shareId['id']}',
+          );
+        }
+      }
+      developer.log('Share changes fetched successfully');
+      return shareChanges;
+    } catch (e) {
+      developer.log('Error fetching share changes: $e');
+      return [];
+    }
+  }
+
+  static Future<List<PriceVsTime>> getNetworthvsTime() async {
+    try {
+      final userRowId = await getPlayerId();
+      final response = await _client
+          .from('networth_history')
+          .select()
+          .eq('user_id', userRowId)
+          .order('created_at', ascending: true);
+      if (response.isEmpty) {
+        developer.log('No net worth history found for user ID: $userRowId');
+        return [];
+      }
+      final List<PriceVsTime> networthHistory =
+          response.map<PriceVsTime>((entry) {
+            return PriceVsTime(
+              time: DateTime.parse(entry['created_at']),
+              price: entry['networth']?.toDouble() ?? 0.0,
+            );
+          }).toList();
+      return networthHistory;
+    } catch (e) {
+      developer.log('Error fetching net worth history: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Order>> getOrdersForUsersCompanies() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return [];
+    }
+    try {
+      final userRowId = await getPlayerId();
+      final companies = await getCompaniesByUser();
+      if (companies.isEmpty) {
+        developer.log('No companies found for user ID: $userRowId');
+        return [];
+      }
+
+      final List<Order> orders = [];
+      for (var company in companies) {
+        final companyOrders = await getOrdersMadeForCompany(company.id);
+        orders.addAll(companyOrders);
+      }
+      return orders;
+    } catch (e) {
+      developer.log('Error fetching orders for user\'s companies: $e');
       return [];
     }
   }

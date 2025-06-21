@@ -335,7 +335,11 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                         ),
                                         ElevatedButton(
                                           onPressed: () {
-                                            showMakePublicStatusDialog();
+                                            if (!widget.company!.isPublic) {
+                                              showMakePublicStatusDialog();
+                                            } else {
+                                              showMakePrivateStatusDialog();
+                                            }
                                           },
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor:
@@ -1038,15 +1042,31 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                       const SizedBox(width: 16),
                       ElevatedButton.icon(
                         onPressed: () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Loading...'),
+                              duration: Durations.extralong4,
+                            ),
+                          );
+
                           final bool isPublic = await SupabaseHelper.goPublic(
                             widget.company!.id,
                           );
                           Navigator.of(context).pop();
 
                           if (isPublic) {
+                            setState(() {
+                              widget.company!.isPublic = true;
+                            });
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Company is now public!'),
+                                backgroundColor: Color.fromARGB(
+                                  255,
+                                  74,
+                                  237,
+                                  217,
+                                ),
                               ),
                             );
                           } else {
@@ -1058,11 +1078,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                           }
                         },
                         icon: const Icon(Icons.public),
-                        label: Text(
-                          widget.company?.isPublic ?? false
-                              ? 'Make Private'
-                              : 'Make Public',
-                        ),
+                        label: Text('Make Public'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               widget.company?.isPublic ?? false
@@ -1080,6 +1096,56 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                 ],
               ),
             ),
+          ),
+    );
+  }
+
+  void showMakePrivateStatusDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (BuildContext context) => AlertDialog(
+            title: const Text('Make Company Private'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: const Text(
+              'Making your company private will remove it from the public market and restrict share trading to private transactions only.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final bool isPrivate = await SupabaseHelper.goPrivate(
+                    widget.company!.id,
+                  );
+                  Navigator.of(context).pop();
+
+                  if (isPrivate) {
+                    setState(() {
+                      widget.company!.isPublic = false;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Company is now private!')),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to make company private'),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[400],
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Make Private'),
+              ),
+            ],
           ),
     );
   }
