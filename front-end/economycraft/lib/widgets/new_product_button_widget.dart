@@ -575,6 +575,17 @@ class _NewProductButtonWidgetState extends State<NewProductButtonWidget> {
       double price = double.parse(_priceController.text);
       int quantity = int.parse(_quantityController.text);
 
+      if (price < 0 || quantity <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Price must be greater than 0 and quantity must be a positive integer',
+            ),
+          ),
+        );
+        return;
+      }
+
       await SupabaseHelper.addProductToCompany(
         widget.companyId,
         _nameController.text,

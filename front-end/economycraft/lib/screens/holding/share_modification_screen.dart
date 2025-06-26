@@ -89,21 +89,21 @@ class _ShareModificationScreenState extends State<ShareModificationScreen> {
                     // Header section with company info
                     _buildHeaderSection(),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     const Divider(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                    // Chart section
-                    _buildChartSection(screenWidth, screenHeight),
+                    // // Chart section
+                    // _buildChartSection(screenWidth, screenHeight),
 
-                    const SizedBox(height: 24),
-                    const Divider(),
-                    const SizedBox(height: 24),
+                    // const SizedBox(height: 20),
+                    // const Divider(),
+                    // const SizedBox(height: 20),
 
                     // Share split controls
                     _buildShareSplitControls(),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 30),
 
                     // Action buttons
                     _buildActionButtons(),
@@ -206,7 +206,7 @@ class _ShareModificationScreenState extends State<ShareModificationScreen> {
   Widget _buildChartSection(double screenWidth, double screenHeight) {
     return Container(
       width: double.infinity,
-      height: screenHeight * 0.45,
+      height: screenHeight * 0.35,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[200]!, width: 1),
