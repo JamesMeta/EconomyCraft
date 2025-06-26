@@ -4,6 +4,8 @@ import 'package:economycraft/services/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:economycraft/classes/price_vs_time.dart';
+import 'package:economycraft/widgets/linegraph_2_widget.dart';
 
 class HoldingsScreen extends StatefulWidget {
   const HoldingsScreen({super.key});
@@ -16,12 +18,14 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
   bool companySelected = true;
   List<Share> _selectedShares = [];
   late Future<List<Share>?>? _sharesFuture;
+  late Future<double> _totalValuation;
   final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
 
   @override
   void initState() {
     super.initState();
     _sharesFuture = getUsersShares();
+    _totalValuation = getUsersValue();
   }
 
   @override
@@ -212,23 +216,6 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
               'Your Owned Companies',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            FutureBuilder<double>(
-              future: getUsersValue(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
-                }
-                final value = snapshot.data ?? 0.0;
-                return Text(
-                  'Total Valuation: ${currencyFormat.format(value)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Color.fromARGB(255, 0, 0, 0),
-                  ),
-                );
-              },
-            ),
           ],
         ),
 
@@ -343,9 +330,22 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
               'Your Share Portfolio',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            Text(
-              'Selected: ${_selectedShares.length}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            FutureBuilder<double>(
+              future: _totalValuation,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const CircularProgressIndicator();
+                }
+                final value = snapshot.data ?? 0.0;
+                return Text(
+                  'Total Valuation: ${currencyFormat.format(value)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color.fromARGB(255, 0, 0, 0),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -435,12 +435,54 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
     );
   }
 
+  bool allSharesForSale() {
+    return _selectedShares.every((share) => share.purchasable);
+  }
+
+  bool allSharesNotForSale() {
+    return _selectedShares.every((share) => !share.purchasable);
+  }
+
+  void selectAllNotForSaleShares() async {
+    final shares = await _sharesFuture;
+    setState(() {
+      _selectedShares.addAll(
+        (shares ?? [])
+            .where(
+              (share) => !share.purchasable && !_selectedShares.contains(share),
+            )
+            .toList(),
+      );
+    });
+  }
+
+  void selectAllForSaleShares() async {
+    final shares = await _sharesFuture;
+    setState(() {
+      _selectedShares.addAll(
+        (shares ?? [])
+            .where(
+              (share) => share.purchasable && !_selectedShares.contains(share),
+            )
+            .toList(),
+      );
+    });
+  }
+
   // Share action buttons
   Widget _buildShareActions() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.end,
       children: [
-        ElevatedButton.icon(
+        // Quick Sell button
+        _buildActionButton(
+          icon: Icons.sell,
+          label: 'Quick Sell',
+          count: _selectedShares.length,
+          color: const Color.fromARGB(255, 23, 221, 97),
+          isEnabled: _selectedShares.isNotEmpty && allSharesNotForSale(),
           onPressed: () async {
             if (_selectedShares.isNotEmpty) {
               await quickSell();
@@ -450,76 +492,139 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
               );
             }
           },
-          icon: const Icon(Icons.sell, color: Colors.white),
-          label: Text(
-            'Quick Sell (${_selectedShares.length})',
-            style: const TextStyle(color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 23, 221, 97),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
         ),
-        const SizedBox(width: 16),
-        ElevatedButton.icon(
+
+        // Sell Share button
+        _buildActionButton(
+          icon: Icons.storefront,
+          label: 'Sell Share',
+          color: const Color.fromARGB(255, 25, 109, 14),
+          isEnabled: _selectedShares.length == 1 && allSharesNotForSale(),
           onPressed: () {
             if (_selectedShares.isNotEmpty) {
-              makeSharesUnPurchasable();
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No shares selected.')),
+              context.go(
+                '/home/holdings/sell_share',
+                extra: _selectedShares.first,
               );
             }
           },
-          icon: const Icon(Icons.remove_shopping_cart, color: Colors.white),
-          label: const Text(
-            'Remove from Market',
-            style: TextStyle(color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blueGrey,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
         ),
 
-        if (_selectedShares.isNotEmpty) ...[
-          const SizedBox(width: 16),
-          ElevatedButton.icon(
-            onPressed: () {
-              setState(() {
-                _selectedShares.clear();
-              });
-            },
-            icon: const Icon(Icons.clear, color: Colors.white),
-            label: const Text(
-              'Clear Selection',
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 187, 187, 187),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-          ),
-        ],
-        const SizedBox(width: 16),
-        ElevatedButton.icon(
+        // Split Share button
+        _buildActionButton(
+          icon: Icons.call_split,
+          label: 'Split Share',
+          color: const Color.fromARGB(255, 0, 204, 255),
+          isEnabled:
+              _selectedShares.length == 1 &&
+              allSharesNotForSale() &&
+              !_selectedShares.first.isPublic,
+          onPressed: () {
+            if (_selectedShares.isNotEmpty) {
+              context.go(
+                '/home/holdings/modify_share',
+                extra: _selectedShares.first,
+              );
+            }
+          },
+        ),
+
+        // Remove from Market button
+        _buildActionButton(
+          icon: Icons.remove_shopping_cart,
+          label: 'Delist',
+          color: Colors.blueGrey,
+          isEnabled: _selectedShares.isNotEmpty && allSharesForSale(),
+          onPressed: () {
+            if (_selectedShares.isNotEmpty) {
+              makeSharesUnPurchasable();
+            }
+          },
+        ),
+
+        // Clear Selection button
+        _buildActionButton(
+          icon: Icons.deselect,
+          label: 'Clear',
+          color: const Color.fromARGB(255, 187, 187, 187),
+          isEnabled: _selectedShares.isNotEmpty,
+          onPressed: () {
+            setState(() {
+              _selectedShares.clear();
+            });
+          },
+        ),
+
+        // Select Not For Sale button
+        _buildActionButton(
+          icon: Icons.unpublished,
+          label: 'Select Unlisted',
+          color: const Color.fromARGB(255, 255, 193, 7),
+          isEnabled: true, // Always enabled
+          onPressed: () {
+            selectAllNotForSaleShares();
+          },
+        ),
+
+        // Select For Sale button
+        _buildActionButton(
+          icon: Icons.shopping_cart,
+          label: 'Select Listed',
+          color: const Color.fromARGB(255, 23, 221, 97),
+          isEnabled: true, // Always enabled
+          onPressed: () {
+            selectAllForSaleShares();
+          },
+        ),
+
+        // Refresh Shares button
+        _buildActionButton(
+          icon: Icons.refresh,
+          label: 'Refresh',
+          color: const Color.fromARGB(255, 75, 210, 214),
+          isEnabled: true, // Always enabled
           onPressed: () {
             _sharesFuture = getUsersShares();
             setState(() {
               _selectedShares.clear();
             });
           },
-          icon: const Icon(Icons.clear, color: Colors.white),
-          label: const Text(
-            'Refresh Shares',
-            style: TextStyle(color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color.fromARGB(255, 75, 210, 214),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isEnabled,
+    required VoidCallback onPressed,
+    int? count,
+  }) {
+    return ElevatedButton(
+      onPressed: isEnabled ? onPressed : null,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isEnabled ? color : Colors.grey[350],
+        disabledBackgroundColor: Colors.grey[350],
+        foregroundColor: Colors.white,
+        disabledForegroundColor: Colors.grey[600],
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            count != null ? '$label (${count.toString()})' : label,
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 
@@ -979,6 +1084,35 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
                 const Divider(),
                 const SizedBox(height: 8),
 
+                // Share performance graph
+                FutureBuilder<List<PriceVsTime>>(
+                  future: _getPriceVsTimeData(share),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(
+                        child: Text('No price history available'),
+                      );
+                    } else {
+                      final priceHistory = snapshot.data!;
+                      return SizedBox(
+                        height: 200,
+                        child: Linegraph2Widget(
+                          title: share.company!.name,
+                          data: priceHistory,
+                        ),
+                      );
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+
                 // Share details
                 _buildDetailRow(
                   'Stake Percentage',
@@ -1241,6 +1375,23 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<List<PriceVsTime>> _getPriceVsTimeData(share) async {
+    try {
+      if (share.isPublic) {
+        return await SupabaseHelper.getSharePriceHistory(share.companyId);
+      } else {
+        return await SupabaseHelper.getCompanyPriceHistory(
+          share.company!.id,
+          share.stake,
+        );
+      }
+    } catch (e) {
+      // Log error for debugging
+      debugPrint('Error fetching price history: $e');
+      rethrow;
     }
   }
 }

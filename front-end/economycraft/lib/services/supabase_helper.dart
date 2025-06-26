@@ -343,12 +343,9 @@ class SupabaseHelper {
     }
   }
 
-  static Future<bool> transferMoney(
-    int payerId,
-    int payeeId,
-    double amount,
-  ) async {
+  static Future<bool> transferMoney(int payeeId, double amount) async {
     try {
+      final payerId = await getPlayerId();
       double payerBalance = await getUserBalance();
       if (payerBalance < amount) {
         developer.log('Error: Insufficient balance');
@@ -1745,7 +1742,7 @@ class SupabaseHelper {
           .select()
           .eq('user_id', userRowId)
           .order('created_at', ascending: false)
-          .limit(10);
+          .limit(30);
       if (response.isEmpty) {
         developer.log('No net worth history found for user ID: $userRowId');
         return [];
@@ -1787,6 +1784,78 @@ class SupabaseHelper {
     } catch (e) {
       developer.log('Error fetching orders for user\'s companies: $e');
       return [];
+    }
+  }
+
+  //
+  //
+  // Wallet related functions
+  //
+  //
+
+  static Future<String> depositFunds(double amount) async {
+    try {
+      final userId = await getPlayerId();
+
+      if (userId == 0) {
+        developer.log('Error: User ID is 0');
+        return '';
+      }
+
+      final response = await _client
+          .from('withdrawl_deposit')
+          .insert({'user_id': userId, 'amount': amount, 'is_deposit': true})
+          .select('code');
+
+      if (response.isEmpty) {
+        developer.log('Error: No response from deposit function');
+        return '';
+      }
+
+      final code = response[0]['code'] as String?;
+      if (code == null) {
+        developer.log('Error: Code is null after deposit');
+        return '';
+      }
+
+      developer.log('Funds deposited successfully: $amount, code: $code');
+      return code;
+    } catch (e) {
+      developer.log('Error depositing funds: $e');
+      return '';
+    }
+  }
+
+  static Future<String> withdrawFunds(double amount) async {
+    try {
+      final userId = await getPlayerId();
+
+      if (userId == 0) {
+        developer.log('Error: User ID is 0');
+        return '';
+      }
+
+      final response = await _client
+          .from('withdrawl_deposit')
+          .insert({'user_id': userId, 'amount': amount, 'is_deposit': false})
+          .select('code');
+
+      if (response.isEmpty) {
+        developer.log('Error: No response from withdraw function');
+        return '';
+      }
+
+      final code = response[0]['code'] as String?;
+      if (code == null) {
+        developer.log('Error: Code is null after withdrawal');
+        return '';
+      }
+
+      developer.log('Funds withdrawn successfully: $amount, code: $code');
+      return code;
+    } catch (e) {
+      developer.log('Error withdrawing funds: $e');
+      return '';
     }
   }
 }

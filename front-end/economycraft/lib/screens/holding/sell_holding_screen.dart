@@ -93,21 +93,21 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
                     // Header section with company info
                     _buildHeaderSection(),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 15),
                     const Divider(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 15),
 
                     // Chart section
                     _buildChartSection(screenWidth, screenHeight),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 15),
                     const Divider(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 15),
 
                     // Sale price section
                     _buildSalePriceSection(),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 15),
 
                     // Action buttons
                     _buildActionButtons(),
@@ -233,7 +233,7 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
   Widget _buildChartSection(double screenWidth, double screenHeight) {
     return Container(
       width: double.infinity,
-      height: screenHeight * 0.4,
+      height: screenHeight * 0.35,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[200]!, width: 1),
@@ -351,49 +351,6 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
           ),
         ),
         const SizedBox(height: 16),
-
-        // Explanatory text
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 229, 255, 252),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: const Color.fromARGB(255, 74, 237, 217),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Color.fromARGB(255, 74, 237, 217),
-                    size: 20,
-                  ),
-                  SizedBox(width: 10),
-                  Text(
-                    'About Listing Shares',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color.fromARGB(255, 74, 237, 217),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Setting the right price is crucial for a successful sale. Your share will be listed on the market at the price you specify. Other players can purchase it at that price. If priced too high, it may not sell. If priced too low, you might miss out on potential profits.',
-                style: TextStyle(fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 24),
 
         // Price input section
         Container(
@@ -566,6 +523,47 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
               ),
             ),
           ),
+        const SizedBox(height: 24),
+        // Explanatory text
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(255, 229, 255, 252),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: const Color.fromARGB(255, 74, 237, 217),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Color.fromARGB(255, 74, 237, 217),
+                    size: 20,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'About Listing Shares',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color.fromARGB(255, 74, 237, 217),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Setting the right price is crucial for a successful sale. Your share will be listed on the market at the price you specify. Other players can purchase it at that price. If priced too high, it may not sell. If priced too low, you might miss out on potential profits.',
+                style: TextStyle(fontSize: 14),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
