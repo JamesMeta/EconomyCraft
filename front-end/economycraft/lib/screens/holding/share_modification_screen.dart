@@ -25,12 +25,15 @@ class _ShareModificationScreenState extends State<ShareModificationScreen> {
 
   // Define min and max share split values
   final double _minShareSplit = 2;
-  final double _maxShareSplit = 100;
+
+  final TextEditingController _numberOfSharesController =
+      TextEditingController();
 
   @override
   void initState() {
     super.initState();
     sharesStake = widget.share.stake;
+    _numberOfSharesController.text = '2';
   }
 
   @override
@@ -400,31 +403,30 @@ class _ShareModificationScreenState extends State<ShareModificationScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: const Color.fromARGB(255, 23, 221, 97),
-                inactiveTrackColor: Colors.grey[300],
-                thumbColor: const Color.fromARGB(255, 74, 237, 217),
-                overlayColor: const Color.fromARGB(30, 74, 237, 217),
-                valueIndicatorColor: const Color.fromARGB(255, 74, 237, 217),
-                valueIndicatorTextStyle: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
+            TextField(
+              controller: _numberOfSharesController,
+              maxLines: 1,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: Colors.grey[400]!, width: 1),
+                ),
+                hintText: 'Enter number of shares',
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
               ),
-              child: Slider(
-                value: _numberOfNewShares,
-                min: _minShareSplit,
-                max: _maxShareSplit,
-                divisions: (_maxShareSplit - _minShareSplit).toInt(),
-                label: _numberOfNewShares.toStringAsFixed(0),
-                onChanged: (value) {
+              onChanged: (value) {
+                final newValue = double.tryParse(value);
+                if (newValue != null && newValue >= _minShareSplit) {
                   setState(() {
-                    _numberOfNewShares = value;
-                    sharesStake = widget.share.stake / (value + 1);
+                    _numberOfNewShares = newValue;
+                    sharesStake = widget.share.stake / _numberOfNewShares;
                   });
-                },
-              ),
+                }
+              },
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -468,7 +470,7 @@ class _ShareModificationScreenState extends State<ShareModificationScreen> {
               const SizedBox(height: 8),
               _buildDetailRow(
                 'New Stake Per Share',
-                '${(sharesStake / _numberOfNewShares * 100).toStringAsFixed(4)}%',
+                '${(sharesStake * 100).toStringAsFixed(4)}%',
                 valueColor: const Color.fromARGB(255, 23, 221, 97),
               ),
               const SizedBox(height: 8),
@@ -580,12 +582,11 @@ class _ShareModificationScreenState extends State<ShareModificationScreen> {
 
   Future<void> _splitShare() async {
     // Input validation
-    if (_numberOfNewShares < _minShareSplit ||
-        _numberOfNewShares > _maxShareSplit) {
+    if (_numberOfNewShares < _minShareSplit) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Please select a number of shares between $_minShareSplit and $_maxShareSplit.',
+            'Please select a number of shares greater than $_minShareSplit',
           ),
           backgroundColor: Colors.red,
         ),

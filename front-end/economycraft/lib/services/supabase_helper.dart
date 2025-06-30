@@ -1,3 +1,4 @@
+import 'package:economycraft/classes/admin_message.dart';
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/player.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
@@ -160,6 +161,29 @@ class SupabaseHelper {
       developer.log('Error fetching user delivery address: $e');
       return '';
     }
+  }
+
+  static Future<Player> getUserByRowId(rowId) async {
+    return await _client
+        .from('users')
+        .select()
+        .eq('id', rowId)
+        .limit(1)
+        .single()
+        .then((response) {
+          if (response.isEmpty) {
+            throw Exception('User not found');
+          }
+          return Player(
+            id: response['id'] ?? 0,
+            name: response['minecraft_username'] ?? '',
+            deliveryAddress: response['delivery_address'] ?? '',
+            avatarUrl: response['avatar_url'] ?? '',
+            ai: response['ai'] ?? false,
+            money: response['money']?.toDouble() ?? 0.0,
+            createdAt: DateTime.parse(response['created_at'] ?? ''),
+          );
+        });
   }
 
   static Future<double> getUserBalance() async {
@@ -1489,6 +1513,7 @@ class SupabaseHelper {
             userId: share['user_id'],
             company: await getCompanyById(share['company_id']),
             isPublic: share['is_public'] ?? false,
+            isOriginal: share['original_stock'] ?? false,
           );
         }).toList(),
       );
@@ -1594,6 +1619,174 @@ class SupabaseHelper {
     }
   }
 
+  static Future<Share> getCompanyShareByCompanyId(int companyId) async {
+    try {
+      final responses = await _client
+          .from('shares')
+          .select()
+          .eq('company_id', companyId)
+          .eq('original_stock', true)
+          .limit(1);
+      if (responses.isEmpty) {
+        throw Exception('No original share found for company ID: $companyId');
+      }
+      final shareData = responses[0];
+      return Share(
+        id: shareData['id'],
+        createdAt: DateTime.parse(shareData['created_at']),
+        companyId: shareData['company_id'],
+        stake: shareData['stake'],
+        purchasePrice: shareData['purchased_price'],
+        value: shareData['value'],
+        salePrice: shareData['sale_price'] ?? 0.0,
+        purchasable: shareData['purchasable'],
+        userId: shareData['user_id'],
+        company: await getCompanyById(shareData['company_id']),
+        isPublic: shareData['is_public'] ?? false,
+        isOriginal: shareData['original_stock'] ?? false,
+      );
+    } catch (e) {
+      developer.log('Error fetching company share by company ID: $e');
+      throw Exception('Failed to fetch company share: $e');
+    }
+  }
+
+  static Future<List<Share>> getForSaleSharesByCompanyId(int companyId) async {
+    try {
+      final response = await _client
+          .from('shares')
+          .select()
+          .eq('company_id', companyId)
+          .eq('purchasable', true)
+          .order('value', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<Share> shares = await Future.wait(
+        response.map<Future<Share>>((share) async {
+          return Share(
+            id: share['id'],
+            createdAt: DateTime.parse(share['created_at']),
+            companyId: share['company_id'],
+            stake: share['stake'],
+            purchasePrice: share['purchased_price'],
+            value: share['value'],
+            salePrice: share['sale_price'] ?? 0.0,
+            purchasable: share['purchasable'],
+            userId: share['user_id'],
+            company: await getCompanyById(share['company_id']),
+            isPublic: share['is_public'] ?? false,
+            isOriginal: share['original_stock'] ?? false,
+          );
+        }).toList(),
+      );
+      return shares;
+    } catch (e) {
+      developer.log('Error fetching for sale shares by company ID: $e');
+      return [];
+    }
+  }
+
+  static Future<Map<Player, double>> getInvestorsForCompany(
+    int companyId,
+  ) async {
+    try {
+      final response = await _client
+          .from('shares')
+          .select('user_id, stake')
+          .eq('company_id', companyId);
+
+      if (response.isEmpty) {
+        developer.log('No investors found for company ID: $companyId');
+        return {};
+      }
+
+      final Map<int, double> investors = {};
+      for (var share in response) {
+        final userId = share['user_id'];
+        final stake = share['stake']?.toDouble() ?? 0.0;
+        if (investors.containsKey(userId)) {
+          investors[userId] = investors[userId]! + stake; // Sum stakes
+        } else {
+          investors[userId] = stake; // Initialize stake
+        }
+      }
+
+      // Convert user IDs to Player objects
+      final Map<Player, double> playerInvestors = {};
+      for (var entry in investors.entries) {
+        final userId = entry.key;
+        final stake = entry.value;
+
+        // Fetch player details
+        final player = await getUserByRowId(entry.key);
+        if (player != null) {
+          playerInvestors[player] = stake; // Map Player to stake
+        } else {
+          developer.log('Error: Player not found for user ID: $userId');
+        }
+      }
+      return playerInvestors;
+    } catch (e) {
+      developer.log('Error fetching investors for company: $e');
+      return {};
+    }
+  }
+
+  static Future<Share> getShareById(int shareId) async {
+    try {
+      final response =
+          await _client
+              .from('shares')
+              .select()
+              .eq('id', shareId)
+              .limit(1)
+              .single();
+      if (response.isEmpty) {
+        throw Exception('Share not found for ID: $shareId');
+      }
+      return Share(
+        id: response['id'],
+        createdAt: DateTime.parse(response['created_at']),
+        companyId: response['company_id'],
+        stake: response['stake'],
+        purchasePrice: response['purchased_price'],
+        value: response['value'],
+        salePrice: response['sale_price'] ?? 0.0,
+        purchasable: response['purchasable'],
+        userId: response['user_id'],
+        company: await getCompanyById(response['company_id']),
+        isPublic: response['is_public'] ?? false,
+        isOriginal: response['original_stock'] ?? false,
+      );
+    } catch (e) {
+      developer.log('Error fetching share by ID: $e');
+      throw Exception('Failed to fetch share: $e');
+    }
+  }
+
+  static Future<bool> purchaseShares(List<Share> shares) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      final userRowId = await getPlayerId();
+      for (var share in shares) {
+        await _client.rpc(
+          'purchase_share',
+          params: {'buyer_id': userRowId, 'input_share_id': share.id},
+        );
+        developer.log('Share purchased successfully: ${share.id}');
+      }
+      return true;
+    } catch (e) {
+      developer.log('Error purchasing shares: $e');
+      return false;
+    }
+  }
+
   //
   //
   // Homepage related functions
@@ -1688,6 +1881,7 @@ class SupabaseHelper {
           userId: shareId['user_id'],
           company: await getCompanyById(shareId['company_id']),
           isPublic: shareId['is_public'] ?? false,
+          isOriginal: shareId['original_stock'] ?? false,
         );
         if (share.company == null) {
           developer.log(
@@ -1787,6 +1981,53 @@ class SupabaseHelper {
     }
   }
 
+  static Future<bool> joinShares(List<Share> shares) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+    try {
+      double totalValue = 0.0;
+      double totalStake = 0.0;
+      double totalPurchasePrice = 0.0;
+      Share concatenatedShare = shares.first;
+      for (var share in shares) {
+        totalValue += share.value;
+        totalStake += share.stake;
+        totalPurchasePrice += share.purchasePrice;
+        if (share.isOriginal) {
+          concatenatedShare = share;
+        }
+      }
+
+      shares.remove(concatenatedShare);
+
+      final updateResponse = await _client
+          .from('shares')
+          .update({
+            'value': totalValue,
+            'stake': totalStake,
+            'purchased_price': totalPurchasePrice,
+            'purchasable': false,
+          })
+          .eq('id', concatenatedShare.id)
+          .select('id');
+      if (updateResponse.isEmpty) {
+        developer.log('Error: No response from share update');
+        return false;
+      }
+
+      for (var share in shares) {
+        await _client.from('shares').delete().eq('id', share.id);
+      }
+
+      return true;
+    } catch (e) {
+      developer.log('Error joining shares: $e');
+      return false;
+    }
+  }
+
   //
   //
   // Wallet related functions
@@ -1856,6 +2097,39 @@ class SupabaseHelper {
     } catch (e) {
       developer.log('Error withdrawing funds: $e');
       return '';
+    }
+  }
+
+  //
+  //
+  // Admin related functions
+  //
+  //
+
+  static Future<List<AdminMessage>> getAdminMessages() async {
+    try {
+      final response = await _client
+          .from('server_announcements')
+          .select()
+          .order('created_at', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<AdminMessage> messages =
+          response.map<AdminMessage>((message) {
+            return AdminMessage(
+              id: message['id'],
+              title: message['title'],
+              content: message['content'],
+              date: DateTime.parse(message['created_at']),
+              important: message['important'] ?? false,
+              authorName: message['author_name'] ?? 'Admin',
+            );
+          }).toList();
+      return messages;
+    } catch (e) {
+      developer.log('Error fetching admin messages: $e');
+      return [];
     }
   }
 }

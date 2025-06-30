@@ -1,5 +1,7 @@
 import 'package:economycraft/classes/company.dart';
+import 'package:economycraft/classes/player.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/services/supabase_helper.dart';
 import 'package:economycraft/classes/product.dart';
@@ -9,6 +11,9 @@ import 'package:intl/intl.dart';
 import 'package:economycraft/widgets/build_stat_card_widget.dart';
 import 'package:economycraft/widgets/build_edit_dialog_widget.dart';
 import 'package:economycraft/widgets/build_editable_field_widget.dart';
+import 'package:economycraft/classes/price_vs_time.dart';
+import 'package:economycraft/widgets/linegraph_2_widget.dart';
+import 'package:economycraft/classes/share.dart';
 
 class CompanyPageBackendScreen extends StatefulWidget {
   final Company? company;
@@ -26,6 +31,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _minecraftTagController = TextEditingController();
+
+  bool _isbuilt = false;
+  List<PriceVsTime> _priceVsTimeData = [];
 
   @override
   Widget build(BuildContext context) {
@@ -433,64 +441,130 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
                             // Stock price chart
                             Container(
-                              height: 200,
                               width: double.infinity,
-                              padding: const EdgeInsets.all(16),
+                              height: screenHeight * 0.3,
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: const Color.fromARGB(
-                                    255,
-                                    201,
-                                    201,
-                                    201,
-                                  ),
+                                  color: Colors.grey[200]!,
                                   width: 1,
                                 ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color.fromARGB(255, 244, 244, 244),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
+                                color: const Color.fromARGB(255, 250, 250, 250),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Stock Price History',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Expanded(
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.trending_up,
-                                            size: 48,
-                                            color: Colors.grey[300],
-                                          ),
-                                          const SizedBox(height: 16),
-                                          Text(
-                                            'Stock price chart will appear here',
-                                            style: TextStyle(
-                                              color: Colors.grey[500],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child:
+                                    !_isbuilt
+                                        ? FutureBuilder<List<PriceVsTime>>(
+                                          future: _getPriceVsTimeData(),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const Center(
+                                                child: CircularProgressIndicator(
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(
+                                                        Color.fromARGB(
+                                                          255,
+                                                          74,
+                                                          237,
+                                                          217,
+                                                        ),
+                                                      ),
+                                                ),
+                                              );
+                                            } else if (snapshot.hasError) {
+                                              return Center(
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.error_outline,
+                                                      color: Colors.red,
+                                                      size: 60,
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      'Error: ${snapshot.error}',
+                                                      style: const TextStyle(
+                                                        color: Colors.red,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 20),
+                                                    ElevatedButton.icon(
+                                                      onPressed: () {
+                                                        setState(() {
+                                                          _isbuilt = false;
+                                                        });
+                                                      },
+                                                      icon: const Icon(
+                                                        Icons.refresh,
+                                                      ),
+                                                      label: const Text(
+                                                        'Try Again',
+                                                      ),
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            const Color.fromARGB(
+                                                              255,
+                                                              74,
+                                                              237,
+                                                              217,
+                                                            ),
+                                                        foregroundColor:
+                                                            Colors.white,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            } else if (!snapshot.hasData ||
+                                                snapshot.data!.isEmpty) {
+                                              return Center(
+                                                child: Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.show_chart,
+                                                      size: 60,
+                                                      color: Colors.grey[400],
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Text(
+                                                      'No price history available',
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                        color: Colors.grey[600],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            } else {
+                                              _priceVsTimeData = snapshot.data!;
+                                              _isbuilt = true;
+                                              return Linegraph2Widget(
+                                                title: 'Share Price History',
+                                                subtitle:
+                                                    '${widget.company!.name}',
+                                                data: snapshot.data!,
+                                                xAxisLabel: 'Time',
+                                                yAxisLabel: 'Price',
+                                              );
+                                            }
+                                          },
+                                        )
+                                        : Linegraph2Widget(
+                                          title: 'Share Price History',
+                                          subtitle: '${widget.company!.name} ',
+                                          data: _priceVsTimeData,
+                                          xAxisLabel: 'Time',
+                                          yAxisLabel: 'Price',
+                                        ),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -549,12 +623,12 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                               children: [
                                 Expanded(
                                   child: ElevatedButton.icon(
-                                    onPressed: () {
+                                    onPressed: () async {
                                       // Issue new shares
-                                      _issueNewShares();
+                                      await _issueNewShares();
                                     },
                                     icon: const Icon(Icons.add_circle_outline),
-                                    label: const Text('Issue New Shares'),
+                                    label: const Text('Conduct Stock Split'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color.fromARGB(
                                         255,
@@ -1266,59 +1340,482 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
   }
 
   // Method to issue new shares
-  void _issueNewShares() {
-    final sharesController = TextEditingController(text: '100');
+  Future<void> _issueNewShares() async {
+    final sharesController = TextEditingController(text: '1');
+    bool isLoading = false;
+
+    // Show loading indicator while fetching share data
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => const Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Color.fromARGB(255, 74, 237, 217),
+              ),
+            ),
+          ),
+    );
+
+    // Fetch current share data
+    final Share share = await SupabaseHelper.getCompanyShareByCompanyId(
+      widget.company!.id,
+    );
+
+    // Close loading indicator
+    Navigator.of(context).pop();
+
+    if (!mounted) return;
+
+    // Format numbers
+    final currencyFormat = NumberFormat.currency(
+      symbol: '\$',
+      decimalDigits: 2,
+    );
+    final percentFormat = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Issue New Shares'),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: sharesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Number of Shares',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Issuing new shares will dilute the value of existing shares. Use this feature carefully.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+      builder: (context) {
+        double sharesStake = share.stake;
+        double sharesValue = share.value;
+        int splitFactor = 2;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  // Issue new shares logic
-                  _processNewShares(int.tryParse(sharesController.text) ?? 100);
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 23, 221, 97),
-                  foregroundColor: Colors.white,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.5,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Dialog header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 229, 255, 252),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.call_split,
+                            color: Color.fromARGB(255, 74, 237, 217),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Text(
+                            'Perform a Stock Split',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Current share information
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(
+                          255,
+                          229,
+                          255,
+                          252,
+                        ).withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color.fromARGB(
+                            255,
+                            74,
+                            237,
+                            217,
+                          ).withOpacity(0.5),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Current Share Information',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 74, 237, 217),
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoItem(
+                                  'Ownership Per Share',
+                                  percentFormat.format(share.stake),
+                                  Icons.pie_chart,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildInfoItem(
+                                  'Value Per Share',
+                                  currencyFormat.format(share.value),
+                                  Icons.attach_money,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Stock split input section
+                    const Text(
+                      'Stock Split Configuration',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: sharesController,
+                            decoration: InputDecoration(
+                              labelText: 'Split Ratio (1:X)',
+                              helperText: 'Enter a number greater than 1',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              prefixIcon: const Icon(Icons.numbers),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color.fromARGB(255, 74, 237, 217),
+                                  width: 2,
+                                ),
+                              ),
+                              errorText:
+                                  splitFactor < 2 ? 'Must be at least 2' : null,
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            onChanged: (value) {
+                              final newFactor = int.tryParse(value) ?? 1;
+                              setState(() {
+                                splitFactor = newFactor;
+                                if (newFactor > 0) {
+                                  sharesStake = share.stake / newFactor;
+                                  sharesValue = share.value / newFactor;
+                                } else {
+                                  sharesStake = share.stake;
+                                  sharesValue = share.value;
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '1',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Colors.grey[800],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.arrow_right_alt,
+                                    color: Color.fromARGB(255, 74, 237, 217),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    splitFactor.toString(),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color:
+                                          splitFactor >= 2
+                                              ? const Color.fromARGB(
+                                                255,
+                                                23,
+                                                221,
+                                                97,
+                                              )
+                                              : Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '1 share becomes $splitFactor',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // After split preview
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 245, 255, 250),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color.fromARGB(
+                            255,
+                            23,
+                            221,
+                            97,
+                          ).withOpacity(0.5),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.preview,
+                                color: Color.fromARGB(255, 23, 221, 97),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'After Split Preview',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color.fromARGB(255, 23, 221, 97),
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoItem(
+                                  'New Ownership Per Share',
+                                  percentFormat.format(sharesStake),
+                                  Icons.pie_chart,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildInfoItem(
+                                  'New Value Per Share',
+                                  currencyFormat.format(sharesValue),
+                                  Icons.attach_money,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Information section
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 255, 245, 230),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color.fromARGB(
+                            255,
+                            255,
+                            193,
+                            7,
+                          ).withOpacity(0.5),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: Color.fromARGB(255, 255, 193, 7),
+                            size: 24,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'About Stock Splits',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: Color.fromARGB(255, 255, 153, 0),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'A stock split increases the number of shares while maintaining the same total company value. Each investor will maintain their ownership percentage, but will own more shares at a lower price per share. This can make shares more attractive to new investors.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[800],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Action buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed:
+                              isLoading
+                                  ? null
+                                  : () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.cancel),
+                          label: const Text('Cancel'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.grey[700],
+                            side: BorderSide(color: Colors.grey[400]!),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed:
+                              isLoading || splitFactor < 2
+                                  ? null
+                                  : () async {
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+
+                                    await _processNewShares(splitFactor);
+
+                                    if (mounted) {
+                                      Navigator.of(context).pop();
+                                    }
+                                  },
+                          icon:
+                              isLoading
+                                  ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 3,
+                                    ),
+                                  )
+                                  : const Icon(Icons.call_split),
+                          label: Text(
+                            isLoading ? 'Processing...' : 'Perform Split',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color.fromARGB(
+                              255,
+                              23,
+                              221,
+                              97,
+                            ),
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.grey[400],
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                child: const Text('Issue Shares'),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Helper method for information items
+  Widget _buildInfoItem(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
+        ),
+      ],
     );
   }
 
   // Method to view investors
-  void _viewInvestors() {
+  void _viewInvestors() async {
     showDialog(
       context: context,
       builder:
@@ -1328,7 +1825,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             content: SizedBox(
-              width: double.maxFinite,
+              width: MediaQuery.of(context).size.width * 0.5,
               child: FutureBuilder(
                 future: _getInvestors(),
                 builder: (context, snapshot) {
@@ -1339,7 +1836,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                       child: Text('Error loading investors: ${snapshot.error}'),
                     );
                   } else if (!snapshot.hasData ||
-                      (snapshot.data as List).isEmpty) {
+                      (snapshot.data as Map).isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1358,22 +1855,28 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                     );
                   } else {
                     // Display investor list
-                    final investors = snapshot.data as List;
+                    final Map<Player, double>? investor = snapshot.data;
+                    final investors = investor?.keys.toList() ?? [];
                     return ListView.builder(
                       shrinkWrap: true,
                       itemCount: investors.length,
                       itemBuilder: (context, index) {
-                        final investor = investors[index];
+                        final player = investors[index];
+                        final stake = investor![player]! * 100 ?? 0.0;
+
                         return ListTile(
-                          title: Text(investor['username'] ?? 'Anonymous'),
-                          subtitle: Text('${investor['shares']} shares'),
-                          trailing: Text(
-                            '\$${(investor['shares'] * (0.0)).toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 23, 221, 97),
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                image: NetworkImage(player.avatarUrl),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
+                          title: Text(player.name),
+                          subtitle: Text('$stake% Ownership'),
                         );
                       },
                     );
@@ -1414,34 +1917,71 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     // }
   }
 
-  Future<void> _processNewShares(int shares) async {
-    // if (widget.company != null) {
-    //   // Call your helper service to issue new shares
-    //   await SupabaseHelper.issueNewCompanyShares(widget.company!.id, shares);
+  Future<void> _processNewShares(int splitFactor) async {
+    if (splitFactor < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'You must issue a multiple of atleast 2 for a stock split. Current value: $splitFactor',
+          ),
+        ),
+      );
+      return;
+    }
 
-    //   setState(() {
-    //     // Update the local object
-    //     widget.company!.totalShares = (widget.company!.totalShares ?? 1000) + shares;
-    //   });
-
-    //   if (mounted) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       SnackBar(content: Text('Successfully issued $shares new shares')),
-    //     );
-    //   }
-    // }
+    final response = await SupabaseHelper.splitSharePublic(
+      widget.company!.id,
+      splitFactor,
+    );
+    if (response) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Shares issued successfully')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to issue new shares')),
+      );
+    }
   }
 
-  Future<List<Map<String, dynamic>>> _getInvestors() async {
-    // if (widget.company != null) {
-    //   // Call your helper service to get investors
-    //   return await SupabaseHelper.getCompanyInvestors(widget.company!.id);
-    // }
-    // return [];
-    return [
-      {'username': 'Investor1', 'shares': 50},
-      {'username': 'Investor2', 'shares': 30},
-      {'username': 'Investor3', 'shares': 20},
-    ];
+  Future<Share> _fetchCompanyStock() async {
+    try {
+      final share = await SupabaseHelper.getCompanyShareByCompanyId(
+        widget.company!.id,
+      );
+      return share;
+    } catch (e) {
+      debugPrint('Error fetching company stock: $e');
+      throw Exception('Failed to fetch company stock');
+    }
+  }
+
+  Future<List<PriceVsTime>> _getPriceVsTimeData() async {
+    try {
+      final share = await _fetchCompanyStock();
+      if (share.isPublic) {
+        return await SupabaseHelper.getSharePriceHistory(share!.companyId);
+      } else {
+        return await SupabaseHelper.getCompanyPriceHistory(
+          share.company!.id,
+          share.stake,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching price history: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<Player, double>> _getInvestors() async {
+    try {
+      final investors = await SupabaseHelper.getInvestorsForCompany(
+        widget.company!.id,
+      );
+      return investors;
+    } catch (e) {
+      debugPrint('Error fetching investors for company: $e');
+      return {};
+    }
   }
 }
