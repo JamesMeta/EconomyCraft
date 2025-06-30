@@ -483,6 +483,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           count: _selectedShares.length,
           color: const Color.fromARGB(255, 23, 221, 97),
           isEnabled: _selectedShares.isNotEmpty && allSharesNotForSale(),
+          enabledToolTip: 'List all selected shares for current market price',
+          disabledToolTip: 'Must have shares selected that are not for sale',
           onPressed: () async {
             if (_selectedShares.isNotEmpty) {
               await quickSell();
@@ -500,6 +502,9 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           label: 'Sell Share',
           color: const Color.fromARGB(255, 25, 109, 14),
           isEnabled: _selectedShares.length == 1 && allSharesNotForSale(),
+          enabledToolTip: 'Sell a single share on the market',
+          disabledToolTip:
+              'Must have exactly one share selected that is not for sale',
           onPressed: () {
             if (_selectedShares.isNotEmpty) {
               context.go(
@@ -519,6 +524,9 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
               _selectedShares.length == 1 &&
               allSharesNotForSale() &&
               !_selectedShares.first.isPublic,
+          enabledToolTip: 'Split a private share into multiple shares',
+          disabledToolTip:
+              'Must have exactly one private share selected that is not for sale',
           onPressed: () {
             if (_selectedShares.isNotEmpty) {
               context.go(
@@ -529,12 +537,30 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           },
         ),
 
+        // Join Shares button
+        _buildActionButton(
+          icon: Icons.merge_type,
+          label: 'Join Shares',
+          color: const Color.fromARGB(255, 255, 193, 7),
+          isEnabled: _selectedShares.length > 1 && allSharesFromSameCompany(),
+          enabledToolTip: 'Join multiple shares into one',
+          disabledToolTip:
+              'Must have multiple shares selected from the same company',
+          onPressed: () {
+            if (_selectedShares.isNotEmpty) {
+              joinShares();
+            }
+          },
+        ),
+
         // Remove from Market button
         _buildActionButton(
           icon: Icons.remove_shopping_cart,
           label: 'Delist',
           color: Colors.blueGrey,
           isEnabled: _selectedShares.isNotEmpty && allSharesForSale(),
+          enabledToolTip: 'Delist all selected shares from the market',
+          disabledToolTip: 'Must have shares selected that are for sale',
           onPressed: () {
             if (_selectedShares.isNotEmpty) {
               makeSharesUnPurchasable();
@@ -548,6 +574,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           label: 'Clear',
           color: const Color.fromARGB(255, 187, 187, 187),
           isEnabled: _selectedShares.isNotEmpty,
+          enabledToolTip: 'Clear all selected shares',
+          disabledToolTip: 'No shares selected',
           onPressed: () {
             setState(() {
               _selectedShares.clear();
@@ -561,6 +589,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           label: 'Select Unlisted',
           color: const Color.fromARGB(255, 255, 193, 7),
           isEnabled: true, // Always enabled
+          enabledToolTip: 'Select all shares that are not for sale',
+          disabledToolTip: 'All shares are already selected',
           onPressed: () {
             selectAllNotForSaleShares();
           },
@@ -572,6 +602,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           label: 'Select Listed',
           color: const Color.fromARGB(255, 23, 221, 97),
           isEnabled: true, // Always enabled
+          enabledToolTip: 'Select all shares that are for sale',
+          disabledToolTip: 'All shares are already selected',
           onPressed: () {
             selectAllForSaleShares();
           },
@@ -583,6 +615,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           label: 'Refresh',
           color: const Color.fromARGB(255, 75, 210, 214),
           isEnabled: true, // Always enabled
+          enabledToolTip: 'Refresh shares list',
+          disabledToolTip: 'Already refreshing',
           onPressed: () {
             _sharesFuture = getUsersShares();
             setState(() {
@@ -599,31 +633,36 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
     required String label,
     required Color color,
     required bool isEnabled,
+    required String enabledToolTip,
+    required String disabledToolTip,
     required VoidCallback onPressed,
     int? count,
   }) {
-    return ElevatedButton(
-      onPressed: isEnabled ? onPressed : null,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isEnabled ? color : Colors.grey[350],
-        disabledBackgroundColor: Colors.grey[350],
-        foregroundColor: Colors.white,
-        disabledForegroundColor: Colors.grey[600],
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    return Tooltip(
+      message: isEnabled ? enabledToolTip : disabledToolTip,
+      child: ElevatedButton(
+        onPressed: isEnabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isEnabled ? color : Colors.grey[350],
+          disabledBackgroundColor: Colors.grey[350],
+          foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.grey[600],
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
 
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16),
-          const SizedBox(width: 6),
-          Text(
-            count != null ? '$label (${count.toString()})' : label,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              count != null ? '$label (${count.toString()})' : label,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1372,6 +1411,81 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to remove shares from the market.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  bool allSharesFromSameCompany() {
+    if (_selectedShares.isEmpty) return false;
+    final companyId = _selectedShares.first.company?.id;
+    return _selectedShares.every((share) => share.company?.id == companyId);
+  }
+
+  Future<void> joinShares() async {
+    if (_selectedShares.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Select at least 2 shares to join.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedShares.any((share) => share.isPublic)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot join public shares.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedShares.any((share) => share.purchasable)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot join shares that are for sale.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check if all shares are from the same company
+    final companyId = _selectedShares.first.company?.id;
+    if (_selectedShares.any((share) => share.company?.id != companyId)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All shares must be from the same company to join.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Proceed with joining shares
+    final response = await SupabaseHelper.joinShares(_selectedShares);
+
+    if (response) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Shares successfully joined!'),
+          backgroundColor: Color.fromARGB(255, 23, 221, 97),
+        ),
+      );
+
+      // Clear selected shares after action
+      _sharesFuture = getUsersShares();
+      setState(() {
+        _selectedShares.clear();
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to join shares.'),
           backgroundColor: Colors.red,
         ),
       );

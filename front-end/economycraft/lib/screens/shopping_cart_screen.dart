@@ -1,3 +1,4 @@
+import 'package:economycraft/classes/share.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/classes/product.dart';
@@ -19,6 +20,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
   bool _isLoading = false;
   Map<int, int> productQuantities = {};
   List<Product> products = [];
+  List<Share> shares = [];
 
   @override
   void initState() {
@@ -146,8 +148,8 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
 
                   // Cart contents
                   Expanded(
-                    child: FutureBuilder<List<Product>>(
-                      future: fetchProducts(),
+                    child: FutureBuilder(
+                      future: Future.wait([fetchProducts(), fetchShares()]),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
@@ -184,11 +186,14 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                               ],
                             ),
                           );
-                        } else if (products.isEmpty) {
+                        } else if (products.isEmpty && shares.isEmpty) {
                           return const EmptyCartWidget();
                         }
 
                         // Cart has items - show split view with items and summary
+                        List<dynamic> items = [];
+                        items.addAll(products);
+                        items.addAll(shares);
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -216,18 +221,24 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                                     const SizedBox(height: 16),
                                     Expanded(
                                       child: ListView.builder(
-                                        itemCount: products.length,
+                                        itemCount: items.length,
                                         itemBuilder: (context, index) {
-                                          final product = products[index];
-                                          final quantity =
-                                              productQuantities[product.id] ??
-                                              1;
-
-                                          return _buildCartItemCard(
-                                            product: product,
-                                            quantity: quantity,
-                                            currencyFormat: currencyFormat,
-                                          );
+                                          final item = items[index];
+                                          if (item is Share) {
+                                            return _buildCartShareCard(
+                                              share: item,
+                                              currencyFormat: currencyFormat,
+                                            );
+                                          }
+                                          if (item is Product) {
+                                            return _buildCartItemCard(
+                                              product: item,
+                                              quantity:
+                                                  productQuantities[item.id] ??
+                                                  1,
+                                              currencyFormat: currencyFormat,
+                                            );
+                                          }
                                         },
                                       ),
                                     ),
@@ -487,6 +498,9 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
       int quantity = productQuantities[product.id] ?? 1;
       total += product.price * quantity;
     }
+    for (var share in shares) {
+      total += share.salePrice; // Assuming salePrice is the price of the share
+    }
     return total;
   }
 
@@ -697,6 +711,148 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
     );
   }
 
+  Widget _buildCartShareCard({
+    required Share share,
+    required NumberFormat currencyFormat,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color.fromARGB(255, 201, 201, 201),
+          width: 1,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromARGB(255, 244, 244, 244),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product image
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: const Color.fromARGB(255, 201, 201, 201),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(7),
+              child: Image.network(
+                share.company!.avatarUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Icon(
+                      Icons.inventory_2,
+                      color: Colors.grey,
+                      size: 36,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // Product details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  share.company!.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${share.stake.toStringAsFixed(2)}% Stake',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // Price and quantity
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                currencyFormat.format(share.salePrice),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Color.fromARGB(255, 23, 221, 97),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  // Remove one
+                  IconButton(
+                    onPressed: () {
+                      removeShareFromCart(share);
+                      setState(() {}); // Refresh UI
+                    },
+                    icon: Icon(
+                      Icons.remove_circle_outline,
+                      size: 20,
+                      color: Colors.red[400],
+                    ),
+                    tooltip: 'Remove one',
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+
+                  // Remove all
+                  IconButton(
+                    onPressed: () {
+                      removeShareFromCart(share);
+                      setState(() {}); // Refresh UI
+                    },
+                    icon: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: Colors.red[400],
+                    ),
+                    tooltip: 'Remove all',
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
+                    ),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _loadAddress() async {
     final address = await SupabaseHelper.getUserDeliveryAddress();
     _addressController.text = address;
@@ -761,6 +917,41 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
     }
   }
 
+  Future<List<Share>> fetchShares() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      List<String>? items = prefs.getStringList('shopping_cart_shares');
+
+      if (items == null || items.isEmpty) {
+        products = [];
+        productQuantities = {};
+        return [];
+      }
+
+      List<Share> shares = [];
+      for (String item in items) {
+        try {
+          final int id = int.parse(item);
+          Share? share = await SupabaseHelper.getShareById(id);
+          if (share != null) {
+            shares.add(share);
+          } else {
+            print('Share not found for ID: $id');
+          }
+        } catch (e) {
+          print('Invalid share ID in cart: $item');
+        }
+      }
+      // Update the shares list
+      this.shares = shares;
+      return shares;
+    } catch (e, stackTrace) {
+      print('Error fetching products: $e\n$stackTrace');
+      // Return whatever we have - empty list or previously loaded products
+      return [];
+    }
+  }
+
   // Place order function
   Future<void> _placeOrder() async {
     String address = _addressController.text;
@@ -791,30 +982,29 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
 
     try {
       // Aggregate the products in the cart
-      Map<int, int> productCount = {};
+      if (products.isNotEmpty) {
+        Map<int, int> productCount = {};
 
-      for (Product product in products) {
-        int quantity = productQuantities[product.id] ?? 1;
-        productCount[product.id] = quantity;
-      }
-
-      // Check if the user is the owner of any product in the cart
-      for (var productId in productCount.keys) {
-        bool isOwner = await SupabaseHelper.isProductOwner(productId);
-        if (isOwner) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You cannot order your own product'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return;
+        for (Product product in products) {
+          int quantity = productQuantities[product.id] ?? 1;
+          productCount[product.id] = quantity;
         }
-      }
 
-      final success = await SupabaseHelper.createOrder(productCount, address);
+        // Check if the user is the owner of any product in the cart
+        for (var productId in productCount.keys) {
+          bool isOwner = await SupabaseHelper.isProductOwner(productId);
+          if (isOwner) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('You cannot order your own product'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+        }
 
-      if (mounted) {
+        bool success = await SupabaseHelper.createOrder(productCount, address);
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -822,7 +1012,6 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
               backgroundColor: Color.fromARGB(255, 23, 221, 97),
             ),
           );
-          removeAllItemsFromCart();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -832,6 +1021,27 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
           );
         }
       }
+
+      if (shares.isNotEmpty) {
+        bool sharesSucess = await SupabaseHelper.purchaseShares(shares);
+        if (sharesSucess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Shares purchased successfully'),
+              backgroundColor: Color.fromARGB(255, 23, 221, 97),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to purchase shares'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+
+      removeAllItemsFromCart();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -871,6 +1081,26 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
     }
   }
 
+  void removeShareFromCart(Share share) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String>? items = prefs.getStringList('shopping_cart_shares');
+
+    if (items != null) {
+      // Remove just one instance of this product
+      final String productIdStr = share.id.toString();
+
+      setState(() {
+        shares.removeWhere((s) => s.id == share.id);
+      });
+
+      final index = items.indexOf(productIdStr);
+      if (index != -1) {
+        items.removeAt(index);
+        await prefs.setStringList('shopping_cart_shares', items);
+      }
+    }
+  }
+
   void removeAllItemsOfTypeFromCart(Product product) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? items = prefs.getStringList('shopping_cart');
@@ -891,9 +1121,11 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
   void removeAllItemsFromCart() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('shopping_cart');
+    await prefs.remove('shopping_cart_shares');
     setState(() {
       products.clear();
       productQuantities.clear();
+      shares.clear();
     });
   }
 }

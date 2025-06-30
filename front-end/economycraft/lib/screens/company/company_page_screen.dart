@@ -1,11 +1,15 @@
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/product.dart';
+import 'package:economycraft/classes/share.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:economycraft/services/supabase_helper.dart';
 import 'package:economycraft/widgets/product_market_tile_widget.dart';
+import 'package:economycraft/widgets/share_market_tile_widget.dart';
 import 'package:economycraft/widgets/shopping_cart_widget.dart';
+import 'package:economycraft/classes/price_vs_time.dart';
+import 'package:economycraft/widgets/linegraph_2_widget.dart';
 
 class CompanyPageScreen extends StatefulWidget {
   final Company company;
@@ -18,6 +22,14 @@ class CompanyPageScreen extends StatefulWidget {
 
 class _CompanyPageScreenState extends State<CompanyPageScreen> {
   bool isOwner = false;
+  bool _isbuilt = false;
+  List<PriceVsTime> _priceVsTimeData = [];
+  List<Share> _shares = [];
+  List<Product> _products = [];
+  double _topSectionHeight = 0.5; // Initial distribution ratio (50% each)
+  double _dragStartY = 0.0;
+  double _dragStartTopHeight = 0.0;
+  final double _minSectionHeight = 0.2;
 
   @override
   void initState() {
@@ -33,6 +45,8 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
       decimalDigits: 2,
     );
     final dateFormat = DateFormat('MMM dd, yyyy');
+    // Add these variables to your state class:
+    // Minimum 20% height for any section
 
     return Scaffold(
       appBar: AppBar(
@@ -122,6 +136,14 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
                           ),
                           textAlign: TextAlign.center,
                         ),
+
+                        const Divider(height: 32),
+                        _buildReputationIndicator(widget.company.reputation),
+
+                        if (widget.company.isPublic) ...[
+                          const Divider(height: 32),
+                          _buildStockInfo(screenWidth, screenHeight),
+                        ],
                         const Divider(height: 32),
                         _buildInfoRow(
                           'Company Type:',
@@ -136,8 +158,12 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
                           'Founded:',
                           dateFormat.format(widget.company.createdAt),
                         ),
-                        const Divider(height: 32),
-                        _buildReputationIndicator(widget.company.reputation),
+                        const SizedBox(height: 8),
+                        _buildInfoRow(
+                          'Evaluation:',
+                          currencyFormat.format(widget.company.evaluation),
+                          textColor: const Color.fromARGB(255, 74, 237, 217),
+                        ),
                       ],
                     ),
                   ),
@@ -149,157 +175,14 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Company Valuation Section
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: const Color.fromARGB(255, 201, 201, 201),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Company Valuation',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    currencyFormat.format(
-                                      widget.company.evaluation,
-                                    ),
-                                    style: const TextStyle(
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color.fromARGB(255, 23, 221, 97),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Stock Information Section (if public)
-                        if (widget.company.isPublic)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color.fromARGB(255, 201, 201, 201),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Stock Information',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                _buildStockInfo(),
-                                const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        // Buy stock action
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color.fromARGB(
-                                          255,
-                                          74,
-                                          237,
-                                          217,
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 32,
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Buy Stock',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        // Sell stock action
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color.fromARGB(
-                                          255,
-                                          23,
-                                          221,
-                                          97,
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 32,
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Sell Stock',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                        const SizedBox(height: 16),
-
-                        // Products Section
+                        // Products and Shares section with resize handle
                         Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: const Color.fromARGB(255, 201, 201, 201),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Available Products',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Expanded(child: _buildProductsList()),
-                              ],
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              return _buildResizableSections(
+                                constraints.maxHeight,
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -378,17 +261,291 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
     return Colors.red;
   }
 
-  Widget _buildStockInfo() {
+  // Add this method to build the resizable sections
+  Widget _buildResizableSections(double totalHeight) {
+    final double dividerHeight = 16.0; // Height of the resize handle
+    final double actualTopHeight = totalHeight * _topSectionHeight;
+    final double actualBottomHeight =
+        totalHeight - actualTopHeight - dividerHeight;
+
+    return Column(
+      children: [
+        // Top section - Products
+        Container(
+          height: actualTopHeight,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: const Color.fromARGB(255, 201, 201, 201),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Available Products',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(Icons.drag_handle, color: Colors.grey, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${(_topSectionHeight * 100).toInt()}%',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                  ),
+                  child: _buildProductsList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Resize handle
+        GestureDetector(
+          onVerticalDragStart: (details) {
+            _dragStartY = details.globalPosition.dy;
+            _dragStartTopHeight = _topSectionHeight;
+          },
+          onVerticalDragUpdate: (details) {
+            final double dragDistance = details.globalPosition.dy - _dragStartY;
+            final double dragFraction = dragDistance / totalHeight;
+            setState(() {
+              _topSectionHeight = (_dragStartTopHeight + dragFraction).clamp(
+                _minSectionHeight,
+                1 - _minSectionHeight,
+              );
+            });
+          },
+          child: Container(
+            height: dividerHeight,
+            color: Colors.transparent,
+            child: Center(
+              child: Container(
+                height: 4,
+                width: 80,
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 74, 237, 217),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Bottom section - Shares (only for public companies)
+        Container(
+          height: actualBottomHeight,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: const Color.fromARGB(255, 201, 201, 201),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Available Shares',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(Icons.drag_handle, color: Colors.grey, size: 20),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${((1 - _topSectionHeight) * 100).toInt()}%',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                  ),
+                  child: _buildAvailableStock(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Empty widget when company is not public
+      ],
+    );
+  }
+
+  Widget _buildAvailableStock() {
+    return FutureBuilder<List<Share>>(
+      future: _getShares(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return const Center(child: Text('Error loading shares'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No shares available'));
+        } else {
+          final shares = snapshot.data!;
+          return ListView.builder(
+            itemCount: shares.length,
+            itemBuilder: (context, index) {
+              final share = shares[index];
+              return ShareMarketTileWidget(share: share);
+            },
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildStockInfo(screenWidth, screenHeight) {
     // Placeholder for stock price chart
-    return Container(
-      height: 120,
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: const Center(
-        child: Text('Stock Price Chart', style: TextStyle(color: Colors.grey)),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Current Stock Price:',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          height: screenHeight * 0.25,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey[200]!, width: 1),
+            color: const Color.fromARGB(255, 250, 250, 250),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child:
+                !_isbuilt
+                    ? FutureBuilder<List<PriceVsTime>>(
+                      future: _getPriceVsTimeData(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color.fromARGB(255, 74, 237, 217),
+                              ),
+                            ),
+                          );
+                        } else if (snapshot.hasError) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 60,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Error: ${snapshot.error}',
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                                const SizedBox(height: 20),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _isbuilt = false;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Try Again'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color.fromARGB(
+                                      255,
+                                      74,
+                                      237,
+                                      217,
+                                    ),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.show_chart,
+                                  size: 60,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No price history available',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          _priceVsTimeData = snapshot.data!;
+                          _isbuilt = true;
+                          return Linegraph2Widget(
+                            title: 'Share Price History',
+                            subtitle: '${widget.company!.name}',
+                            data: snapshot.data!,
+                            xAxisLabel: 'Time',
+                            yAxisLabel: 'Price',
+                          );
+                        }
+                      },
+                    )
+                    : Linegraph2Widget(
+                      title: 'Share Price History',
+                      subtitle: '${widget.company!.name} ',
+                      data: _priceVsTimeData,
+                      xAxisLabel: 'Time',
+                      yAxisLabel: 'Price',
+                    ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -434,8 +591,22 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
   }
 
   Future<List<Product>> _getProducts() async {
+    if (_products.isNotEmpty) return _products;
+
     final companyId = widget.company.id;
     final response = await SupabaseHelper.getProductsByCompanyId(companyId);
+    _products = response;
+    return response;
+  }
+
+  Future<List<Share>> _getShares() async {
+    if (_shares.isNotEmpty) return _shares;
+
+    final companyId = widget.company.id;
+    final response = await SupabaseHelper.getForSaleSharesByCompanyId(
+      companyId,
+    );
+    _shares = response;
     return response;
   }
 
@@ -809,6 +980,37 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<Share> _fetchCompanyStock() async {
+    try {
+      final share = await SupabaseHelper.getCompanyShareByCompanyId(
+        widget.company.id,
+      );
+      return share;
+    } catch (e) {
+      debugPrint('Error fetching company stock: $e');
+      throw Exception('Failed to fetch company stock');
+    }
+  }
+
+  Future<List<PriceVsTime>> _getPriceVsTimeData() async {
+    try {
+      if (_priceVsTimeData.isNotEmpty) return _priceVsTimeData;
+
+      final share = await _fetchCompanyStock();
+      if (share.isPublic) {
+        return await SupabaseHelper.getSharePriceHistory(share.companyId);
+      } else {
+        return await SupabaseHelper.getCompanyPriceHistory(
+          share.company!.id,
+          share.stake,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching price history: $e');
+      rethrow;
     }
   }
 }
