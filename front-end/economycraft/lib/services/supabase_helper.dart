@@ -1585,32 +1585,60 @@ class SupabaseHelper {
     final userRowId = await getPlayerId();
 
     try {
+      // Fetch shares with company data in a single query using Supabase join
       final response = await _client
           .from('shares')
-          .select()
+          .select('''
+          *,
+          companies:company_id (
+            id, name, slogan, avatar_url, reputation, 
+            evaluation, is_public, user_id, created_at, 
+            lot_number, verified
+          )
+        ''')
           .eq('user_id', userRowId)
           .order('value', ascending: false);
-      if (response.isEmpty) {
+
+      if (response == null || response.isEmpty) {
         return [];
       }
-      final List<Share> shares = await Future.wait(
-        response.map<Future<Share>>((share) async {
-          return Share(
-            id: share['id'],
-            createdAt: DateTime.parse(share['created_at']),
-            companyId: share['company_id'],
-            stake: share['stake'],
-            purchasePrice: share['purchased_price'],
-            value: share['value'],
-            salePrice: share['sale_price'] ?? 0.0,
-            purchasable: share['purchasable'],
-            userId: share['user_id'],
-            company: await getCompanyById(share['company_id']),
-            isPublic: share['is_public'] ?? false,
-            isOriginal: share['original_stock'] ?? false,
-          );
-        }).toList(),
-      );
+
+      // Map the response to Share objects without additional queries
+      final List<Share> shares =
+          response.map<Share>((share) {
+            final companyData = share['companies'];
+
+            return Share(
+              id: share['id'],
+              createdAt: DateTime.parse(share['created_at']),
+              companyId: share['company_id'],
+              stake: share['stake'],
+              purchasePrice: share['purchased_price'],
+              value: share['value'],
+              salePrice: share['sale_price'] ?? 0.0,
+              purchasable: share['purchasable'],
+              userId: share['user_id'],
+              isPublic: share['is_public'] ?? false,
+              isOriginal: share['original_stock'] ?? false,
+              company:
+                  companyData != null
+                      ? Company(
+                        id: companyData['id'],
+                        name: companyData['name'],
+                        slogan: companyData['slogan'],
+                        avatarUrl: companyData['avatar_url'],
+                        reputation: companyData['reputation'],
+                        evaluation: companyData['evaluation'],
+                        isPublic: companyData['is_public'],
+                        userId: companyData['user_id'],
+                        createdAt: DateTime.parse(companyData['created_at']),
+                        lotNumber: companyData['lot_number'] ?? 0,
+                        verified: companyData['verified'] ?? false,
+                      )
+                      : null,
+            );
+          }).toList();
+
       return shares;
     } catch (e) {
       developer.log('Error fetching shares by user ID: $e');
