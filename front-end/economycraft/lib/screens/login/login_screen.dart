@@ -201,6 +201,9 @@ class _LoginScreenState extends State<LoginScreen> {
           const SnackBar(content: Text('An error occurred. Please try again.')),
         );
       }
+      setState(() {
+        _isloading = false;
+      });
     }
   }
 }

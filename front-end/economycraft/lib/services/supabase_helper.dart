@@ -10,6 +10,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/product.dart';
 import 'package:fraction/fraction.dart';
+import 'dart:math';
 
 class SupabaseHelper {
   static final _client = Supabase.instance.client;
@@ -1312,7 +1313,7 @@ class SupabaseHelper {
     return false;
   }
 
-  static Future<bool> cancelOrder(int orderId) async {
+  static Future<bool> cancelOrderUser(int orderId) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       return false;
@@ -1320,6 +1321,49 @@ class SupabaseHelper {
     try {
       await _client.rpc('cancel_order', params: {'order_row_id': orderId});
       developer.log('Order canceled: $orderId');
+      return true;
+    } catch (e) {
+      developer.log('Error canceling order: $e');
+      return false;
+    }
+  }
+
+  static double f(x) {
+    final a = 0.05;
+    final b = 1.009;
+    final k = 1;
+    final h = 1;
+    final c = 0;
+
+    return a * (log(k * (x - h)) / log(b)) + c;
+  }
+
+  static Future<bool> cancelOrderOwner(Order order, int companyId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+    try {
+      await _client.rpc('cancel_order', params: {'order_row_id': order.id});
+      developer.log('Order canceled: ${order.id} for company $companyId');
+
+      // Calculate the multiplier based on the order quantity
+      final decreaseAmount = f(order.payment);
+
+      //log the decrease amount
+      developer.log(
+        'Decrease amount for company $companyId based on order payment ${order.payment}: $decreaseAmount',
+      );
+
+      // Decrease the company's reputation
+      await _client.rpc(
+        'modify_company_reputation',
+        params: {
+          'input_company_id': companyId,
+          'change_amount': decreaseAmount * -1,
+        },
+      );
+
       return true;
     } catch (e) {
       developer.log('Error canceling order: $e');
@@ -1414,9 +1458,59 @@ class SupabaseHelper {
     }
   }
 
-  static Future<void> markOrderAsComplete(int orderId) async {
+  static double tanh(double x) {
+    final ex = exp(x);
+    final enx = exp(-x);
+    return (ex - enx) / (ex + enx);
+  }
+
+  static double g(x) {
+    final a = 100;
+    final b = 7;
+    final c = 3;
+
+    return a * tanh((b - x) / c);
+  }
+
+  static Future<void> markOrderAsComplete(Order order) async {
     try {
-      await _client.from('orders').update({'complete': true}).eq('id', orderId);
+      final response = await _client
+          .from('orders')
+          .update({'complete': true})
+          .eq('id', order.id)
+          .select('created_at');
+      developer.log('Order marked as complete: ${order.id}');
+
+      DateTime? orderTimeout;
+      if (response.isNotEmpty) {
+        orderTimeout = DateTime.parse(response[0]['created_at']);
+      }
+
+      if (orderTimeout != null) {
+        final now = DateTime.now();
+        final timeDifference = orderTimeout.difference(now).inDays;
+        double reputationChange = g(timeDifference);
+        final companyId = order.companyId;
+
+        if (timeDifference < 7) {
+          // If the order is before the timeout, we decrease the reputation gain
+          reputationChange /= 4;
+        }
+
+        await _client.rpc(
+          'modify_company_reputation',
+          params: {
+            'input_company_id': companyId,
+            'change_amount': reputationChange,
+          },
+        );
+
+        developer.log(
+          'Reputation change for company $companyId based on order timeout: $reputationChange time difference: $timeDifference days',
+        );
+      } else {
+        developer.log('Error: Order timeout is null');
+      }
     } catch (e) {
       developer.log('Error marking order as complete: $e');
     }
