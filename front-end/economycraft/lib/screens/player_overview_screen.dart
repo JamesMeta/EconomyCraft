@@ -543,12 +543,18 @@ class _PlayerOverviewScreenState extends State<PlayerOverviewScreen> {
 
   Future<List<Player>> getAllPlayersNetworth() async {
     final List<Player> players = await SupabaseHelper.getAllPlayers();
-    for (var player in players) {
-      final assetValue = await SupabaseHelper.getPlayerAssetEvaluation(
-        player.id,
-      );
-      player.money += assetValue;
-    }
+
+    // Create a list of futures to evaluate assets
+    final futures =
+        players.map((player) async {
+          final assetValue = await SupabaseHelper.getPlayerAssetEvaluation(
+            player.id,
+          );
+          player.money += assetValue;
+        }).toList();
+
+    // Wait for all evaluations to finish
+    await Future.wait(futures);
     players.sort((a, b) => b.money.compareTo(a.money));
     return players;
   }
