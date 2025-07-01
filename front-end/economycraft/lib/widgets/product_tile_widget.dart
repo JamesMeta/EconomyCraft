@@ -719,7 +719,19 @@ class _ProductTileWidgetState extends State<ProductTileWidget> {
         );
 
         // Force parent widget to rebuild
-        setState(() {});
+        setState(() {
+          _nameController.text = 'deleted';
+          _descriptionController.text = 'deleted';
+          _priceController.text = 'deleted';
+          _quantityController.text = 'deleted';
+          _minecraftTagController.text = 'deleted';
+          widget.product.name = 'deleted';
+          widget.product.description = 'deleted';
+          widget.product.price = 0.0;
+          widget.product.quantity = 0;
+          widget.product.minecraftTag = 'deleted';
+          widget.product.avatarUrl = ''; // Clear avatar URL
+        });
       }
     } catch (e) {
       if (mounted) {

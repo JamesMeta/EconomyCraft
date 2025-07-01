@@ -594,14 +594,14 @@ class _OrderCompanyScreenState extends State<OrderCompanyScreen> {
   }
 
   Future<void> markOrderAsCompleted(Order order) async {
-    await SupabaseHelper.markOrderAsComplete(order.id);
+    await SupabaseHelper.markOrderAsComplete(order);
     setState(() {
       order.complete = true;
     });
   }
 
   Future<void> cancelOrder(Order order) async {
-    await SupabaseHelper.cancelOrder(order.id);
+    await SupabaseHelper.cancelOrderOwner(order, _selectedCompany!.id);
     setState(() {
       order.complete = true;
     });

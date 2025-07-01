@@ -414,7 +414,7 @@ class _OrderUserScreenState extends State<OrderUserScreen> {
   }
 
   Future<void> cancelOrder(Order order) async {
-    await SupabaseHelper.cancelOrder(order.id);
+    await SupabaseHelper.cancelOrderUser(order.id);
     setState(() {
       order.complete = true;
     });
