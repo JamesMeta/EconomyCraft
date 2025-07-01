@@ -2091,11 +2091,16 @@ class SupabaseHelper {
         return [];
       }
 
-      final List<Order> orders = [];
-      for (var company in companies) {
-        final companyOrders = await getOrdersMadeForCompany(company.id);
-        orders.addAll(companyOrders);
-      }
+      final List<Future<List<Order>>> futures =
+          companies.map((company) {
+            return getOrdersMadeForCompany(company.id);
+          }).toList();
+
+      final List<List<Order>> nestedOrders = await Future.wait(futures);
+
+      // Flatten the list of lists
+      final List<Order> orders = nestedOrders.expand((list) => list).toList();
+
       return orders;
     } catch (e) {
       developer.log('Error fetching orders for user\'s companies: $e');
