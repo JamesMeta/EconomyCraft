@@ -22,6 +22,8 @@ import 'package:economycraft/screens/holding/share_modification_screen.dart';
 import 'package:economycraft/screens/holding/sell_holding_screen.dart';
 import 'package:economycraft/screens/server_info_screen.dart';
 import 'package:economycraft/screens/withdrawl_deposit_funds_screen.dart';
+import 'package:economycraft/screens/admin_screen.dart';
+import 'package:economycraft/services/supabase_helper.dart';
 
 const supabaseUrl = 'https://ylgfgklcypqtbqrkhsba.supabase.co';
 const supabaseKey =
@@ -82,6 +84,23 @@ final GoRouter _router = GoRouter(
               },
             ),
           ],
+        ),
+        GoRoute(
+          path: 'admin',
+          builder: (BuildContext context, GoRouterState state) {
+            return const AdminScreen();
+          },
+          redirect: (context, state) async {
+            // Check if the user has admin privileges
+            final isAdmin = await SupabaseHelper.isAdmin();
+
+            // If the user is not an admin, redirect to home
+            if (!isAdmin) {
+              return '/home';
+            }
+            // If the user is an admin, allow access to the admin screen
+            return null;
+          },
         ),
         GoRoute(
           path: 'player_overview',

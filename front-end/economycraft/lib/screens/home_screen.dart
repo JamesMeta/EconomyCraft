@@ -207,6 +207,32 @@ class _MyHomePageState extends State<MyHomePage>
             ],
           ),
 
+          // Admin button (only visible to admins)
+          FutureBuilder(
+            future: isAdmin(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox.shrink(); // Show nothing while loading
+              }
+              final isAdmin = snapshot.data ?? false;
+              return Visibility(
+                visible: isAdmin,
+                child: Tooltip(
+                  message: 'Admin Panel',
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.admin_panel_settings,
+                      color: Color.fromARGB(255, 23, 221, 97),
+                    ),
+                    onPressed: () {
+                      context.go('/home/admin');
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+
           const Spacer(),
 
           // Last refresh indicator
@@ -1379,6 +1405,12 @@ class _MyHomePageState extends State<MyHomePage>
         );
       },
     );
+  }
+
+  Future<bool> isAdmin() async {
+    final response = await SupabaseHelper.isAdmin();
+    print('Is admin: $response');
+    return response;
   }
 
   // Keep your existing methods

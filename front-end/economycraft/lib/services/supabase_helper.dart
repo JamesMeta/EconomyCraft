@@ -505,15 +505,16 @@ class SupabaseHelper {
     String slogan,
     String companyAvatarUrl,
     int lotNumber,
-    bool notificationEnabled,
-  ) async {
+    bool notificationEnabled, [
+    int userId = -1,
+  ]) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       return false;
     }
 
     try {
-      final userRowId = await getPlayerId();
+      final userRowId = userId == -1 ? await getPlayerId() : userId;
       final companyRowId = await _client
           .from('companies')
           .insert({
@@ -604,6 +605,20 @@ class SupabaseHelper {
     return shareSplitRequirement;
   }
 
+  static Future<Map<String, double>>
+  getMinecraftUsernamesForShareSplitRequirementByUser(
+    Map<String, double> shareSplitRequirement,
+  ) async {
+    final Map<String, double> minecraftUsernames = {};
+    for (var entry in shareSplitRequirement.entries) {
+      final userId = entry.key;
+      final requiredShares = entry.value;
+      final username = await getPlayerNameByUserRowID(int.parse(userId));
+      minecraftUsernames[username] = requiredShares;
+    }
+    return minecraftUsernames;
+  }
+
   /// Makes a company public by splitting its shares among current owners and updating the company status.
   ///
   /// This function:
@@ -666,12 +681,12 @@ class SupabaseHelper {
 
     try {
       // 3. Only the company owner can make the company public.
-      final userRowId = await getPlayerId();
-      final companyOwnerId = await getCompanyOwnerId(companyId);
-      if (userRowId != companyOwnerId) {
-        developer.log('Error: User is not the owner of this company');
-        return false;
-      }
+      // final userRowId = await getPlayerId();
+      // final companyOwnerId = await getCompanyOwnerId(companyId);
+      // if (userRowId != companyOwnerId) {
+      //   developer.log('Error: User is not the owner of this company');
+      //   return false;
+      // }
 
       // 4. Update the company to be public.
       final response = await _client
@@ -1111,6 +1126,7 @@ class SupabaseHelper {
             'price': price,
             'quantity': quantity,
             'minecraft_tag': productTag,
+            'verified': false,
           })
           .eq('id', productId);
     } catch (e) {
@@ -1371,13 +1387,14 @@ class SupabaseHelper {
     }
   }
 
-  static Future<List<Order>> getOrdersMadeByUser() async {
+  static Future<List<Order>> getOrdersMadeByUser([int userId = 0]) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       return [];
     }
     try {
-      final userRowId = await getPlayerId();
+      // If userid is provided, use it; otherwise, get the current user's ID
+      final userRowId = userId ?? await getPlayerId();
       final response = await _client
           .from('orders')
           .select()
@@ -2257,6 +2274,231 @@ class SupabaseHelper {
     } catch (e) {
       developer.log('Error fetching admin messages: $e');
       return [];
+    }
+  }
+
+  static Future<bool> isAdmin() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      final response =
+          await _client
+              .from('users')
+              .select('admin')
+              .eq('user_id', user.id)
+              .limit(1)
+              .single();
+      return response['admin'] ?? false;
+    } catch (e) {
+      developer.log('Error checking admin status: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> createAdminMessage(
+    String title,
+    String content, [
+    bool important = false,
+  ]) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      await _client.from('server_announcements').insert({
+        'title': title,
+        'content': content,
+        'important': important,
+        'author_name': user.email ?? 'Admin',
+      });
+      developer.log('Admin message created successfully: $title');
+      return true;
+    } catch (e) {
+      developer.log('Error creating admin message: $e');
+      return false;
+    }
+  }
+
+  static Future<List<Company>> getAllCompanies() async {
+    try {
+      final response = await _client.from('companies').select().order('id');
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<Company> companies =
+          response.map<Company>((company) {
+            return Company(
+              id: company['id'],
+              name: company['name'],
+              slogan: company['slogan'],
+              avatarUrl: company['avatar_url'],
+              reputation: company['reputation']?.toDouble() ?? 0.0,
+              evaluation: company['evaluation']?.toDouble() ?? 0.0,
+              isPublic: company['is_public'] ?? false,
+              userId: company['user_id'],
+              createdAt: DateTime.parse(company['created_at']),
+              lotNumber: company['lot_number'] ?? 0,
+              verified: company['verified'] ?? false,
+              visibilityFactor: company['visibility_factor']?.toDouble() ?? 0.0,
+            );
+          }).toList();
+      return companies;
+    } catch (e) {
+      developer.log('Error fetching all companies: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> verifyCompany(int companyId, int visibilityFactor) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      await _client
+          .from('companies')
+          .update({'verified': true, 'visibility_factor': visibilityFactor})
+          .eq('id', companyId);
+
+      developer.log('Company verified successfully: $companyId');
+      return true;
+    } catch (e) {
+      developer.log('Error verifying company: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> setCompanyVisibilityFactor(
+    int companyId,
+    int visibilityFactor,
+  ) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      await _client
+          .from('companies')
+          .update({'visibility_factor': visibilityFactor})
+          .eq('id', companyId);
+
+      developer.log('Company visibility factor set successfully: $companyId');
+      return true;
+    } catch (e) {
+      developer.log('Error setting company visibility factor: $e');
+      return false;
+    }
+  }
+
+  static Future<List<Order>> getAllOrdersForAiCompanies() async {
+    try {
+      final aiCompanies = await _client
+          .from('companies')
+          .select()
+          .eq('ai', true);
+      if (aiCompanies.isEmpty) {
+        developer.log('No AI companies found');
+        return [];
+      }
+      final List<Future<List<Order>>> futures =
+          aiCompanies.map((company) {
+            return getOrdersMadeForCompany(company['id']);
+          }).toList();
+      final List<List<Order>> nestedOrders = await Future.wait(futures);
+      // Flatten the list of lists
+      final List<Order> orders = nestedOrders.expand((list) => list).toList();
+      return orders;
+    } catch (e) {
+      developer.log('Error fetching orders for AI companies: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Order>> getAllOrdersForAiUsers() async {
+    try {
+      final AiUsers = await _client.from('users').select().eq('ai', true);
+      if (AiUsers.isEmpty) {
+        developer.log('No AI users found');
+        return [];
+      }
+      final List<Future<List<Order>>> futures =
+          AiUsers.map((user) {
+            return getOrdersMadeByUser(user['id']);
+          }).toList();
+      final List<List<Order>> nestedOrders = await Future.wait(futures);
+      // Flatten the list of lists
+      final List<Order> orders = nestedOrders.expand((list) => list).toList();
+      return orders;
+    } catch (e) {
+      developer.log('Error fetching orders for AI users: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Product>> getAllNonVerifiedProducts() async {
+    try {
+      final response = await _client
+          .from('products')
+          .select()
+          .eq('verified', false)
+          .order('created_at', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<Product> products =
+          response.map<Product>((product) {
+            return Product(
+              id: product['id'],
+              name: product['name'],
+              description: product['description'],
+              price: product['price']?.toDouble() ?? 0.0,
+              companyId: product['company_id'],
+              createdAt: DateTime.parse(product['created_at']),
+              isVerified: product['verified'] ?? false,
+              quantity: product['quantity'] ?? 0,
+              avatarUrl: product['avatar_url'] ?? '',
+              minecraftTag: product['minecraft_tag'] ?? '',
+              value: product['value']?.toDouble() ?? 0.0,
+              nicheCoefficient: product['niche_coefficient']?.toDouble() ?? 0.0,
+            );
+          }).toList();
+      return products;
+    } catch (e) {
+      developer.log('Error fetching non-verified products: $e');
+      return [];
+    }
+  }
+
+  static Future<bool> verifyProduct(
+    int productId,
+    double value,
+    double nicheCoefficient,
+  ) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      await _client
+          .from('products')
+          .update({
+            'verified': true,
+            'value': value,
+            'niche_coefficient': nicheCoefficient,
+          })
+          .eq('id', productId);
+      developer.log('Product verified successfully: $productId');
+      return true;
+    } catch (e) {
+      developer.log('Error verifying product: $e');
+      return false;
     }
   }
 }

@@ -884,7 +884,11 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   void showMakePublicStatusDialog() async {
     final requiredShareBreakdown =
-        await SupabaseHelper.getShareSplitRequirementByUser(widget.company!.id);
+        await SupabaseHelper.getMinecraftUsernamesForShareSplitRequirementByUser(
+          await SupabaseHelper.getShareSplitRequirementByUser(
+            widget.company!.id,
+          ),
+        );
 
     // Show loading indicator while fetching data
     showDialog(
@@ -908,290 +912,310 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     // Display the actual dialog
     showDialog(
       context: context,
-      builder:
-          (BuildContext context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20.0),
-            ),
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.5,
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Dialog header
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(255, 229, 255, 252),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.business,
-                          color: Color.fromARGB(255, 74, 237, 217),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Text(
-                          'Make Company Public',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+      builder: (BuildContext context) {
+        bool isloading = false;
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20.0),
+              ),
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.5,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Dialog header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 229, 255, 252),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.business,
+                            color: Color.fromARGB(255, 74, 237, 217),
+                            size: 24,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Explanation text
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 229, 255, 252),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color.fromARGB(255, 74, 237, 217),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Color.fromARGB(255, 74, 237, 217),
-                              size: 20,
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Text(
+                            'Make Company Public',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
                             ),
-                            SizedBox(width: 10),
-                            Text(
-                              'About Going Public',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color.fromARGB(255, 74, 237, 217),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Making your company public changes how your shares are valued and traded. Public companies can attract more investors but are more affected in regards to their image.',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'This will require squashing all current shares so they are equally weighted and priced. This will affect the current shareholders as shown below:',
-                          style: TextStyle(fontSize: 14),
+                          ),
                         ),
                       ],
                     ),
-                  ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // Share breakdown section
-                  const Text(
-                    'Share Distribution After Going Public:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Show share breakdown in a container with fixed height and scrolling
-                  Container(
-                    height: 200, // Fixed height to avoid layout issues
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child:
-                        requiredShareBreakdown.isEmpty
-                            ? const Center(
-                              child: Text(
-                                'No share data available',
+                    // Explanation text
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 229, 255, 252),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 74, 237, 217),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Color.fromARGB(255, 74, 237, 217),
+                                size: 20,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'About Going Public',
                                 style: TextStyle(
-                                  color: Colors.grey,
-                                  fontStyle: FontStyle.italic,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color.fromARGB(255, 74, 237, 217),
                                 ),
                               ),
-                            )
-                            : ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: requiredShareBreakdown.length,
-                              itemBuilder: (context, index) {
-                                final entry = requiredShareBreakdown.entries
-                                    .elementAt(index);
-                                return ListTile(
-                                  leading: const Icon(
-                                    Icons.person,
-                                    color: Color.fromARGB(255, 74, 237, 217),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Making your company public changes how your shares are valued and traded. Public companies can attract more investors but are more affected in regards to their image.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'This will require squashing all current shares so they are equally weighted and priced. This will affect the current shareholders as shown below:',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Share breakdown section
+                    const Text(
+                      'Share Distribution After Going Public:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Show share breakdown in a container with fixed height and scrolling
+                    Container(
+                      height: 200, // Fixed height to avoid layout issues
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child:
+                          requiredShareBreakdown.isEmpty
+                              ? const Center(
+                                child: Text(
+                                  'No share data available',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
                                   ),
-                                  title: Text(
-                                    entry.key,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                ),
+                              )
+                              : ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: requiredShareBreakdown.length,
+                                itemBuilder: (context, index) {
+                                  final entry = requiredShareBreakdown.entries
+                                      .elementAt(index);
+                                  return ListTile(
+                                    leading: const Icon(
+                                      Icons.person,
+                                      color: Color.fromARGB(255, 74, 237, 217),
                                     ),
-                                  ),
-                                  trailing: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color.fromARGB(
-                                        255,
-                                        229,
-                                        255,
-                                        252,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      "${entry.value} Shares",
+                                    title: Text(
+                                      entry.key,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Color.fromARGB(
+                                      ),
+                                    ),
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(
                                           255,
-                                          74,
-                                          237,
-                                          217,
+                                          229,
+                                          255,
+                                          252,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        "${entry.value} Shares",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color.fromARGB(
+                                            255,
+                                            74,
+                                            237,
+                                            217,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Advice text
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 255, 245, 230),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 255, 193, 7),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.lightbulb_outline,
+                            color: Color.fromARGB(255, 255, 153, 0),
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'You can decrease the number of new shares being issued by purchasing back shares owned by other players. After going public, you can also split shares to increase the number of shares available.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color.fromARGB(255, 255, 153, 0),
+                              ),
                             ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Advice text
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 255, 245, 230),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: const Color.fromARGB(255, 255, 193, 7),
-                        width: 1,
+                          ),
+                        ],
                       ),
                     ),
-                    child: Row(
+
+                    const SizedBox(height: 24),
+
+                    // Confirmation text
+                    const Text(
+                      'Are you sure you want to make your company public?',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Action buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Icon(
-                          Icons.lightbulb_outline,
-                          color: Color.fromARGB(255, 255, 153, 0),
-                          size: 24,
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.cancel),
+                          label: const Text('Cancel'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.grey[700],
+                            side: BorderSide(color: Colors.grey[400]!),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text(
-                            'You can decrease the number of new shares being issued by purchasing back shares owned by other players. After going public, you can also split shares to increase the number of shares available.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Color.fromARGB(255, 255, 153, 0),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            if (isloading) return; // Prevent multiple taps
+
+                            setStateDialog(() {
+                              isloading = true;
+                            });
+
+                            final bool isPublic = await SupabaseHelper.goPublic(
+                              widget.company!.id,
+                            );
+
+                            setStateDialog(() {
+                              isloading = false;
+                            });
+                            Navigator.of(context).pop();
+
+                            if (isPublic) {
+                              setState(() {
+                                widget.company!.isPublic = true;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Company is now public!'),
+                                  backgroundColor: Color.fromARGB(
+                                    255,
+                                    74,
+                                    237,
+                                    217,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Failed to make company public',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.public),
+                          label:
+                              isloading
+                                  ? CircularProgressIndicator()
+                                  : const Text('Make Public'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                widget.company?.isPublic ?? false
+                                    ? Colors.red[400]
+                                    : const Color.fromARGB(255, 23, 221, 97),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Confirmation text
-                  const Text(
-                    'Are you sure you want to make your company public?',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Action buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.cancel),
-                        label: const Text('Cancel'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.grey[700],
-                          side: BorderSide(color: Colors.grey[400]!),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      ElevatedButton.icon(
-                        onPressed: () async {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Loading...'),
-                              duration: Durations.extralong4,
-                            ),
-                          );
-
-                          final bool isPublic = await SupabaseHelper.goPublic(
-                            widget.company!.id,
-                          );
-                          Navigator.of(context).pop();
-
-                          if (isPublic) {
-                            setState(() {
-                              widget.company!.isPublic = true;
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Company is now public!'),
-                                backgroundColor: Color.fromARGB(
-                                  255,
-                                  74,
-                                  237,
-                                  217,
-                                ),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to make company public'),
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.public),
-                        label: Text('Make Public'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              widget.company?.isPublic ?? false
-                                  ? Colors.red[400]
-                                  : const Color.fromARGB(255, 23, 221, 97),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
+        );
+      },
     );
   }
 

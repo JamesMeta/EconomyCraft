@@ -443,6 +443,10 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
     return _selectedShares.every((share) => !share.purchasable);
   }
 
+  bool allSharesArePrivate() {
+    return _selectedShares.every((share) => !share.isPublic);
+  }
+
   void selectAllNotForSaleShares() async {
     final shares = await _sharesFuture;
     setState(() {
@@ -542,7 +546,10 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           icon: Icons.merge_type,
           label: 'Join Shares',
           color: const Color.fromARGB(255, 255, 193, 7),
-          isEnabled: _selectedShares.length > 1 && allSharesFromSameCompany(),
+          isEnabled:
+              _selectedShares.length > 1 &&
+              allSharesFromSameCompany() &&
+              allSharesArePrivate(),
           enabledToolTip: 'Join multiple shares into one',
           disabledToolTip:
               'Must have multiple shares selected from the same company',
