@@ -310,6 +310,21 @@ class _ProductTileWidgetState extends State<ProductMarketTileWidget> {
                     const Divider(),
                     const SizedBox(height: 16),
 
+                    // Product description
+                    const Text(
+                      'Product Description',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      widget.product.description,
+                      style: TextStyle(fontSize: 12),
+                    ),
+
+                    const SizedBox(height: 16),
+
                     // Quantity selector section
                     const Text(
                       'Select Quantity',

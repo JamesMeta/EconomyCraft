@@ -8,6 +8,9 @@ class Product {
   String avatarUrl;
   int companyId;
   DateTime createdAt;
+  bool? isVerified;
+  double? value;
+  double? nicheCoefficient;
 
   Product({
     required this.id,
@@ -19,5 +22,8 @@ class Product {
     required this.companyId,
     required this.minecraftTag,
     required this.createdAt,
+    this.isVerified,
+    this.value,
+    this.nicheCoefficient,
   });
 }

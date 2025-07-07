@@ -10,6 +10,7 @@ class Company {
   final DateTime createdAt;
   final int lotNumber;
   final bool verified;
+  double? visibilityFactor;
 
   Company({
     required this.id,
@@ -23,5 +24,6 @@ class Company {
     required this.createdAt,
     required this.lotNumber,
     required this.verified,
+    this.visibilityFactor,
   });
 }
