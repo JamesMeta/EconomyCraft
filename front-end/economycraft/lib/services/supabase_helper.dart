@@ -1698,7 +1698,7 @@ class SupabaseHelper {
       final originalShareId =
           await _client
               .from('shares')
-              .select('id')
+              .select('id, value')
               .eq('company_id', companyId)
               .eq('original_stock', true)
               .limit(1)
@@ -1724,6 +1724,14 @@ class SupabaseHelper {
               price: price['value']?.toDouble() ?? 0.0,
             );
           }).toList();
+
+      // Add the current price to the history
+      final currentPrice = originalShareId['value']?.toDouble() ?? 0.0;
+      if (currentPrice > 0.0) {
+        priceHistory.add(
+          PriceVsTime(time: DateTime.now(), price: currentPrice),
+        );
+      }
       return priceHistory;
     } catch (e) {
       developer.log('Error fetching share price history: $e');
@@ -1741,7 +1749,11 @@ class SupabaseHelper {
           .select()
           .eq('company_id', companyId)
           .order('created_at', ascending: true);
-      if (response.isEmpty) {
+      final companyResponse = await _client
+          .from('companies')
+          .select("evaluation")
+          .eq('company_id', companyId);
+      if (response.isEmpty || companyResponse.isEmpty) {
         return [];
       }
       final List<PriceVsTime> priceHistory =
@@ -1751,6 +1763,10 @@ class SupabaseHelper {
               price: (price['evaluation']?.toDouble()) * stake ?? 0.0,
             );
           }).toList();
+
+      // Add the current price to the history
+      final currentEvaluation =
+          companyResponse[0]['evaluation']?.toDouble() ?? 0.0;
       return priceHistory;
     } catch (e) {
       developer.log('Error fetching company price history: $e');
@@ -2087,6 +2103,14 @@ class SupabaseHelper {
               price: entry['networth']?.toDouble() ?? 0.0,
             );
           }).toList();
+
+      // add the current net worth to the history
+      final currentNetworth =
+          await getUsersAssetEvaluation() + await getUserBalance();
+      networthHistory.add(
+        PriceVsTime(time: DateTime.now(), price: currentNetworth),
+      );
+
       networthHistory.sort((a, b) => a.time.compareTo(b.time)); // Sort by time
       return networthHistory;
     } catch (e) {
