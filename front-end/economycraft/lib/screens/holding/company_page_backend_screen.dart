@@ -38,6 +38,31 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   bool _isbuilt = false;
   List<PriceVsTime> _priceVsTimeData = [];
+  double _sharePrice = 0.0;
+  int _availableShares = 0;
+  double _marketCap = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateShareDetails();
+  }
+
+  Future<void> _updateShareDetails() async {
+    if (widget.company == null) return;
+
+    final List<Share> share = await SupabaseHelper.getSharesByCompanyId(
+      widget.company!.id,
+    );
+
+    if (share.isNotEmpty) {
+      setState(() {
+        _sharePrice = share[0].value;
+        _availableShares = share.length;
+        _marketCap = _sharePrice * _availableShares;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -580,7 +605,8 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                 Expanded(
                                   child: _buildStockInfoCardWidget(
                                     title: 'Current Price',
-                                    value: '\$${(0.0).toStringAsFixed(2)}',
+                                    value:
+                                        '\$${_sharePrice.toStringAsFixed(2)}',
                                     icon: Icons.attach_money,
                                     color: const Color.fromARGB(
                                       255,
@@ -595,8 +621,8 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                 // Available shares
                                 Expanded(
                                   child: _buildStockInfoCardWidget(
-                                    title: 'Available Shares',
-                                    value: '${1000}',
+                                    title: 'Total Shares',
+                                    value: '${_availableShares.toString()}',
                                     icon: Icons.pie_chart,
                                     color: const Color.fromARGB(
                                       255,
@@ -612,8 +638,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                 Expanded(
                                   child: _buildStockInfoCardWidget(
                                     title: 'Market Cap',
-                                    value:
-                                        '\$${((0.0) * (1000)).toStringAsFixed(2)}',
+                                    value: '\$${_marketCap.toStringAsFixed(2)}',
                                     icon: Icons.business_center,
                                     color: Colors.blue,
                                   ),

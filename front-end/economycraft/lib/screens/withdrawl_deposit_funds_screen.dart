@@ -260,26 +260,6 @@ class _WithdrawlDepositFundsScreenState
                           icon: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.add_circle_outline),
-                              SizedBox(width: 8),
-                              Text('DEPOSIT'),
-                            ],
-                          ),
-                        ),
-                        Tab(
-                          icon: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.remove_circle_outline),
-                              SizedBox(width: 8),
-                              Text('WITHDRAW'),
-                            ],
-                          ),
-                        ),
-                        Tab(
-                          icon: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
                               Icon(Icons.swap_horiz),
                               SizedBox(width: 8),
                               Text('TRANSFER'),
@@ -298,10 +278,10 @@ class _WithdrawlDepositFundsScreenState
                       controller: _tabController,
                       children: [
                         // Deposit tab
-                        _buildDepositTab(),
+                        //_buildDepositTab(),
 
                         // Withdraw tab
-                        _buildWithdrawTab(),
+                        //_buildWithdrawTab(),
 
                         // Transfer tab
                         _buildTransferTab(),

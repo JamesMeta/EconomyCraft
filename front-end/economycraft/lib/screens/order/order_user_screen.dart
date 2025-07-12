@@ -403,7 +403,8 @@ class _OrderUserScreenState extends State<OrderUserScreen> {
   }
 
   Future<List<Order>> getOrders() async {
-    return await SupabaseHelper.getOrdersMadeByUser();
+    final userRowId = await SupabaseHelper.getPlayerId();
+    return await SupabaseHelper.getOrdersMadeByUser(userRowId);
   }
 
   Future<void> markOrderAsReceived(Order order) async {

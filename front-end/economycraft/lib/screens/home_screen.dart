@@ -374,22 +374,24 @@ class _MyHomePageState extends State<MyHomePage>
         'route': '/home',
         'isActive': true,
       },
+
+      {'title': 'Market', 'icon': Icons.storefront, 'route': '/home/market'},
+      {'title': 'Orders', 'icon': Icons.receipt_long, 'route': '/home/orders'},
+
       {
         'title': 'My Holdings',
         'icon': Icons.pie_chart,
         'route': '/home/holdings',
       },
-      {'title': 'Market', 'icon': Icons.storefront, 'route': '/home/market'},
-      {'title': 'Orders', 'icon': Icons.receipt_long, 'route': '/home/orders'},
-      {
-        'title': 'Players',
-        'icon': Icons.groups,
-        'route': '/home/player_overview',
-      },
       {
         'title': 'Funds',
         'icon': Icons.account_balance_wallet,
         'route': '/home/withdrawl_deposit_funds',
+      },
+      {
+        'title': 'Players',
+        'icon': Icons.groups,
+        'route': '/home/player_overview',
       },
       {
         'title': 'Server Info',
