@@ -634,6 +634,17 @@ class _ShareModificationScreenState extends State<ShareModificationScreen> {
 
     if (confirmed != true) return;
 
+    // if split makes stock value less than 1 show error
+    if (widget.share.value / _numberOfNewShares < 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Share value after split cannot be less than \$1.00'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
     });

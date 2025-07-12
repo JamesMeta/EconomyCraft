@@ -1387,14 +1387,15 @@ class SupabaseHelper {
     }
   }
 
-  static Future<List<Order>> getOrdersMadeByUser([int userId = 0]) async {
+  static Future<List<Order>> getOrdersMadeByUser(int userId) async {
     final user = _client.auth.currentUser;
     if (user == null) {
+      developer.log('Error: User not authenticated');
       return [];
     }
     try {
       // If userid is provided, use it; otherwise, get the current user's ID
-      final userRowId = userId ?? await getPlayerId();
+      final userRowId = userId;
       final response = await _client
           .from('orders')
           .select()
@@ -1564,13 +1565,18 @@ class SupabaseHelper {
       return false;
     }
     try {
+      List<Future<void>> updateFutures = [];
       for (var share in shares) {
-        await _client
-            .from('shares')
-            .update({'purchasable': true, 'sale_price': share.salePrice})
-            .eq('id', share.id);
+        updateFutures.add(
+          _client
+              .from('shares')
+              .update({'purchasable': true})
+              .eq('id', share.id),
+        );
         developer.log('Share made purchasable: ${share.id}');
       }
+      await Future.wait(updateFutures);
+      developer.log('All shares made purchasable successfully');
       return true;
     } catch (e) {
       developer.log('Error making shares purchasable: $e');
@@ -1584,13 +1590,18 @@ class SupabaseHelper {
       return false;
     }
     try {
+      List<Future<void>> updateFutures = [];
       for (var share in shares) {
-        await _client
-            .from('shares')
-            .update({'purchasable': false})
-            .eq('id', share.id);
+        updateFutures.add(
+          _client
+              .from('shares')
+              .update({'purchasable': false})
+              .eq('id', share.id),
+        );
         developer.log('Share made unpurchasable: ${share.id}');
       }
+      await Future.wait(updateFutures);
+      developer.log('All shares made unpurchasable successfully');
       return true;
     } catch (e) {
       developer.log('Error making shares unpurchasable: $e');
@@ -1817,6 +1828,13 @@ class SupabaseHelper {
       if (response.isEmpty) {
         return [];
       }
+
+      final Company? company = await getCompanyById(companyId);
+      if (company == null) {
+        developer.log('Error: Company not found for ID: $companyId');
+        return [];
+      }
+
       final List<Share> shares = await Future.wait(
         response.map<Future<Share>>((share) async {
           return Share(
@@ -1829,7 +1847,7 @@ class SupabaseHelper {
             salePrice: share['sale_price'] ?? 0.0,
             purchasable: share['purchasable'],
             userId: share['user_id'],
-            company: await getCompanyById(share['company_id']),
+            company: company,
             isPublic: share['is_public'] ?? false,
             isOriginal: share['original_stock'] ?? false,
           );
@@ -1939,6 +1957,41 @@ class SupabaseHelper {
     } catch (e) {
       developer.log('Error purchasing shares: $e');
       return false;
+    }
+  }
+
+  static Future<List<Share>> getSharesByCompanyId(int companyId) async {
+    try {
+      final response = await _client
+          .from('shares')
+          .select()
+          .eq('company_id', companyId)
+          .order('value', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+
+      final List<Share> shares = await Future.wait(
+        response.map<Future<Share>>((share) async {
+          return Share(
+            id: share['id'],
+            createdAt: DateTime.parse(share['created_at']),
+            companyId: share['company_id'],
+            stake: share['stake'],
+            purchasePrice: share['purchased_price'],
+            value: share['value'],
+            salePrice: share['sale_price'] ?? 0.0,
+            purchasable: share['purchasable'],
+            userId: share['user_id'],
+            isPublic: share['is_public'] ?? false,
+            isOriginal: share['original_stock'] ?? false,
+          );
+        }).toList(),
+      );
+      return shares;
+    } catch (e) {
+      developer.log('Error fetching shares by company ID: $e');
+      return [];
     }
   }
 
@@ -2522,6 +2575,22 @@ class SupabaseHelper {
       return true;
     } catch (e) {
       developer.log('Error verifying product: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> makeNewUserRows() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      await _client.from('users').insert({'minecraft_username': "mumbo"});
+      developer.log('New user rows created successfully for user I');
+      return true;
+    } catch (e) {
+      developer.log('Error creating new user rows: $e');
       return false;
     }
   }

@@ -18,7 +18,7 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
   final DateTime _serverStartDate = DateTime.utc(
     2025,
     7,
-    11,
+    12,
   ); // Server start date
 
   List<AdminMessage> _adminMessages = [];

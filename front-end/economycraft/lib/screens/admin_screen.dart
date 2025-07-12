@@ -151,6 +151,13 @@ class _AdminScreenState extends State<AdminScreen>
             onPressed: refreshAllData,
             tooltip: 'Refresh all data',
           ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await SupabaseHelper.makeNewUserRows();
+            },
+            tooltip: 'Attempt to make new user rows',
+          ),
         ],
       ),
       body:
