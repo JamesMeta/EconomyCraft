@@ -18,16 +18,17 @@ import 'package:economycraft/screens/company/company_page_screen.dart';
 import 'package:economycraft/screens/shopping_cart_screen.dart';
 import 'package:economycraft/screens/holding/company_page_backend_screen.dart';
 import 'package:economycraft/screens/holding/make_new_company_screen.dart';
-import 'package:economycraft/screens/holding/share_modification_screen.dart';
 import 'package:economycraft/screens/holding/sell_holding_screen.dart';
 import 'package:economycraft/screens/server_info_screen.dart';
 import 'package:economycraft/screens/withdrawl_deposit_funds_screen.dart';
 import 'package:economycraft/screens/admin_screen.dart';
 import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/screens/out_of_date_screen.dart';
 
 const supabaseUrl = 'https://ylgfgklcypqtbqrkhsba.supabase.co';
 const supabaseKey =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZ2Zna2xjeXBxdGJxcmtoc2JhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3MDA4NzcsImV4cCI6MjA2MTI3Njg3N30.o3uGNWrn-AFnTZa4eWiTPGDZ01EI_6FjojV3W-mAIoc";
+const appVersion = '1.1';
 
 Future<void> main() async {
   await Supabase.initialize(
@@ -67,13 +68,6 @@ final GoRouter _router = GoRouter(
               path: 'make_new_company',
               builder: (BuildContext context, GoRouterState state) {
                 return const MakeNewCompanyScreen();
-              },
-            ),
-            GoRoute(
-              path: 'modify_share',
-              builder: (BuildContext context, GoRouterState state) {
-                final data = state.extra as Share;
-                return ShareModificationScreen(share: data);
               },
             ),
             GoRoute(
@@ -169,6 +163,18 @@ final GoRouter _router = GoRouter(
           },
         ),
       ],
+      redirect: (context, state) async {
+        final String version = await SupabaseHelper.getCurrentVersion();
+        if (version != appVersion) {
+          return '/out_of_date';
+        }
+      },
+    ),
+    GoRoute(
+      path: '/out_of_date',
+      builder: (BuildContext context, GoRouterState state) {
+        return const OutOfDateScreen();
+      },
     ),
     GoRoute(
       path: '/login',
