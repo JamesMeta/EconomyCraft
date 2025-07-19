@@ -1,4 +1,5 @@
 import 'package:economycraft/classes/admin_message.dart';
+import 'package:economycraft/classes/companyShare.dart';
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/player.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
@@ -288,12 +289,14 @@ class SupabaseHelper {
     try {
       final shareEvaluations = await _client
           .from('shares')
-          .select('value')
+          .select('company_share:share_id (value)')
           .eq('user_id', playerId);
 
       double totalEvaluation = 0.0;
+
       for (var evaluation in shareEvaluations) {
-        totalEvaluation += evaluation['value']?.toDouble() ?? 0.0;
+        final companyShare = evaluation['company_share'];
+        totalEvaluation += companyShare['value']?.toDouble() ?? 0.0;
       }
       return totalEvaluation;
     } catch (e) {
@@ -311,12 +314,13 @@ class SupabaseHelper {
       final userRowId = await getPlayerId();
       final shareEvaluations = await _client
           .from('shares')
-          .select('value')
+          .select('company_share:share_id (value)')
           .eq('user_id', userRowId);
 
       double totalEvaluation = 0.0;
       for (var evaluation in shareEvaluations) {
-        totalEvaluation += evaluation['value']?.toDouble() ?? 0.0;
+        final companyShare = evaluation['company_share'];
+        totalEvaluation += companyShare['value']?.toDouble() ?? 0.0;
       }
       return totalEvaluation;
     } catch (e) {
@@ -622,13 +626,9 @@ class SupabaseHelper {
   /// Makes a company public by splitting its shares among current owners and updating the company status.
   ///
   /// This function:
-  /// 1. Calculates the required share split for each user based on their ownership.
-  /// 2. Fetches the company's current evaluation to determine the value of each new share.
-  /// 3. Ensures only the company owner can perform this action.
-  /// 4. Sets the company as public in the database.
-  /// 5. Deletes all non-original shares for the company (to reset the share structure).
-  /// 6. Updates the original stock share to be public and have the new stake/value.
-  /// 7. Inserts new shares for each user according to the calculated split.
+  /// - Checks if the company is already public.
+  /// - Updates the company to be public.
+  /// - Updates company share to be public.
   ///
   /// Returns true if successful, false otherwise.
   static Future<bool> goPublic(int companyId) async {
@@ -640,7 +640,6 @@ class SupabaseHelper {
             .eq('id', companyId)
             .limit(1)
             .maybeSingle();
-
     if (companyResponse == null || companyResponse.isEmpty) {
       developer.log('Error: Company not found or response is empty');
       return false;
@@ -649,119 +648,34 @@ class SupabaseHelper {
       developer.log('Error: Company is already public');
       return false;
     }
-
-    // 1. Calculate how many shares each user should have after the split.
-    final Map<String, double> shareSplitRequirement =
-        await getShareSplitRequirementByUser(companyId);
-
-    // 2. Get the company's evaluation to determine the value of each share.
-    final shareValueResonse =
-        await _client
-            .from('companies')
-            .select('evaluation')
-            .eq('id', companyId)
-            .limit(1)
-            .single();
-
-    if (shareValueResonse.isEmpty) {
-      developer.log('Error: Share value response is empty');
-      return false;
-    }
-
-    // Calculate the stake and value for each new share.
-    final double shareStake =
-        1 / shareSplitRequirement.values.reduce((a, b) => a + b);
-    final double shareValue = shareValueResonse['evaluation'] * shareStake;
-    developer.log('Share value for company $companyId: $shareValue');
-
-    if (shareSplitRequirement.isEmpty) {
-      developer.log('Error: No share split requirement found');
-      return false;
-    }
-
+    // 1. Update the company to be public.
     try {
-      // 3. Only the company owner can make the company public.
-      // final userRowId = await getPlayerId();
-      // final companyOwnerId = await getCompanyOwnerId(companyId);
-      // if (userRowId != companyOwnerId) {
-      //   developer.log('Error: User is not the owner of this company');
-      //   return false;
-      // }
-
-      // 4. Update the company to be public.
-      final response = await _client
+      await _client
           .from('companies')
           .update({'is_public': true})
-          .eq('id', companyId)
-          .select('id');
-
-      if (response.isEmpty) {
-        developer.log('Error: Company public status update failed');
-        return false;
-      }
-
-      // 5. Delete all non-original shares for this company.
-      final delResponse = await _client
-          .from('shares')
-          .delete()
-          .eq('company_id', companyId)
-          .eq('original_stock', false);
-
-      // 6. Find the owner of the original stock share.
-      final originalStockOwnerResponse =
-          await _client
-              .from('shares')
-              .select('user_id')
-              .eq('company_id', companyId)
-              .eq('original_stock', true)
-              .limit(1)
-              .maybeSingle();
-
-      if (originalStockOwnerResponse == null) {
-        developer.log('Error: No original stock owner found');
-        return false;
-      }
-
-      final String originalStockOwnerId =
-          originalStockOwnerResponse['user_id'].toString();
-
-      // The original stock owner already has one share, so subtract one from their requirement.
-      shareSplitRequirement[originalStockOwnerId] =
-          shareSplitRequirement[originalStockOwnerId]! - 1;
-
-      // 7. Update the original stock share to be public and have the new stake/value.
-      final originalStockUpdateResponse = await _client
-          .from('shares')
-          .update({'stake': shareStake, 'value': shareValue, 'is_public': true})
-          .eq('company_id', companyId)
-          .eq('original_stock', true);
-
-      // 8. Insert new shares for each user as needed.
-      for (final entry in shareSplitRequirement.entries) {
-        final userId = entry.key;
-        final requiredShares = entry.value.toInt();
-        for (int i = 0; i < requiredShares; i++) {
-          await _client.from('shares').insert({
-            'user_id': userId,
-            'company_id': companyId,
-            'stake': shareStake,
-            'value': shareValue,
-            'is_public': true,
-          });
-        }
-      }
-
+          .eq('id', companyId);
       developer.log('Company made public successfully: $companyId');
-      return true;
     } catch (e) {
       developer.log('Error making company public: $e');
+      return false;
+    }
+    // 2. Update company share to be public.
+    try {
+      await _client
+          .from('company_share')
+          .update({'is_public': true})
+          .eq('company_id', companyId);
+      developer.log('Company shares set to public for company: $companyId');
+      return true;
+    } catch (e) {
+      developer.log('Error setting company shares to public: $e');
       return false;
     }
   }
 
   static Future<bool> goPrivate(int companyId) async {
     try {
-      // Check if the company is already private
+      // 0. Check if the company is already private.
       final companyResponse =
           await _client
               .from('companies')
@@ -778,19 +692,19 @@ class SupabaseHelper {
         return false;
       }
 
+      // 1. Update the company to be private.
       await _client
-          .from("companies")
+          .from('companies')
           .update({'is_public': false})
           .eq('id', companyId);
       developer.log('Company made private successfully: $companyId');
 
-      // Set all shares to private
+      // 2. Update company share to be private.
       await _client
-          .from('shares')
+          .from('company_share')
           .update({'is_public': false})
           .eq('company_id', companyId);
-
-      developer.log('All shares for company $companyId set to private');
+      developer.log('Company shares set to private for company: $companyId');
       return true;
     } catch (e) {
       developer.log('Error making company private: $e');
@@ -1147,7 +1061,8 @@ class SupabaseHelper {
       final response = await _client
           .from('products')
           .select()
-          .eq('company_id', companyId);
+          .eq('company_id', companyId)
+          .order('price', ascending: true);
       if (response.isEmpty) {
         return [];
       }
@@ -1542,14 +1457,25 @@ class SupabaseHelper {
 
   static Future<void> newCompanyStockOptions(userRowId, companyRowId) async {
     try {
+      final response = await _client
+          .from('company_share')
+          .insert({
+            'company_id': companyRowId,
+            'value': 0.0,
+            'number_of_shares': 1,
+            'is_public': false,
+          })
+          .select('id');
+
+      // add a stock for the user
       await _client.from('shares').insert({
         'user_id': userRowId,
         'company_id': companyRowId,
         'stake': 1.0,
         'purchased_price': 0.0,
-        'value': 0.0,
+        'sale_price': 0.0,
         'purchasable': false,
-        'original_stock': true,
+        'share_id': response[0]['id'],
       });
       developer.log(
         'New company stock options created for user ID: $userRowId',
@@ -1622,10 +1548,13 @@ class SupabaseHelper {
             id, name, slogan, avatar_url, reputation, 
             evaluation, is_public, user_id, created_at, 
             lot_number, verified
-          )
+          ),
+          company_share:share_id (
+            value, number_of_shares, is_public
+            )
         ''')
           .eq('user_id', userRowId)
-          .order('value', ascending: false);
+          .order('value', ascending: false, referencedTable: 'company_share');
 
       if (response == null || response.isEmpty) {
         return [];
@@ -1635,6 +1564,7 @@ class SupabaseHelper {
       final List<Share> shares =
           response.map<Share>((share) {
             final companyData = share['companies'];
+            final companyShareData = share['company_share'];
 
             return Share(
               id: share['id'],
@@ -1642,12 +1572,12 @@ class SupabaseHelper {
               companyId: share['company_id'],
               stake: share['stake'],
               purchasePrice: share['purchased_price'],
-              value: share['value'],
+              value: companyShareData['value']?.toDouble() ?? 0.0,
               salePrice: share['sale_price'] ?? 0.0,
               purchasable: share['purchasable'],
               userId: share['user_id'],
-              isPublic: share['is_public'] ?? false,
-              isOriginal: share['original_stock'] ?? false,
+              isPublic: companyShareData['is_public'] ?? false,
+              numberOfShares: companyShareData['number_of_shares'] ?? 0,
               company:
                   companyData != null
                       ? Company(
@@ -1708,10 +1638,9 @@ class SupabaseHelper {
     try {
       final originalShareId =
           await _client
-              .from('shares')
+              .from('company_share')
               .select('id, value')
               .eq('company_id', companyId)
-              .eq('original_stock', true)
               .limit(1)
               .single();
       if (originalShareId.isEmpty) {
@@ -1785,31 +1714,23 @@ class SupabaseHelper {
     }
   }
 
-  static Future<Share> getCompanyShareByCompanyId(int companyId) async {
+  static Future<CompanyShare> getCompanyShareByCompanyId(int companyId) async {
     try {
       final responses = await _client
-          .from('shares')
-          .select()
+          .from('company_share')
+          .select("*")
           .eq('company_id', companyId)
-          .eq('original_stock', true)
           .limit(1);
       if (responses.isEmpty) {
         throw Exception('No original share found for company ID: $companyId');
       }
-      final shareData = responses[0];
-      return Share(
-        id: shareData['id'],
-        createdAt: DateTime.parse(shareData['created_at']),
-        companyId: shareData['company_id'],
-        stake: shareData['stake'],
-        purchasePrice: shareData['purchased_price'],
-        value: shareData['value'],
-        salePrice: shareData['sale_price'] ?? 0.0,
-        purchasable: shareData['purchasable'],
-        userId: shareData['user_id'],
-        company: await getCompanyById(shareData['company_id']),
-        isPublic: shareData['is_public'] ?? false,
-        isOriginal: shareData['original_stock'] ?? false,
+      final companyShareData = responses[0];
+      return CompanyShare(
+        id: companyShareData['id'],
+        companyId: companyShareData['company_id'],
+        value: companyShareData['value']?.toDouble() ?? 0.0,
+        numberOfShares: companyShareData['number_of_shares'] ?? 0,
+        isPublic: companyShareData['is_public'] ?? false,
       );
     } catch (e) {
       developer.log('Error fetching company share by company ID: $e');
@@ -1821,10 +1742,15 @@ class SupabaseHelper {
     try {
       final response = await _client
           .from('shares')
-          .select()
+          .select('''
+          *,
+          company_share:share_id (
+            value, number_of_shares, is_public
+            )
+        ''')
           .eq('company_id', companyId)
           .eq('purchasable', true)
-          .order('value', ascending: false);
+          .order('value', ascending: false, referencedTable: 'company_share');
       if (response.isEmpty) {
         return [];
       }
@@ -1837,19 +1763,20 @@ class SupabaseHelper {
 
       final List<Share> shares = await Future.wait(
         response.map<Future<Share>>((share) async {
+          final companyShareData = share['company_share'];
           return Share(
             id: share['id'],
             createdAt: DateTime.parse(share['created_at']),
             companyId: share['company_id'],
             stake: share['stake'],
             purchasePrice: share['purchased_price'],
-            value: share['value'],
+            value: companyShareData['value']?.toDouble() ?? 0.0,
             salePrice: share['sale_price'] ?? 0.0,
             purchasable: share['purchasable'],
             userId: share['user_id'],
             company: company,
-            isPublic: share['is_public'] ?? false,
-            isOriginal: share['original_stock'] ?? false,
+            isPublic: companyShareData['is_public'] ?? false,
+            numberOfShares: companyShareData['number_of_shares'] ?? 0,
           );
         }).toList(),
       );
@@ -1911,26 +1838,47 @@ class SupabaseHelper {
       final response =
           await _client
               .from('shares')
-              .select()
+              .select(
+                "*, company_share:share_id (value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
+              )
               .eq('id', shareId)
               .limit(1)
               .single();
       if (response.isEmpty) {
         throw Exception('Share not found for ID: $shareId');
       }
+
+      final companyShareData = response['company_share'];
+      final companyData = response['companies'];
+
       return Share(
         id: response['id'],
         createdAt: DateTime.parse(response['created_at']),
         companyId: response['company_id'],
         stake: response['stake'],
         purchasePrice: response['purchased_price'],
-        value: response['value'],
+        value: companyShareData['value']?.toDouble() ?? 0.0,
         salePrice: response['sale_price'] ?? 0.0,
         purchasable: response['purchasable'],
         userId: response['user_id'],
-        company: await getCompanyById(response['company_id']),
-        isPublic: response['is_public'] ?? false,
-        isOriginal: response['original_stock'] ?? false,
+        isPublic: companyShareData['is_public'] ?? false,
+        numberOfShares: companyShareData['number_of_shares'] ?? 0,
+        company:
+            companyData != null
+                ? Company(
+                  id: companyData['id'],
+                  name: companyData['name'],
+                  slogan: companyData['slogan'],
+                  avatarUrl: companyData['avatar_url'],
+                  reputation: companyData['reputation'],
+                  evaluation: companyData['evaluation'],
+                  isPublic: companyData['is_public'],
+                  userId: companyData['user_id'],
+                  createdAt: DateTime.parse(companyData['created_at']),
+                  lotNumber: companyData['lot_number'] ?? 0,
+                  verified: companyData['verified'] ?? false,
+                )
+                : null,
       );
     } catch (e) {
       developer.log('Error fetching share by ID: $e');
@@ -1964,27 +1912,30 @@ class SupabaseHelper {
     try {
       final response = await _client
           .from('shares')
-          .select()
+          .select(
+            "*, company_share:share_id (value, is_public, number_of_shares)",
+          )
           .eq('company_id', companyId)
-          .order('value', ascending: false);
+          .order('value', ascending: false, referencedTable: 'company_share');
       if (response.isEmpty) {
         return [];
       }
 
       final List<Share> shares = await Future.wait(
         response.map<Future<Share>>((share) async {
+          final companyShareData = share['company_share'];
           return Share(
             id: share['id'],
             createdAt: DateTime.parse(share['created_at']),
             companyId: share['company_id'],
             stake: share['stake'],
             purchasePrice: share['purchased_price'],
-            value: share['value'],
+            value: companyShareData['value']?.toDouble() ?? 0.0,
             salePrice: share['sale_price'] ?? 0.0,
             purchasable: share['purchasable'],
             userId: share['user_id'],
-            isPublic: share['is_public'] ?? false,
-            isOriginal: share['original_stock'] ?? false,
+            isPublic: companyShareData['is_public'] ?? false,
+            numberOfShares: companyShareData['number_of_shares'] ?? 0,
           );
         }).toList(),
       );
@@ -2049,58 +2000,96 @@ class SupabaseHelper {
     }
   }
 
+  static Future<Share> getShareByCompanyShareId(companyShareId) async {
+    try {
+      final response =
+          await _client
+              .from('shares')
+              .select(
+                "*, company_share:share_id (value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
+              )
+              .eq('share_id', companyShareId)
+              .maybeSingle();
+      if (response == null) {
+        throw Exception(
+          'Share not found for company share ID: $companyShareId',
+        );
+      }
+      final companyShareData = response['company_share'];
+      final companyData = response['companies'];
+      return Share(
+        id: response['id'],
+        createdAt: DateTime.parse(response['created_at']),
+        companyId: response['company_id'],
+        stake: response['stake'],
+        purchasePrice: response['purchased_price'],
+        value: companyShareData['value']?.toDouble() ?? 0.0,
+        salePrice: response['sale_price'] ?? 0.0,
+        purchasable: response['purchasable'],
+        userId: response['user_id'],
+        isPublic: companyShareData['is_public'] ?? false,
+        numberOfShares: companyShareData['number_of_shares'] ?? 0,
+        company:
+            companyData != null
+                ? Company(
+                  id: companyData['id'],
+                  name: companyData['name'],
+                  slogan: companyData['slogan'],
+                  avatarUrl: companyData['avatar_url'],
+                  reputation: companyData['reputation'],
+                  evaluation: companyData['evaluation'],
+                  isPublic: companyData['is_public'],
+                  userId: companyData['user_id'],
+                  createdAt: DateTime.parse(companyData['created_at']),
+                  lotNumber: companyData['lot_number'] ?? 0,
+                  verified: companyData['verified'] ?? false,
+                )
+                : null,
+      );
+    } catch (e) {
+      developer.log('Error fetching share by company share ID: $e');
+      throw Exception('Failed to fetch share: $e');
+    }
+  }
+
   static Future<List<ShareChanges>> getShareChanges() async {
     try {
-      final originalShareIds = await _client
-          .from('shares')
-          .select()
-          .eq('original_stock', true)
+      final companyShares = await _client
+          .from('company_share')
+          .select('id, value, is_public, number_of_shares')
           .eq('is_public', true)
-          .order('value', ascending: true);
-      if (originalShareIds.isEmpty) {
-        developer.log('No original shares found');
+          .order('value', ascending: false);
+      if (companyShares.isEmpty) {
+        developer.log('No public company shares found');
         return [];
       }
 
       final List<ShareChanges> shareChanges = [];
-      for (var shareId in originalShareIds) {
+      for (var companyShare in companyShares) {
         final response = await _client
             .from('share_history')
             .select()
-            .eq('share_id', shareId['id'])
+            .eq('share_id', companyShare['id'])
             .order('created_at', ascending: false)
             .limit(2);
         if (response.isEmpty) {
           developer.log(
-            'No share history found for share ID: ${shareId['id']}',
+            'No share history found for share ID: ${companyShare['id']}',
           );
           continue;
         }
 
-        final Share share = Share(
-          id: shareId['id'],
-          createdAt: DateTime.parse(shareId['created_at']),
-          companyId: shareId['company_id'],
-          stake: shareId['stake'],
-          purchasePrice: shareId['purchased_price'],
-          value: shareId['value'],
-          salePrice: shareId['sale_price'] ?? 0.0,
-          purchasable: shareId['purchasable'],
-          userId: shareId['user_id'],
-          company: await getCompanyById(shareId['company_id']),
-          isPublic: shareId['is_public'] ?? false,
-          isOriginal: shareId['original_stock'] ?? false,
-        );
+        final Share share = await getShareByCompanyShareId(companyShare['id']);
         if (share.company == null) {
           developer.log(
-            'Error: Company not found for share ID: ${shareId['id']}',
+            'Error: Company not found for share ID: ${companyShare['id']}',
           );
           continue;
         }
         // Extract the latest and previous prices from the response
         if (response.length < 2) {
           developer.log(
-            'Error: Not enough data to calculate changes for share ID: ${shareId['id']}',
+            'Error: Not enough data to calculate changes for share ID: ${companyShare['id']}',
           );
           continue;
         }
@@ -2124,7 +2113,7 @@ class SupabaseHelper {
           );
         } else {
           developer.log(
-            'Error: Latest price is null for share ID: ${shareId['id']}',
+            'Error: Latest price is null for share ID: ${companyShare['id']}',
           );
         }
       }
@@ -2199,53 +2188,6 @@ class SupabaseHelper {
     } catch (e) {
       developer.log('Error fetching orders for user\'s companies: $e');
       return [];
-    }
-  }
-
-  static Future<bool> joinShares(List<Share> shares) async {
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      return false;
-    }
-    try {
-      double totalValue = 0.0;
-      double totalStake = 0.0;
-      double totalPurchasePrice = 0.0;
-      Share concatenatedShare = shares.first;
-      for (var share in shares) {
-        totalValue += share.value;
-        totalStake += share.stake;
-        totalPurchasePrice += share.purchasePrice;
-        if (share.isOriginal) {
-          concatenatedShare = share;
-        }
-      }
-
-      shares.remove(concatenatedShare);
-
-      final updateResponse = await _client
-          .from('shares')
-          .update({
-            'value': totalValue,
-            'stake': totalStake,
-            'purchased_price': totalPurchasePrice,
-            'purchasable': false,
-          })
-          .eq('id', concatenatedShare.id)
-          .select('id');
-      if (updateResponse.isEmpty) {
-        developer.log('Error: No response from share update');
-        return false;
-      }
-
-      for (var share in shares) {
-        await _client.from('shares').delete().eq('id', share.id);
-      }
-
-      return true;
-    } catch (e) {
-      developer.log('Error joining shares: $e');
-      return false;
     }
   }
 
@@ -2592,6 +2534,31 @@ class SupabaseHelper {
     } catch (e) {
       developer.log('Error creating new user rows: $e');
       return false;
+    }
+  }
+
+  //
+  //
+  // Versioning
+  //
+  //
+
+  static Future<String> getCurrentVersion() async {
+    try {
+      final response =
+          await _client
+              .from('app_version')
+              .select('version')
+              .eq('id', 1)
+              .single();
+      if (response.isEmpty) {
+        developer.log('Error: No version found');
+        return '';
+      }
+      return response['version'] as String;
+    } catch (e) {
+      developer.log('Error fetching current version: $e');
+      return '';
     }
   }
 }

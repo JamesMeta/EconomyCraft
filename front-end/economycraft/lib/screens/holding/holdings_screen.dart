@@ -519,47 +519,6 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           },
         ),
 
-        // Split Share button
-        _buildActionButton(
-          icon: Icons.call_split,
-          label: 'Split Share',
-          color: const Color.fromARGB(255, 0, 204, 255),
-          isEnabled:
-              _selectedShares.length == 1 &&
-              allSharesNotForSale() &&
-              !_selectedShares.first.isPublic,
-          enabledToolTip: 'Split a private share into multiple shares',
-          disabledToolTip:
-              'Must have exactly one private share selected that is not for sale',
-          onPressed: () {
-            if (_selectedShares.isNotEmpty) {
-              context.go(
-                '/home/holdings/modify_share',
-                extra: _selectedShares.first,
-              );
-            }
-          },
-        ),
-
-        // Join Shares button
-        _buildActionButton(
-          icon: Icons.merge_type,
-          label: 'Join Shares',
-          color: const Color.fromARGB(255, 255, 193, 7),
-          isEnabled:
-              _selectedShares.length > 1 &&
-              allSharesFromSameCompany() &&
-              allSharesArePrivate(),
-          enabledToolTip: 'Join multiple shares into one',
-          disabledToolTip:
-              'Must have multiple shares selected from the same company',
-          onPressed: () {
-            if (_selectedShares.isNotEmpty) {
-              joinShares();
-            }
-          },
-        ),
-
         // Remove from Market button
         _buildActionButton(
           icon: Icons.remove_shopping_cart,
@@ -1428,75 +1387,6 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
     if (_selectedShares.isEmpty) return false;
     final companyId = _selectedShares.first.company?.id;
     return _selectedShares.every((share) => share.company?.id == companyId);
-  }
-
-  Future<void> joinShares() async {
-    if (_selectedShares.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Select at least 2 shares to join.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (_selectedShares.any((share) => share.isPublic)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot join public shares.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (_selectedShares.any((share) => share.purchasable)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot join shares that are for sale.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Check if all shares are from the same company
-    final companyId = _selectedShares.first.company?.id;
-    if (_selectedShares.any((share) => share.company?.id != companyId)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('All shares must be from the same company to join.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Proceed with joining shares
-    final response = await SupabaseHelper.joinShares(_selectedShares);
-
-    if (response) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Shares successfully joined!'),
-          backgroundColor: Color.fromARGB(255, 23, 221, 97),
-        ),
-      );
-
-      // Clear selected shares after action
-      _sharesFuture = getUsersShares();
-      setState(() {
-        _selectedShares.clear();
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to join shares.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
   Future<List<PriceVsTime>> _getPriceVsTimeData(share) async {

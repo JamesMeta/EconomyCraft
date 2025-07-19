@@ -11,7 +11,7 @@ class Share {
   bool purchasable;
   final int userId;
   final bool isPublic;
-  final bool isOriginal;
+  final int numberOfShares;
 
   Company? company;
 
@@ -27,7 +27,7 @@ class Share {
     required this.userId,
     this.company,
     required this.isPublic,
-    required this.isOriginal,
+    required this.numberOfShares,
   });
 
   @override

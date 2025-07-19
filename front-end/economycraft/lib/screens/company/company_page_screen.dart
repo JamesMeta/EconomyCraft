@@ -1,4 +1,5 @@
 import 'package:economycraft/classes/company.dart';
+import 'package:economycraft/classes/companyShare.dart';
 import 'package:economycraft/classes/product.dart';
 import 'package:economycraft/classes/share.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
   List<PriceVsTime> _priceVsTimeData = [];
   List<Share> _shares = [];
   List<Product> _products = [];
-  double _topSectionHeight = 0.5; // Initial distribution ratio (50% each)
+  double _topSectionHeight = 0.75; // Initial distribution ratio (50% each)
   double _dragStartY = 0.0;
   double _dragStartTopHeight = 0.0;
   final double _minSectionHeight = 0.2;
@@ -321,31 +322,35 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
         ),
 
         // Resize handle
-        GestureDetector(
-          onVerticalDragStart: (details) {
-            _dragStartY = details.globalPosition.dy;
-            _dragStartTopHeight = _topSectionHeight;
-          },
-          onVerticalDragUpdate: (details) {
-            final double dragDistance = details.globalPosition.dy - _dragStartY;
-            final double dragFraction = dragDistance / totalHeight;
-            setState(() {
-              _topSectionHeight = (_dragStartTopHeight + dragFraction).clamp(
-                _minSectionHeight,
-                1 - _minSectionHeight,
-              );
-            });
-          },
-          child: Container(
-            height: dividerHeight,
-            color: Colors.transparent,
-            child: Center(
-              child: Container(
-                height: 4,
-                width: 80,
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 74, 237, 217),
-                  borderRadius: BorderRadius.circular(2),
+        MouseRegion(
+          cursor: SystemMouseCursors.resizeUpDown,
+          child: GestureDetector(
+            onVerticalDragStart: (details) {
+              _dragStartY = details.globalPosition.dy;
+              _dragStartTopHeight = _topSectionHeight;
+            },
+            onVerticalDragUpdate: (details) {
+              final double dragDistance =
+                  details.globalPosition.dy - _dragStartY;
+              final double dragFraction = dragDistance / totalHeight;
+              setState(() {
+                _topSectionHeight = (_dragStartTopHeight + dragFraction).clamp(
+                  _minSectionHeight,
+                  1 - _minSectionHeight,
+                );
+              });
+            },
+            child: Container(
+              height: dividerHeight,
+              color: Colors.transparent,
+              child: Center(
+                child: Container(
+                  height: 4,
+                  width: 80,
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 74, 237, 217),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
             ),
@@ -983,7 +988,7 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
     }
   }
 
-  Future<Share> _fetchCompanyStock() async {
+  Future<CompanyShare> _fetchCompanyStock() async {
     try {
       final share = await SupabaseHelper.getCompanyShareByCompanyId(
         widget.company.id,
@@ -1004,8 +1009,8 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
         return await SupabaseHelper.getSharePriceHistory(share.companyId);
       } else {
         return await SupabaseHelper.getCompanyPriceHistory(
-          share.company!.id,
-          share.stake,
+          share.companyId,
+          100 / share.numberOfShares,
         );
       }
     } catch (e) {

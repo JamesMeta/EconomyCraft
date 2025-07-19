@@ -1,4 +1,5 @@
 import 'package:economycraft/classes/company.dart';
+import 'package:economycraft/classes/companyShare.dart';
 import 'package:economycraft/classes/player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1016,12 +1017,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Making your company public changes how your shares are valued and traded. Public companies can attract more investors but are more affected in regards to their image.',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          SizedBox(height: 12),
-                          Text(
-                            'This will require squashing all current shares so they are equally weighted and priced. This will affect the current shareholders as shown below:',
+                            'Making your company public changes how your shares are valued and traded. Public companies can attract investors but are more affected in regards to their image.',
                             style: TextStyle(fontSize: 14),
                           ),
                         ],
@@ -1107,41 +1103,6 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                 },
                               ),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Advice text
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 255, 245, 230),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color.fromARGB(255, 255, 193, 7),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.lightbulb_outline,
-                            color: Color.fromARGB(255, 255, 153, 0),
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'You can decrease the number of new shares being issued by purchasing back shares owned by other players. After going public, you can also split shares to increase the number of shares available.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Color.fromARGB(255, 255, 153, 0),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
                     const SizedBox(height: 24),
 
                     // Confirmation text
@@ -1429,7 +1390,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     );
 
     // Fetch current share data
-    final Share share = await SupabaseHelper.getCompanyShareByCompanyId(
+    final CompanyShare share = await SupabaseHelper.getCompanyShareByCompanyId(
       widget.company!.id,
     );
 
@@ -1448,7 +1409,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        double sharesStake = share.stake;
+        double sharesStake = 1 / share.numberOfShares;
         double sharesValue = share.value;
         int splitFactor = 2;
 
@@ -1532,7 +1493,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                               Expanded(
                                 child: _buildInfoItem(
                                   'Ownership Per Share',
-                                  percentFormat.format(share.stake),
+                                  percentFormat.format(
+                                    1 / share.numberOfShares,
+                                  ),
                                   Icons.pie_chart,
                                 ),
                               ),
@@ -1593,10 +1556,11 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                               setState(() {
                                 splitFactor = newFactor;
                                 if (newFactor > 0) {
-                                  sharesStake = share.stake / newFactor;
+                                  sharesStake =
+                                      (1 / share.numberOfShares) / newFactor;
                                   sharesValue = share.value / newFactor;
                                 } else {
-                                  sharesStake = share.stake;
+                                  sharesStake = 1 / share.numberOfShares;
                                   sharesValue = share.value;
                                 }
                               });
@@ -2014,7 +1978,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     }
   }
 
-  Future<Share> _fetchCompanyStock() async {
+  Future<CompanyShare> _fetchCompanyStock() async {
     try {
       final share = await SupabaseHelper.getCompanyShareByCompanyId(
         widget.company!.id,
@@ -2033,8 +1997,8 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
         return await SupabaseHelper.getSharePriceHistory(share!.companyId);
       } else {
         return await SupabaseHelper.getCompanyPriceHistory(
-          share.company!.id,
-          share.stake,
+          share.companyId,
+          1 / share.numberOfShares,
         );
       }
     } catch (e) {
