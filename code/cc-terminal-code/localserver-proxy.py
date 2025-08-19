@@ -175,8 +175,8 @@ def deposit_64():
         return "Deposit of 64 failed", 400, {'Content-Type': 'text/plain'}
 
 def deposit(amount, user_id):
-    SUPABASE_URL = "https://ylgfgklcypqtbqrkhsba.supabase.co"
-    SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZ2Zna2xjeXBxdGJxcmtoc2JhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTcwMDg3NywiZXhwIjoyMDYxMjc2ODc3fQ.BSzOB85HmyQKmNwKMkRlF27CU7B9-Q-ER4nrWKxWPJo"
+    SUPABASE_URL = ""
+    SUPABASE_SERVICE_ROLE_KEY = ""
     supabase_client = supabase.create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     print(f"Attempting to deposit {amount} for user ID {user_id}")
     response = supabase_client.table('users').select('money').eq('user_id', user_id).execute()
@@ -191,8 +191,8 @@ def deposit(amount, user_id):
     pass
 
 def withdraw(amount, user_id):
-    SUPABASE_URL = "https://ylgfgklcypqtbqrkhsba.supabase.co"
-    SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsZ2Zna2xjeXBxdGJxcmtoc2JhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTcwMDg3NywiZXhwIjoyMDYxMjc2ODc3fQ.BSzOB85HmyQKmNwKMkRlF27CU7B9-Q-ER4nrWKxWPJo"
+    SUPABASE_URL = ""
+    SUPABASE_SERVICE_ROLE_KEY = ""
     supabase_client = supabase.create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     print(f"Attempting to withdraw {amount} for user ID {user_id}")
     response = supabase_client.table('users').select('money').eq('user_id', user_id).execute()
