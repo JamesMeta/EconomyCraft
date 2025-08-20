@@ -1235,13 +1235,12 @@ class SupabaseHelper {
           },
         );
         developer.log('Order created for product ID: $productId');
-        return true;
       }
+      return true;
     } catch (e) {
       developer.log('Error creating order: $e');
       return false;
     }
-    return false;
   }
 
   static Future<bool> cancelOrderUser(int orderId) async {
@@ -2415,6 +2414,61 @@ class SupabaseHelper {
     }
   }
 
+  static Future<bool> markCompanyAIOwned(int companyId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      await _client.from('companies').update({'ai': true}).eq('id', companyId);
+
+      developer.log('Company marked as AI owned successfully: $companyId');
+      return true;
+    } catch (e) {
+      developer.log('Error marking company as AI owned: $e');
+      return false;
+    }
+  }
+
+  static Future<List<Order>> getOrdersMadeForCompanyAdmin(int companyId) async {
+    try {
+      final response = await _client
+          .from('orders')
+          .select()
+          .eq('company_id', companyId)
+          .eq('complete', false)
+          .order('created_at', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<Order> orders = await Future.wait(
+        response.map<Future<Order>>((order) async {
+          return Order(
+            id: order['id'],
+            productId: order['product_id'],
+            companyId: order['company_id'],
+            userId: order['user_id'],
+            quantity: order['quantity'],
+            payment: order['payment'],
+            deliveryAddress: order['delivery_address'],
+            orderTimeout: DateTime.parse(order['order_timeout']),
+            createdAt: DateTime.parse(order['created_at']),
+            complete: order['complete'] ?? false,
+            received: order['received'] ?? false,
+
+            product: await getProductById(order['product_id']),
+            company: await getCompanyById(order['company_id']),
+          );
+        }).toList(),
+      );
+      return orders;
+    } catch (e) {
+      developer.log('Error fetching orders made for company: $e');
+      return [];
+    }
+  }
+
   static Future<List<Order>> getAllOrdersForAiCompanies() async {
     try {
       final aiCompanies = await _client
@@ -2427,7 +2481,7 @@ class SupabaseHelper {
       }
       final List<Future<List<Order>>> futures =
           aiCompanies.map((company) {
-            return getOrdersMadeForCompany(company['id']);
+            return getOrdersMadeForCompanyAdmin(company['id']);
           }).toList();
       final List<List<Order>> nestedOrders = await Future.wait(futures);
       // Flatten the list of lists
@@ -2435,6 +2489,51 @@ class SupabaseHelper {
       return orders;
     } catch (e) {
       developer.log('Error fetching orders for AI companies: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Order>> getOrdersMadeByUserAdmin(int userId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      developer.log('Error: User not authenticated');
+      return [];
+    }
+    try {
+      // If userid is provided, use it; otherwise, get the current user's ID
+      final userRowId = userId;
+      final response = await _client
+          .from('orders')
+          .select()
+          .eq('user_id', userRowId)
+          .eq('received', false)
+          .order('created_at', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<Order> orders = await Future.wait(
+        response.map<Future<Order>>((order) async {
+          return Order(
+            id: order['id'],
+            productId: order['product_id'] ?? 0,
+            companyId: order['company_id'] ?? 0,
+            userId: order['user_id'],
+            quantity: order['quantity'],
+            payment: order['payment'],
+            deliveryAddress: order['delivery_address'],
+            orderTimeout: DateTime.parse(order['order_timeout']),
+            createdAt: DateTime.parse(order['created_at']),
+            complete: order['complete'] ?? false,
+            received: order['received'] ?? false,
+
+            product: await getProductById(order['product_id']),
+            company: await getCompanyById(order['company_id']),
+          );
+        }).toList(),
+      );
+      return orders;
+    } catch (e) {
+      developer.log('Error fetching orders made by user: $e');
       return [];
     }
   }
@@ -2448,7 +2547,7 @@ class SupabaseHelper {
       }
       final List<Future<List<Order>>> futures =
           AiUsers.map((user) {
-            return getOrdersMadeByUser(user['id']);
+            return getOrdersMadeByUserAdmin(user['id']);
           }).toList();
       final List<List<Order>> nestedOrders = await Future.wait(futures);
       // Flatten the list of lists
