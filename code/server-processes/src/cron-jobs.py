@@ -23,23 +23,26 @@ if (__name__ == "__main__"):
     # Create the Supabase client using the service role key
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+
+
     # Create an instance of the Administration class
 
-    # def job1():
-    #     admin = Administration(supabase)
-    #     admin.make_ai_share_orders()
+    def job1():
+        admin = Administration(supabase)
+        admin.make_ai_share_orders()
     
-    # def job2():
-    #     admin = Administration(supabase)
-    #     admin.make_ai_orders()
+    def job2():
+        admin = Administration(supabase)
+        admin.make_ai_orders()
 
     
-    # schedule.every(1).day.do(job2)
+    schedule.every(1).day.do(job2)
+    schedule.every(60).minutes.do(job1)
 
     # job2()
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(60)  # Sleep for 1 minute to avoid overwhelming the server
+    while True:
+        schedule.run_pending()
+        time.sleep(60)  # Sleep for 1 minute to avoid overwhelming the server
 
     # admin = Administration(supabase)
     # admin.make_ai_orders()
@@ -78,14 +81,14 @@ if (__name__ == "__main__"):
     # plt.show()
 
     # Make new companies shares purchaseable
-    admin = Administration(supabase)
-    admin.make_new_company_shares_purchaseable(15, 0.49)
-    admin.make_new_company_shares_purchaseable(16, 0.49)
-    admin.make_new_company_shares_purchaseable(21, 0.49)
-    admin.make_new_company_shares_purchaseable(22, 0.85)
-    admin.make_new_company_shares_purchaseable(23, 0.85)
-    admin.make_new_company_shares_purchaseable(24, 0.65)
-    admin.make_new_company_shares_purchaseable(26, 0.65)
+    # admin = Administration(supabase)
+    # admin.make_new_company_shares_purchaseable(15, 0.49)
+    # admin.make_new_company_shares_purchaseable(16, 0.49)
+    # admin.make_new_company_shares_purchaseable(21, 0.49)
+    # admin.make_new_company_shares_purchaseable(22, 0.85)
+    # admin.make_new_company_shares_purchaseable(23, 0.85)
+    # admin.make_new_company_shares_purchaseable(24, 0.65)
+    # admin.make_new_company_shares_purchaseable(26, 0.65)
 
         
     # modify company reputation

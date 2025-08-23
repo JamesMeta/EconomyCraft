@@ -547,7 +547,7 @@ class Administration:
                             
                         # Place the order
                         user.place_product_order(product.id, int(quantity_to_buy))
-                        print(f"[blue]AI {user.minecraft_username} placed an order for {quantity_to_buy} of product ID {product.id} at price {product.price}.[/blue]")
+                        # print(f"[blue]AI {user.minecraft_username} placed an order for {quantity_to_buy} of product ID {product.id} at price {product.price}.[/blue]")
                         
                         # Notification logic for non-AI company owners
                         company = self.company_map.get(product.company_id)
@@ -591,7 +591,17 @@ class Administration:
                     # Filter current shares for shares not owned by the user and that are purchasable and not for a company owned by the user
                     #--------------------------------------------
 
-                    current_shares_for_sale = [share for share in current_share_market if share.purchasable and share.company.user_id != user.id]
+                    # current_shares_for_sale = [share for share in current_share_market if share.purchasable and share.company.user_id != user.id]
+                    current_shares_for_sale = []
+                    for share in current_share_market:
+                        if not share.purchasable:
+                            continue
+                        if share.company.user_id == user.id:
+                            continue
+                        already_owned = any(owned_share.company.id == share.company.id for owned_share in owned_shares)
+                        if already_owned:
+                            continue
+                        current_shares_for_sale.append(share)
 
                     #--------------------------------------------
                     # Evaluate and potentially sell existing shares
@@ -611,7 +621,7 @@ class Administration:
                             market_value = share.value
                             sale_price = market_value * 1.025
                             user.place_share_sell_order(share.id, sale_price)
-                            print(f"[green]AI {user.minecraft_username} placed share ID {share.id} for sale with a profit at price {sale_price}.[/green]")
+                            # print(f"[green]AI {user.minecraft_username} placed share ID {share.id} for sale with a profit at price {sale_price}.[/green]")
                         elif action == "SELL_LOSS":
                             # check if any shares are for sale in the market of this type, undercut them
                             # if no shares are for sale sell at market value
@@ -619,10 +629,10 @@ class Administration:
                             if sale_price is None:
                                 sale_price = share.value
                             user.place_share_sell_order(share.id, sale_price)
-                            print(f"[orange]AI {user.minecraft_username} placed share ID {share.id} for sale with a loss at price {sale_price}.[/orange]")
+                            # print(f"[orange]AI {user.minecraft_username} placed share ID {share.id} for sale with a loss at price {sale_price}.[/orange]")
                         elif action == "HOLD":
                             # Hold the share, do nothing
-                            print(f"[dim white]AI {user.minecraft_username} is holding share ID {share.id}.[/dim white]")
+                            # print(f"[dim white]AI {user.minecraft_username} is holding share ID {share.id}.[/dim white]")
                             continue
                     
                     #--------------------------------------------
@@ -630,13 +640,13 @@ class Administration:
                     #--------------------------------------------
 
                     if len(current_shares_for_sale) == 0:
-                        print(f"[dim white]AI {user.minecraft_username} found no shares for sale to buy.[/dim white]")
+                        # print(f"[dim white]AI {user.minecraft_username} found no shares for sale to buy.[/dim white]")
                         progress.update(task, advance=1)
                         continue
 
                     # Check if liquid assets are sufficient to buy shares
                     if user_balance <= 0:
-                        print(f"[dim white]AI {user.minecraft_username} has no liquid assets to buy shares.[/dim white]")
+                        # print(f"[dim white]AI {user.minecraft_username} has no liquid assets to buy shares.[/dim white]")
                         progress.update(task, advance=1)
                         continue
 
@@ -647,14 +657,14 @@ class Administration:
                     share_assets = networth_breakdown['SHARE_ASSETS']
                     share_investment_limit = networth * user.percentage_of_networth_to_invest
                     if share_assets >= share_investment_limit:
-                        print(f"[dim white]AI {user.minecraft_username} has no share investment limit to buy shares.[/dim white]")
+                        # print(f"[dim white]AI {user.minecraft_username} has no share investment limit to buy shares.[/dim white]")
                         progress.update(task, advance=1)
                         continue
 
                     # Calculate maximum amount to invest in shares
                     max_investment = min(share_investment_limit, liquid_assets)
                     if max_investment <= 0:
-                        print(f"[dim white]AI {user.minecraft_username} has no liquid assets to invest in shares.[/dim white]")
+                        # print(f"[dim white]AI {user.minecraft_username} has no liquid assets to invest in shares.[/dim white]")
                         progress.update(task, advance=1)
                         continue
 
@@ -683,7 +693,7 @@ class Administration:
                             )
 
                             if users_share_investment_in_company / networth > user.diversity_minimum:
-                                print(f"[dim white]AI {user.minecraft_username} is too heavily invested in company {company.name} to buy more shares.[/dim white]")
+                                # print(f"[dim white]AI {user.minecraft_username} is too heavily invested in company {company.name} to buy more shares.[/dim white]")
                                 continue
                         
                         
@@ -696,11 +706,11 @@ class Administration:
 
                         # Calculate weighted score based on user strategy weights
                         score = (
-                            user.strategy_weights['sales'] * performance +
+                            user.strategy_weights['sales'] * performance * 0.1 +
                             user.strategy_weights['reputation'] * reputation +
                             user.strategy_weights['trend_analysis'] * stock_trend +
                             user.strategy_weights['contrarian'] * (1 - stock_trend) +  
-                            user.strategy_weights['random'] * random.uniform(0, 1), 
+                            user.strategy_weights['random'] * random.uniform(0, 1) + 
                             user.strategy_weights['listed_value'] * (company_listed_value / company_estimated_value if company_estimated_value and company_estimated_value > 0 else 1)
                         )
 
@@ -750,7 +760,7 @@ class Administration:
 
                         # Place the share order
                         user.place_share_order(share.id)
-                        print(f"[green]AI {user.minecraft_username} bought share ID {share.id} at price {share_price}.[/green]")
+                        # print(f"[green]AI {user.minecraft_username} bought share ID {share.id} at price {share_price}.[/green]")
                         
                         # Update user's balance and shares bought count
                         user_balance -= share_price
@@ -762,7 +772,7 @@ class Administration:
                     progress.update(task, advance=1)
                         
                 except Exception as e:
-                    print(f"[bold red]AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red]")
+                    # print(f"[bold red]AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red]")
                     progress.update(task, advance=1)
                     continue
             
@@ -854,7 +864,7 @@ class Administration:
         lowest_price_share = min(shares, key=lambda x: x['sale_price'])
         return lowest_price_share['sale_price'] * SHARE_UNDERCUT_PERCENTAGE
 
-    def get_share_by_company_share_id(self, share_id: int):
+    def get_share_by_company_share_id(self, share_id: int, company_share):
         """
         Get a share object by its ID.
         
@@ -864,26 +874,29 @@ class Administration:
         Returns:
             Share object or None if not found
         """
-        response = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("share_id", share_id).execute()
+        response = self.supabase.table("shares").select("*").eq("share_id", share_id).execute()
         shares = response.data
         
         if not shares or len(shares) == 0:
             return None
             
-        share_data = shares[0]
-        company_share = share_data['company_share']
+        share_list = []
+        for share in shares:
+
+            share_data = share
         
-        return Share(
-            id=share_data['id'],
-            company=self.company_map.get(share_data['company_id']),
-            stake=share_data['stake'],
-            purchased_price=share_data['purchased_price'],
-            value= company_share['value'],
-            purchasable=share_data['purchasable'],
-            user_id=share_data['user_id'],
-            is_public= company_share['is_public'],
-            sale_price=share_data['sale_price'],
-        )
+            share_list.append(Share(
+                id=share_data['id'],
+                company=self.company_map.get(company_share['company_id']),
+                stake=share_data['stake'],
+                purchased_price=share_data['purchased_price'],
+                value= company_share['value'],
+                purchasable=share_data['purchasable'],
+                user_id=share_data['user_id'],
+                is_public= company_share['is_public'],
+                sale_price=share_data['sale_price'],
+            ))
+        return share_list
 
     def get_current_shares(self):
         """
@@ -897,13 +910,10 @@ class Administration:
 
         share_list = []
         for share in shares:
-            company = self.company_map.get(share['company_id'])
-            if not company:
-                continue
 
             # Get the share details
-            share_object = self.get_share_by_company_share_id(share['id'])
-            share_list.append(share_object)
+            share_objects = self.get_share_by_company_share_id(share['id'], share)
+            share_list.extend(share_objects)
         
         return share_list
 
@@ -980,7 +990,7 @@ class Administration:
                     share = shares[i]
                     if not share['purchasable']:
                         self.supabase.table("shares").update({"purchasable": True,  "sale_price": sale_price}).eq("id", share['id']).execute()
-                        print(f"[green]Made share ID {share['id']} purchasable for company ID {company_id}.[/green]")
+                        # print(f"[green]Made share ID {share['id']} purchasable for company ID {company_id}.[/green]")
                     
                     if i <= number_of_shares_to_make_purchasable // 4:
                         sale_price *=1.00025
