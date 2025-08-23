@@ -29,5 +29,6 @@ class Mark(AI):
             "reputation": random.uniform(0.1, 0.2),
             "trend_analysis": random.uniform(0.05, 0.1),
             "contrarian": random.uniform(0.4, 0.5),
-            "random": random.uniform(0.05, 0.1)
+            "random": random.uniform(0.05, 0.1),
+            "listed_value": random.uniform(0.1, 0.2)
         }

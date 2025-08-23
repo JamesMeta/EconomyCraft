@@ -33,7 +33,8 @@ class Emily(AI):
             "reputation": random.uniform(0.35, 0.45),
             "trend_analysis": random.uniform(0.25, 0.35),
             "contrarian": random.uniform(0.05, 0.1),
-            "random": random.uniform(0.15, 0.25)
+            "random": random.uniform(0.10, 0.20),
+            "listed_value": random.uniform(0.05, 0.1)
         }
 
 

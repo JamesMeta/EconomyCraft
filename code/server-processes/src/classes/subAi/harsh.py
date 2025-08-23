@@ -29,8 +29,9 @@ class Harsh(AI):
         # less value on trend analysis and random since he is not a short-term trader and makes strategic decisions
         self.strategy_weights = {
             "sales": random.uniform(0.25, 0.35),
-            "reputation": random.uniform(0.2, 0.3),
+            "reputation": random.uniform(0.2, 0.25),
             "trend_analysis": random.uniform(0.1, 0.20),
             "contrarian": random.uniform(0.2, 0.3),
-            "random": random.uniform(0.05, 0.1)
+            "random": random.uniform(0.05, 0.1),
+            "listed_value": random.uniform(0.05, 0.1)
         }

@@ -29,9 +29,10 @@ class Jehan(AI):
         # Contrarian is lower since he is a short-term trader
         # Random is lower since he is a strategic trader
         self.strategy_weights = {
-            "sales": random.uniform(0.2, 0.35),
-            "reputation": random.uniform(0.2, 0.35),
+            "sales": random.uniform(0.2, 0.30),
+            "reputation": random.uniform(0.2, 0.30),
             "trend_analysis": random.uniform(0.2, 0.4),
             "contrarian": random.uniform(0.05, 0.1),
-            "random": random.uniform(0.05, 0.1)
+            "random": random.uniform(0.05, 0.1),
+            "listed_value": random.uniform(0.05, 0.15)
         }

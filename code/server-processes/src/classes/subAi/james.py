@@ -31,6 +31,7 @@ class James(AI):
             "sales": random.uniform(0.25, 0.35),
             "reputation": random.uniform(0.2, 0.3),
             "trend_analysis": random.uniform(0.05, 0.1),
-            "contrarian": random.uniform(0.25, 0.35),
-            "random": random.uniform(0.05, 0.1)
+            "contrarian": random.uniform(0.2, 0.3),
+            "random": random.uniform(0.05, 0.1),
+            "listed_value": random.uniform(0.05, 0.15)
         }

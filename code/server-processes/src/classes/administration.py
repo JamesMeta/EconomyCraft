@@ -51,6 +51,8 @@ class Administration:
         self.company_performance_maps = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
         self.company_reputation_maps = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
         self.company_stock_trend_maps = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
+        self.company_estimated_value_map = {}
+        self.company_listed_value_map = {}
         self.build_company_performance_maps()
         
     #-------------------------------------------------------------------------
@@ -195,8 +197,53 @@ class Administration:
                 self.company_stock_trend_maps[TIME_PERIOD_MEDIUM][company.id] = self.get_company_share_value_change_over_time(company.id, TIME_PERIOD_MEDIUM)
                 self.company_stock_trend_maps[TIME_PERIOD_LONG][company.id] = self.get_company_share_value_change_over_time(company.id, TIME_PERIOD_LONG)
 
+                # Build estimated value map
+                self.company_estimated_value_map[company.id] = self.calculate_company_estimated_value(company.id)
+                self.company_listed_value_map[company.id] = self.calculate_company_listed_value(company.id)
+
 
                 progress.update(task, advance=1)
+    
+    def calculate_company_estimated_value(self, company_id: int):
+
+        """
+        Calculate the estimated value of a company based on its revenue
+
+        """
+
+        response = self.supabase.table("orders").select("*").eq("company_id", company_id).execute()
+        orders = response.data
+
+        if not orders or len(orders) == 0:
+            return DEFAULT_RETURN_NO_DATA
+        
+        orders_last_30_days = [order for order in orders if (datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(order['created_at'])).days <= 30]
+
+        if not orders_last_30_days or len(orders_last_30_days) == 0:
+            return DEFAULT_RETURN_NO_DATA
+        
+        total_revenue = sum(order['payment'] for order in orders_last_30_days)
+
+        return total_revenue 
+
+    def calculate_company_listed_value(self, company_id: int):
+
+        """
+        Calculate the listed value of a company based on its shares
+
+        """
+
+        response = self.supabase.table("company_share").select("*").eq("company_id", company_id).execute()
+        company_shares = response.data
+
+        if not company_shares or len(company_shares) == 0:
+            return DEFAULT_RETURN_NO_DATA
+        
+        company_share = company_shares[0]
+
+        listed_value = company_share['value'] * company_share['number_of_shares']
+
+        return listed_value
 
     def get_company_rate_of_reputation_change_over_time(self, company_id: int, history_scope: int):
         """
@@ -397,6 +444,7 @@ class Administration:
                     id=product['id'],
                     created_at=product['created_at'],
                     name=product['name'],
+                    minecraft_tag=product['minecraft_tag'],
                     company_id=product['company_id'],
                     price=product['price'],
                     quantity=product['quantity'],
@@ -414,6 +462,7 @@ class Administration:
                     id=0,
                     created_at="",
                     name="",
+                    minecraft_tag="",
                     company_id=0,
                     price=0.0,
                     quantity=0,
@@ -490,6 +539,7 @@ class Administration:
                     if product.price > amount_to_spend:
                        continue
                     else:
+
                         # Calculate quantity to buy based on budget
                         quantity_to_buy = amount_to_spend // product.price
                         if quantity_to_buy > product.quantity:
@@ -613,6 +663,8 @@ class Administration:
                     reputation_map = self.company_reputation_maps[user.history_scope]
                     performance_map = self.company_performance_maps[user.history_scope]
                     stock_trend_map = self.company_stock_trend_maps[user.history_scope]
+                    #--------------------------------------------
+                    
 
                     # Sort shares by performance, reputation, and stock trend
 
@@ -639,6 +691,8 @@ class Administration:
                         reputation = reputation_map.get(company.id, 0)
                         performance = performance_map.get(company.id, 0)
                         stock_trend = stock_trend_map.get(company.id, 0)
+                        company_estimated_value = self.company_estimated_value_map.get(company.id)
+                        company_listed_value = self.company_listed_value_map.get(company.id)
 
                         # Calculate weighted score based on user strategy weights
                         score = (
@@ -646,7 +700,8 @@ class Administration:
                             user.strategy_weights['reputation'] * reputation +
                             user.strategy_weights['trend_analysis'] * stock_trend +
                             user.strategy_weights['contrarian'] * (1 - stock_trend) +  
-                            user.strategy_weights['random'] * random.uniform(0, 1)  
+                            user.strategy_weights['random'] * random.uniform(0, 1), 
+                            user.strategy_weights['listed_value'] * (company_listed_value / company_estimated_value if company_estimated_value and company_estimated_value > 0 else 1)
                         )
 
                         sorted_shares.append((share, score))
