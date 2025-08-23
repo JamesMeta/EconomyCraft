@@ -10,10 +10,15 @@ from classes.subAi.mark import Mark
 import schedule
 import time
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
+import os
 
 if (__name__ == "__main__"):
-    SUPABASE_URL = ""
-    SUPABASE_SERVICE_ROLE_KEY = ""
+
+    load_dotenv()  # Load environment variables from .env file
+
+    SUPABASE_URL = os.getenv("url")  # Get the Supabase URL from environment variables
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("service_key")  # Get the Supabase service role key from environment variables
 
     # Create the Supabase client using the service role key
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -24,30 +29,30 @@ if (__name__ == "__main__"):
     #     admin = Administration(supabase)
     #     admin.make_ai_share_orders()
     
-    def job2():
-        admin = Administration(supabase)
-        admin.make_ai_orders()
+    # def job2():
+    #     admin = Administration(supabase)
+    #     admin.make_ai_orders()
 
     
-    schedule.every(1).day.do(job2)
+    # schedule.every(1).day.do(job2)
 
-    job2()
-    while True:
-        schedule.run_pending()
-        time.sleep(60)  # Sleep for 1 minute to avoid overwhelming the server
+    # job2()
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(60)  # Sleep for 1 minute to avoid overwhelming the server
 
     # admin = Administration(supabase)
     # admin.make_ai_orders()
     # admin.complete_all_ai_orders()
 
-    # iterations = 1
-    admin = Administration(supabase)
-    score_map = admin.make_ai_share_orders()
+    # # iterations = 1
+    # admin = Administration(supabase)
+    # score_map = admin.make_ai_share_orders()
 
-    for ai_type, shares in score_map.items():
-        print(f"AI Type: {ai_type}")
-        for share, score in shares.items():
-            print(f"  Share: {share}, Score: {score:.4f}")
+    # for ai_type, shares in score_map.items():
+    #     print(f"AI Type: {ai_type}")
+    #     for share, score in shares.items():
+    #         print(f"  Share: {share}, Score: {score:.4f}")
 
 
     # shares_over_time = {15: [], 16: [],}
@@ -73,13 +78,15 @@ if (__name__ == "__main__"):
     # plt.show()
 
     # Make new companies shares purchaseable
-    # admin = Administration(supabase)
-    # admin.make_new_company_shares_purchaseable(15, 0.49)
-    # admin.make_new_company_shares_purchaseable(16, 0.49)
-    # admin.make_new_company_shares_purchaseable(21, 0.49)
-    # admin.make_new_company_shares_purchaseable(22, 0.55)
-    # admin.make_new_company_shares_purchaseable(23, 0.65)
-    # admin.make_new_company_shares_purchaseable(24, 0.65)
+    admin = Administration(supabase)
+    admin.make_new_company_shares_purchaseable(15, 0.49)
+    admin.make_new_company_shares_purchaseable(16, 0.49)
+    admin.make_new_company_shares_purchaseable(21, 0.49)
+    admin.make_new_company_shares_purchaseable(22, 0.85)
+    admin.make_new_company_shares_purchaseable(23, 0.85)
+    admin.make_new_company_shares_purchaseable(24, 0.65)
+    admin.make_new_company_shares_purchaseable(26, 0.65)
+
         
     # modify company reputation
     # admin = Administration(supabase)

@@ -27,5 +27,6 @@ class Spencer(AI):
             "reputation": random.uniform(0.25, 0.35),
             "trend_analysis": random.uniform(0.2, 0.3),
             "contrarian": random.uniform(0.05, 0.15),
-            "random": random.uniform(0.1, 0.2)
+            "random": random.uniform(0.1, 0.2),
+            "listed_value": random.uniform(0.1, 0.2)
         }
