@@ -1,12 +1,5 @@
 from supabase import create_client, Client
 from classes.administration import Administration
-from classes.subAi.james import James
-from classes.subAi.emily import Emily
-from classes.subAi.spencer import Spencer
-from classes.subAi.jehan import Jehan
-from classes.subAi.harsh import Harsh
-from classes.subAi.marcelino import Marcelino
-from classes.subAi.mark import Mark
 import schedule
 import time
 import matplotlib.pyplot as plt
@@ -34,15 +27,17 @@ if (__name__ == "__main__"):
     def job2():
         admin = Administration(supabase)
         admin.make_ai_orders()
+        admin.complete_all_ai_orders()
 
     
-    schedule.every(1).day.do(job2)
-    schedule.every(60).minutes.do(job1)
+    # schedule.every(1).day.do(job2)
+    # #schedule.every(60).minutes.do(job1)
 
-    # job2()
-    while True:
-        schedule.run_pending()
-        time.sleep(60)  # Sleep for 1 minute to avoid overwhelming the server
+    job2()
+    # while True:
+    #     print("Running scheduled tasks...")
+    #     schedule.run_pending()
+    #     time.sleep(60)  # Sleep for 1 minute to avoid overwhelming the server
 
     # admin = Administration(supabase)
     # admin.make_ai_orders()

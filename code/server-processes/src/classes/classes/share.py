@@ -1,4 +1,4 @@
-from classes.utility.company import Company
+from classes.classes.company import Company
 
 class Share:
     def __init__(self, id: int, company: Company, stake: float, purchased_price: float, value: float, purchasable: bool, user_id: int, is_public: bool, sale_price: float):
