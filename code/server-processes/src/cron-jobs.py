@@ -46,7 +46,7 @@ if (__name__ == "__main__"):
     
     admin = Administration(supabase)
     
-    admin.supabase_assistant.generate_new_ai_users(1)
+    admin.buy_order_manager.service_buy_orders()
     
     # scores = admin.make_ai_share_orders()
     
