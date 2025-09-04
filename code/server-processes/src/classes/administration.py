@@ -1,7 +1,3 @@
-TIME_PERIOD_SHORT = 10  # 10 days
-TIME_PERIOD_MEDIUM = 30  # 30 days
-TIME_PERIOD_LONG = 90   # 90 days
-
 from classes.modules.performance import Performance
 from classes.modules.products_ai import ProductsAI
 from classes.modules.services import Services
@@ -32,7 +28,7 @@ class Administration:
         self.products_ai.make_ai_orders()
         
     def complete_all_ai_orders(self):
-        self.supabase_assistant.complete_all_ai_orders()
+        self.supabase_assistant.complete_all_ai_orders() 
         
     def make_ai_share_orders(self):
         return self.stocks_ai.make_ai_share_orders()

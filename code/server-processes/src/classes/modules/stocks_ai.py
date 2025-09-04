@@ -1,10 +1,8 @@
 import random
 from classes.classes.share import Share
-
+from classes.modules.constants import SHARE_UNDERCUT_PERCENTAGE
 from rich.progress import Progress
 
-NO_MARKET_PRICE_INCREASE = 1.01 
-SHARE_UNDERCUT_PERCENTAGE = 0.995  # Undercut by 0.5%
 
 class StocksAI:
     def __init__(
@@ -16,7 +14,8 @@ class StocksAI:
         company_reputation_maps, 
         company_stock_trend_maps,
         company_estimated_value_map,
-                company_listed_value_map):
+        company_listed_value_map
+        ):
 
         self.supabase = supabase
         self.users = users
@@ -26,7 +25,8 @@ class StocksAI:
         self.company_stock_trend_maps = company_stock_trend_maps
         self.company_estimated_value_map = company_estimated_value_map
         self.company_listed_value_map = company_listed_value_map
-
+        
+        self.current_shares = self.get_current_shares()    
 
     def make_ai_share_orders(self):
         """
@@ -52,7 +52,7 @@ class StocksAI:
                     # Get Bot State
                     #--------------------------------------------
 
-                    current_share_market = self.get_current_shares()
+                    current_share_market = self.current_shares
                     owned_shares = self.get_user_owned_shares(user.id)
                     user_balance = user.money
 
@@ -66,9 +66,6 @@ class StocksAI:
                         if not share.purchasable:
                             continue
                         if share.company.user_id == user.id:
-                            continue
-                        already_owned = any(owned_share.company.id == share.company.id for owned_share in owned_shares)
-                        if already_owned:
                             continue
                         current_shares_for_sale.append(share)
 
@@ -190,19 +187,22 @@ class StocksAI:
 
                     # [Debugging]
                     # add scores to scores map based on user type
-                    ai_type_name = user.name
-                    if ai_type_name not in user_scores_map:
-                        user_scores_map[ai_type_name] = {}
+                    # ai_type_name = user.name
+                    # if ai_type_name not in user_scores_map:
+                    #     user_scores_map[ai_type_name] = {}
                     
-                    for share, score in sorted_shares:
-                        share_id = share.company.name
-                        if share_id not in user_scores_map[ai_type_name]:
-                            user_scores_map[ai_type_name][share_id] = {'total_score': 0, 'count': 0}
+                    # for share, score in sorted_shares:
+                    #     share_id = share.company.name
+                    #     if share_id not in user_scores_map[ai_type_name]:
+                    #         user_scores_map[ai_type_name][share_id] = {'total_score': 0, 'count': 0}
                         
-                        user_scores_map[ai_type_name][share_id]['total_score'] += score
-                        user_scores_map[ai_type_name][share_id]['count'] += 1
+                    #     user_scores_map[ai_type_name][share_id]['total_score'] += score
+                    #     user_scores_map[ai_type_name][share_id]['count'] += 1
                     
+                    # progress.update(task, advance=1)
+                    # continue
                     
+                
                     #--------------------------------------------
                     # Buy shares based on sorted scores and investment limits
                     #--------------------------------------------

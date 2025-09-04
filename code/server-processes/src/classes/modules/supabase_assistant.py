@@ -6,7 +6,6 @@ from classes.subAi.spencer import Spencer
 from classes.subAi.jehan import Jehan
 from classes.subAi.harsh import Harsh
 from classes.subAi.marcelino import Marcelino
-from classes.subAi.mark import Mark
 from classes.classes.company import Company
 
 
@@ -89,7 +88,99 @@ class SupabaseAssistant:
             print(f"[dim white]Modified reputation for company ID {company['id']} from {current_reputation} to {new_reputation}.[/dim white]")
 
     def generate_new_ai_users(self, number_of_users: int):
-        pass
+        prefixes = [
+    "Xx", "The", "Dark", "Shadow", "Epic", "Mr", "Dr", "Silent", "Crazy", "Lone",
+    "Omega", "Ultra", "Noob", "Pro", "Ghost", "Cyber", "Iron", "Rapid", "Super", "Hyper",
+    "Deadly", "True", "Mega", "Funky", "Lil", "Big", "OG", "Young", "Old", "Swift",
+    "Blazing", "Frost", "Fire", "Electric", "Toxic", "Nuclear", "Venom", "Ice", "Stone", "Steel",
+    "Bloody", "Eternal", "Divine", "Savage", "Killer", "Mighty", "Legend", "King", "Queen", "Sir",
+    "Lord", "General", "Captain", "Major", "Agent", "Professor", "Sensei", "Guru", "Chief", "Commander",
+    "Masked", "Phantom", "Turbo", "Atomic", "Galactic", "Solar", "Lunar", "Star", "Cosmic", "Planet",
+    "Rusty", "Shiny", "Neon", "Retro", "Pixel", "TurboX", "Dynamic", "Max", "Mini", "Nano",
+    "Crimson", "Golden", "Silver", "Bronze", "IronClad", "Jet", "RapidX", "Wild", "Cursed", "Blessed",
+    "Hotshot", "Chill", "EpicX", "Sneaky", "Hidden", "Secret", "Ultimate", "Alpha", "Beta", "Gamma"
+        ]
+        names = [
+    "Dragon", "Wolf", "Ninja", "Sniper", "Knight", "Beast", "Hunter", "Wizard", "Samurai", "Assassin",
+    "Viper", "Phantom", "Titan", "Rogue", "Zombie", "Reaper", "Crusher", "Jester", "Hawk", "Storm",
+    "Panther", "Tiger", "Lion", "Bear", "Shark", "Eagle", "Falcon", "Cobra", "Scorpion", "Serpent",
+    "Golem", "Troll", "Orc", "Elf", "Dwarf", "Goblin", "Ghoul", "Wraith", "Demon", "Angel",
+    "Devil", "Angelus", "Specter", "Shade", "Ghost", "Shadow", "Revenant", "Banshee", "Witch", "Warlock",
+    "Cleric", "Paladin", "Priest", "Monk", "Barbarian", "Gladiator", "Champion", "Soldier", "Warrior", "Fighter",
+    "Snorlax", "Pikachu", "Charizard", "Mewtwo", "Raichu", "Kirby", "Yoshi", "Toad", "Luigi", "Mario",
+    "Bowser", "Link", "Zelda", "Ganon", "Master", "Chief", "Cortana", "Arbiter", "Kratos", "Zeus",
+    "Thor", "Loki", "Hades", "Poseidon", "Apollo", "Ares", "Hermes", "Athena", "Ra", "Anubis",
+    "Osiris", "Isis", "Horus", "Set", "Sphinx", "Minotaur", "Hydra", "Cerberus", "Griffin", "Phoenix"
+        ]
+        suffixes = [
+    "99", "2000", "X", "1337", "420", "69", "777", "Alpha", "Beta", "Prime",
+    "XL", "Pro", "OG", "IV", "III", "Two", "Zero", "One", "Boss", "King",
+    "Queen", "Jr", "Sr", "Legend", "Master", "Lord", "Knight", "Samurai", "Sensei", "Wizard",
+    "Overlord", "Destroyer", "Slayer", "Hunter", "Killer", "Beast", "Hero", "Champion", "Warrior", "Guardian",
+    "God", "Demon", "Angel", "Fury", "Storm", "Thunder", "Blaze", "Inferno", "Frost", "Ice",
+    "Fire", "Venom", "Poison", "Toxic", "Nuclear", "Atomic", "Solar", "Lunar", "Star", "Nova",
+    "Eclipse", "Shadow", "Ghost", "Phantom", "Specter", "Spirit", "Reaper", "Zombie", "Ghoul", "Wraith",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8", "X9",
+    "V1", "V2", "V3", "V4", "V5", "Max", "Ultra", "Turbo", "Deluxe", "Elite"
+        ]
+        avatars = [
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/1746240714126_herobrine.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/1746240847914_steve.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/7fe448a1b0a9be8f650273831feefe9f.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/a83c14035cc27a1baa4d4d53e91dea2d.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/alex.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/big-sheep-face.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/blaize.jpeg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/bob.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/coolguy.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/creeper.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/d62f2486e6e301b560d362de09d606f317b691dc.webp",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/dude.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/girl2.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/girl.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/images.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/jeb.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/king.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/Minecraft-Chicken-Head.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/steve2.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/steve.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/V_0iKFHm_400x400.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/villager.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/what-do-you-guys-think-of-my-skin-in-minecraft-1-10-just-v0-uaec73i59fqa1.webp"
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/027914beb4b82a6bd69616b01f003cca.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/19e7806cd29faa7ef65aecf69005d9e7.jpg",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/d4c75958da73.png",
+            "https://ylgfgklcypqtbqrkhsba.supabase.co/storage/v1/object/public/avatars/public/dd25ee9eaa92de037492354031983f68.jpg"    
+        ]
+
+        bot_type = [1, 2, 3, 4, 5, 6]  # Different AI types
+        
+        for _ in range(number_of_users):
+            prefix = random.choice(prefixes)
+            name = random.choice(names)
+            suffix = random.choice(suffixes)
+            avatar = random.choice(avatars)
+            ai = random.choice(bot_type)
+            minecraft_username = f"{prefix}{name}{suffix}"
+            money = random.randint(1, 10000)
+            daily_income = abs(random.normalvariate(500, 250))
+            delivery_address = "spawn drop box"
+            
+            response = self.supabase.table("users").insert({
+                "minecraft_username": minecraft_username,
+                "money": money,
+                "delivery_address": delivery_address,
+                "daily_income": int(daily_income),
+                "ai": True,
+                "ai_type": ai,
+                "avatar_url": avatar
+            }).execute()
+            
+            print(f"Created AI user: {minecraft_username} with AI type {ai}, money {money}, daily income {int(daily_income)}, avatar {avatar}.")
+            
+            
+            
 
     def complete_all_ai_orders(self):
         """Execute database function to complete all AI orders."""

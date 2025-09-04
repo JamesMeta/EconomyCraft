@@ -7,6 +7,8 @@ class AI:
         self.delivery_address = delivery_address
         self.daily_income = daily_income
         self.ai_type = ai_type
+        self.shares = [] 
+        self.networth_breakdown = {}
         
     def place_product_order(self, product_id: int, quantity: int):
         response = self.supabase.rpc("create_order_ai", {"input_row_id": self.id, "input_product_id": product_id, "input_quantity": quantity, "input_delivery_address": self.delivery_address}).execute()

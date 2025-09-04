@@ -3,11 +3,7 @@ import numpy as np
 import math
 from classes.classes.company import Company
 from classes.classes.product import Product
-
-
-
-PRODUCT_BUCKET_SIZE = 2000
-
+from classes.modules.constants import PRODUCT_BUCKET_SIZE
 
 class ProductsAI:
 

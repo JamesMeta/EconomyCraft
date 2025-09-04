@@ -5,6 +5,7 @@ class Marcelino(AI):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Marcelino"
         self.description = "Marcelino is a long-term investor and a light consumer. He is very cautious with his spending and prefers to save money for future investments."
+        self.investor_type = "CONTRARIAN"
 
         # Product buying data
         self.percentage_of_savings_to_spend = random.uniform(0.05, 0.2)  
