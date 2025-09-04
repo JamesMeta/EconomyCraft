@@ -1,17 +1,8 @@
 import datetime
 import numpy as np
+from classes.modules.constants import TIME_PERIOD_SHORT, TIME_PERIOD_MEDIUM, TIME_PERIOD_LONG, DEFAULT_RETURN_NO_DATA, DEFAULT_RETURN_NO_CHANGE
 
 from rich.progress import Progress
-
-# Constants for analysis time periods
-TIME_PERIOD_SHORT = 10  # 10 days
-TIME_PERIOD_MEDIUM = 30  # 30 days
-TIME_PERIOD_LONG = 90   # 90 days
-
-# Database placeholders
-DEFAULT_RETURN_NO_DATA = -1
-DEFAULT_RETURN_NO_CHANGE = 0
-
 
 class Performance:
 
@@ -24,6 +15,10 @@ class Performance:
         self.company_stock_trend_maps = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
         self.company_estimated_value_map = {}
         self.company_listed_value_map = {}
+        self.order_history_cache = {}
+        self.share_history_cache = {}
+        self.company_history_cache = {}
+        self.get_company_data_for_performance_maps()
         self.build_company_performance_maps()
     
     def build_company_performance_maps(self):
@@ -58,46 +53,21 @@ class Performance:
 
                 progress.update(task, advance=1)
     
-    def calculate_company_estimated_value(self, company_id: int):
-
-        """
-        Calculate the estimated value of a company based on its revenue
-
-        """
-
-        response = self.supabase.table("orders").select("*").eq("company_id", company_id).execute()
-        orders = response.data
-
-        if not orders or len(orders) == 0:
-            return DEFAULT_RETURN_NO_DATA
-        
-        orders_last_30_days = [order for order in orders if (datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(order['created_at'])).days <= 30]
-
-        if not orders_last_30_days or len(orders_last_30_days) == 0:
-            return DEFAULT_RETURN_NO_DATA
-        
-        total_revenue = sum(order['payment'] for order in orders_last_30_days)
-
-        return total_revenue 
-
-    def calculate_company_listed_value(self, company_id: int):
-
-        """
-        Calculate the listed value of a company based on its shares
-
-        """
-
-        response = self.supabase.table("company_share").select("*").eq("company_id", company_id).execute()
-        company_shares = response.data
-
-        if not company_shares or len(company_shares) == 0:
-            return DEFAULT_RETURN_NO_DATA
-        
-        company_share = company_shares[0]
-
-        listed_value = company_share['value'] * company_share['number_of_shares']
-
-        return listed_value
+    def get_company_data_for_performance_maps(self):
+        for company in self.company_map.values():
+            # Cache order history
+            response = self.supabase.table("orders").select("*").eq("company_id", company.id).order("created_at", desc=False).execute()
+            self.order_history_cache[company.id] = response.data
+            # Cache share history
+            response = self.supabase.table("company_share").select("id").eq("company_id", company.id).execute()
+            if response.data:
+                company_share_id = response.data[0]['id']
+                response = self.supabase.table("share_history").select("*").eq("share_id", company_share_id).order("created_at", desc=False).execute()
+                self.share_history_cache[company.id] = response.data
+            # Cache company history
+            response = self.supabase.table("company_history").select("*").eq("company_id", company.id).order("created_at", desc=False).execute()
+            self.company_history_cache[company.id] = response.data
+            
 
     def get_company_rate_of_reputation_change_over_time(self, company_id: int, history_scope: int):
         """
@@ -110,8 +80,8 @@ class Performance:
         Returns:
             Rate of reputation change as a decimal (e.g., 0.05 = 5% increase)
         """
-        response = self.supabase.table("company_history").select("*").eq("company_id", company_id).order("created_at", desc=False).limit(history_scope).execute()
-        company_history = response.data
+        
+        company_history = self.company_history_cache.get(company_id)[0:history_scope]
         
         # If no history data, return no change
         if not company_history or len(company_history) < 2:
@@ -143,8 +113,8 @@ class Performance:
             Rate of revenue change as a decimal (e.g., 0.05 = 5% increase)
         """
         # Get all orders for this company
-        response = self.supabase.table("orders").select("*").eq("company_id", company_id).order("created_at", desc=False).execute()
-        orders = response.data
+        
+        orders = self.order_history_cache.get(company_id)
         
         # If no orders, return placeholder value
         if not orders or len(orders) <= 1:
@@ -201,13 +171,7 @@ class Performance:
 
         # Get company share history
 
-        response = self.supabase.table("company_share").select("id").eq("company_id", company_id).execute()
-        if not response.data:
-            return DEFAULT_RETURN_NO_DATA
-        company_share_id = response.data[0]['id']
-
-        response = self.supabase.table("share_history").select("*").eq("share_id", company_share_id).order("created_at", desc=False).limit(history_scope * 24).execute()
-        share_history = response.data
+        share_history = self.share_history_cache.get(company_id)[0:history_scope]
         if not share_history or len(share_history) < 2:
             return DEFAULT_RETURN_NO_DATA
         # --------------------
@@ -219,5 +183,48 @@ class Performance:
         time_numeric = np.array([(dt - start_date).total_seconds() / 3600 for dt in time_dt])
         slope, intercept = np.polyfit(time_numeric, share_value_dx, 1)
         return slope
+    
+    def calculate_company_estimated_value(self, company_id: int):
+
+        """
+        Calculate the estimated value of a company based on its revenue
+
+        """
+
+        response = self.supabase.table("orders").select("*").eq("company_id", company_id).execute()
+        orders = response.data
+
+        if not orders or len(orders) == 0:
+            return DEFAULT_RETURN_NO_DATA
+        
+        orders_last_30_days = [order for order in orders if (datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(order['created_at'])).days <= 30]
+
+        if not orders_last_30_days or len(orders_last_30_days) == 0:
+            return DEFAULT_RETURN_NO_DATA
+        
+        total_revenue = sum(order['payment'] for order in orders_last_30_days)
+
+        return total_revenue 
+
+    def calculate_company_listed_value(self, company_id: int):
+
+        """
+        Calculate the listed value of a company based on its shares
+
+        """
+
+        response = self.supabase.table("company_share").select("*").eq("company_id", company_id).execute()
+        company_shares = response.data
+
+        if not company_shares or len(company_shares) == 0:
+            return DEFAULT_RETURN_NO_DATA
+        
+        company_share = company_shares[0]
+
+        listed_value = company_share['value'] * company_share['number_of_shares']
+
+        return listed_value
+
+    
     
     

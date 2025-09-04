@@ -5,6 +5,7 @@ class Jehan(AI):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Jehan"
         self.description = "Jehan is a risky and active trader who is a moderate consumer."
+        self.investor_type = "CONFORMIST"
 
 
         # Product buying data

@@ -5,6 +5,7 @@ import time
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 import os
+import random
 
 if (__name__ == "__main__"):
 
@@ -33,7 +34,7 @@ if (__name__ == "__main__"):
     # schedule.every(1).day.do(job2)
     # #schedule.every(60).minutes.do(job1)
 
-    job2()
+    #job2()
     # while True:
     #     print("Running scheduled tasks...")
     #     schedule.run_pending()
@@ -42,65 +43,23 @@ if (__name__ == "__main__"):
     # admin = Administration(supabase)
     # admin.make_ai_orders()
     # admin.complete_all_ai_orders()
-
-    # # iterations = 1
-    # admin = Administration(supabase)
-    # score_map = admin.make_ai_share_orders()
-
-    # for ai_type, shares in score_map.items():
-    #     print(f"AI Type: {ai_type}")
-    #     for share, score in shares.items():
-    #         print(f"  Share: {share}, Score: {score:.4f}")
-
-
-    # shares_over_time = {15: [], 16: [],}
-
-    # for i in range(iterations):
-    #     print(f"Iteration {i + 1}/{iterations}")
-    #     admin.make_ai_share_orders()
-    #     current_shares = admin.get_current_shares()
-    #     for share in current_shares:
-    #         if share.company.id in shares_over_time:
-    #             shares_over_time[share.company.id].append(share.value)
-    #         else:
-    #             shares_over_time[share.company.id] = [share.value]
-
-    # # Plotting the share values over time
-    # plt.figure(figsize=(10, 5))
-    # for company_id, values in shares_over_time.items():
-    #     plt.plot(values, label=f'Company {company_id}')
-    # plt.xlabel('Iteration')
-    # plt.ylabel('Share Value')
-    # plt.title('Share Values Over Time')
-    # plt.legend()
-    # plt.show()
-
-    # Make new companies shares purchaseable
-    # admin = Administration(supabase)
-    # admin.make_new_company_shares_purchaseable(15, 0.49)
-    # admin.make_new_company_shares_purchaseable(16, 0.49)
-    # admin.make_new_company_shares_purchaseable(21, 0.49)
-    # admin.make_new_company_shares_purchaseable(22, 0.85)
-    # admin.make_new_company_shares_purchaseable(23, 0.85)
-    # admin.make_new_company_shares_purchaseable(24, 0.65)
-    # admin.make_new_company_shares_purchaseable(26, 0.65)
-
+    
+    admin = Administration(supabase)
+    
+    admin.supabase_assistant.generate_new_ai_users(1)
+    
+    # scores = admin.make_ai_share_orders()
+    
+    # for item in scores.items():
+    #     user, scores_map = item
+    #     print(user)
+    #     for name, score in scores_map.items():
+    #         print(f"  {name}: {score}")
         
-    # modify company reputation
-    # admin = Administration(supabase)
-    # admin.modify_ai_companies_reputations()
+    #     print("\n")
+        
+    
+    
 
-    # get strategy weights distribution
-    # admin = Administration(supabase)
-    # strategy_weights = admin.get_sum_of_strategy_weights()
-
-    # plt.figure(figsize=(10, 5))
-    # plt.bar(strategy_weights.keys(), strategy_weights.values())
-    # plt.xlabel('Strategy')
-    # plt.ylabel('Total Weight')
-    # plt.title('Strategy Weights Distribution')
-    # plt.xticks(rotation=45)
-    # plt.tight_layout()
-    # plt.show()
 
 

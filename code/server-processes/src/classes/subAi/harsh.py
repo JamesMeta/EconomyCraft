@@ -5,6 +5,7 @@ class Harsh(AI):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Harsh"
         self.description = "Harsh is a moderate trader and a light consumer. He is cautious with his spending and prefers to save money for future investments."
+        self.investor_type = "CONTRARIAN"
 
 
         # Product buying data
