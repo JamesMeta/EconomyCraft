@@ -2,6 +2,7 @@ from classes.modules.performance import Performance
 from classes.modules.products_ai import ProductsAI
 from classes.modules.services import Services
 from classes.modules.stocks_ai import StocksAI
+from classes.modules.buy_order_manager import BuyOrderManager
 from classes.modules.supabase_assistant import SupabaseAssistant
 from classes.modules.utility import Utility
 
@@ -23,6 +24,7 @@ class Administration:
             self.performance.company_estimated_value_map, 
             self.performance.company_listed_value_map
             )
+        self.buy_order_manager = BuyOrderManager(supabase)
         
     def make_ai_orders(self):
         self.products_ai.make_ai_orders()

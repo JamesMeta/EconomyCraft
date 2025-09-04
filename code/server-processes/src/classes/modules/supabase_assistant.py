@@ -7,6 +7,7 @@ from classes.subAi.jehan import Jehan
 from classes.subAi.harsh import Harsh
 from classes.subAi.marcelino import Marcelino
 from classes.classes.company import Company
+from rich.progress import Progress
 
 
 class SupabaseAssistant:
@@ -196,47 +197,49 @@ class SupabaseAssistant:
         response = self.supabase.table("users").select("*").eq("ai", True).execute()
         data = response.data
         users_list = []
-
-        for user in data:
-            try:
-                if user['ai_type'] == 3:
-                    ai = James(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                elif user['ai_type'] == 1:
-                    ai = Emily(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                elif user['ai_type'] == 2:
-                    ai = Spencer(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                elif user['ai_type'] == 4:
-                    ai = Jehan(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                elif user['ai_type'] == 5:
-                    ai = Harsh(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                elif user['ai_type'] == 6:
-                    ai = Marcelino(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                elif user['ai_type'] == 7:
-                    ai = Mark(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                else:
-                    print(f"[yellow]Unknown AI type for {user} - skipping.[/yellow]")
-                    continue
-                
-                users_list.append(ai)
-            except Exception as e:
-                print(f"[bold red]Error creating AI for user {user['minecraft_username']}: {e} [/bold red]")
         
-        print(f"[dim white]Loaded {len(users_list)} AI users from the database.[/dim white]")
+        with Progress() as progress:
+            task = progress.add_task("[grey50]Building User List...", total=len(data))
+            for user in data:
+                try:
+                    if user['ai_type'] == 3:
+                        ai = James(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                    elif user['ai_type'] == 1:
+                        ai = Emily(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                    elif user['ai_type'] == 2:
+                        ai = Spencer(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                    elif user['ai_type'] == 4:
+                        ai = Jehan(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                    elif user['ai_type'] == 5:
+                        ai = Harsh(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                    elif user['ai_type'] == 6:
+                        ai = Marcelino(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                    else:
+                        print(f"[yellow]Unknown AI type for {user} - skipping.[/yellow]")
+                        continue
+                    progress.advance(task, advance=1)
+                    
+                    users_list.append(ai)
+                except Exception as e:
+                    print(f"[bold red]Error creating AI for user {user['minecraft_username']}: {e} [/bold red]")
         return users_list
     
     def build_company_map(self):
         company_response = self.supabase.table("companies").select("*").eq("verified", True).execute()
         companies = company_response.data
-                
-        for company in companies:
-            self.company_map[company['id']] = Company(
-                id=company['id'],
-                created_at=company['created_at'],
-                name=company['name'],
-                reputation=company['reputation'],
-                is_public=company['is_public'],
-                user_id=company['user_id'],
-                visibility_factor=company['visibility_factor'],
-                ai=company['ai'], 
-                notifications_enabled=company['notification']
-            )
+        
+        with Progress() as progress:
+            task = progress.add_task("[grey50]Building Company Map...", total=len(companies))
+            for company in companies:
+                self.company_map[company['id']] = Company(
+                    id=company['id'],
+                    created_at=company['created_at'],
+                    name=company['name'],
+                    reputation=company['reputation'],
+                    is_public=company['is_public'],
+                    user_id=company['user_id'],
+                    visibility_factor=company['visibility_factor'],
+                    ai=company['ai'], 
+                    notifications_enabled=company['notification']
+                )
+                progress.advance(task, advance=1)

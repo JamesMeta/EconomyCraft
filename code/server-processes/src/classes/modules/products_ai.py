@@ -4,6 +4,7 @@ import math
 from classes.classes.company import Company
 from classes.classes.product import Product
 from classes.modules.constants import PRODUCT_BUCKET_SIZE
+from rich.progress import Progress
 
 class ProductsAI:
 
@@ -122,41 +123,46 @@ class ProductsAI:
         
         # Build product bucket with weighted entries
         product_bucket = []
-        for product in products:
-            company = self.company_map.get(product['company_id'])
-            if not company:
-                continue
-            
-            # Extract product and company metrics
-            niche_coefficient = product['niche_coefficient']
-            value = product['value']
-            price = product['price']
-            reputation = company.reputation
-            visibility_factor = company.visibility_factor
-
-            # Calculate popularity score (number of tickets)
-            tickets = self.f(niche_coefficient, value, price, visibility_factor, reputation)
-
-            tickets = round(tickets)
-            if tickets <= 0:
-                continue
-                
-            # Create product entries based on ticket count
-            product_object_list = [
-                Product(
-                    id=product['id'],
-                    created_at=product['created_at'],
-                    name=product['name'],
-                    minecraft_tag=product['minecraft_tag'],
-                    company_id=product['company_id'],
-                    price=product['price'],
-                    quantity=product['quantity'],
-                    value=product['value'],
-                    niche_coefficient=product['niche_coefficient']
-                )
-            ] * tickets
-            product_bucket.extend(product_object_list)
         
+        with Progress() as progress:
+            task = progress.add_task("[grey50]Building product bucket...", total=len(products))
+            
+            for product in products:
+                company = self.company_map.get(product['company_id'])
+                if not company:
+                    continue
+                
+                # Extract product and company metrics
+                niche_coefficient = product['niche_coefficient']
+                value = product['value']
+                price = product['price']
+                reputation = company.reputation
+                visibility_factor = company.visibility_factor
+
+                # Calculate popularity score (number of tickets)
+                tickets = self.f(niche_coefficient, value, price, visibility_factor, reputation)
+
+                tickets = round(tickets)
+                if tickets <= 0:
+                    continue
+                    
+                # Create product entries based on ticket count
+                product_object_list = [
+                    Product(
+                        id=product['id'],
+                        created_at=product['created_at'],
+                        name=product['name'],
+                        minecraft_tag=product['minecraft_tag'],
+                        company_id=product['company_id'],
+                        price=product['price'],
+                        quantity=product['quantity'],
+                        value=product['value'],
+                        niche_coefficient=product['niche_coefficient']
+                    )
+                ] * tickets
+                product_bucket.extend(product_object_list)
+                progress.update(task, advance=1)
+            
         # Add placeholder products to fill bucket to fixed size
         placeholder_count = PRODUCT_BUCKET_SIZE - len(product_bucket)
         while len(product_bucket) < PRODUCT_BUCKET_SIZE:
@@ -176,6 +182,4 @@ class ProductsAI:
 
         # Shuffle product bucket for randomness
         np.random.shuffle(product_bucket)
-
-        print(f"[dim white]Built product bucket with {len(product_bucket)} products include {placeholder_count} placeholders.[/dim white]")
         return product_bucket

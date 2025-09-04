@@ -54,19 +54,22 @@ class Performance:
                 progress.update(task, advance=1)
     
     def get_company_data_for_performance_maps(self):
-        for company in self.company_map.values():
-            # Cache order history
-            response = self.supabase.table("orders").select("*").eq("company_id", company.id).order("created_at", desc=False).execute()
-            self.order_history_cache[company.id] = response.data
-            # Cache share history
-            response = self.supabase.table("company_share").select("id").eq("company_id", company.id).execute()
-            if response.data:
-                company_share_id = response.data[0]['id']
-                response = self.supabase.table("share_history").select("*").eq("share_id", company_share_id).order("created_at", desc=False).execute()
-                self.share_history_cache[company.id] = response.data
-            # Cache company history
-            response = self.supabase.table("company_history").select("*").eq("company_id", company.id).order("created_at", desc=False).execute()
-            self.company_history_cache[company.id] = response.data
+        with Progress() as progress:
+            task = progress.add_task("[grey50]Caching company history data...", total=len(self.company_map))
+            for company in self.company_map.values():
+                # Cache order history
+                response = self.supabase.table("orders").select("*").eq("company_id", company.id).order("created_at", desc=False).execute()
+                self.order_history_cache[company.id] = response.data
+                # Cache share history
+                response = self.supabase.table("company_share").select("id").eq("company_id", company.id).execute()
+                if response.data:
+                    company_share_id = response.data[0]['id']
+                    response = self.supabase.table("share_history").select("*").eq("share_id", company_share_id).order("created_at", desc=False).execute()
+                    self.share_history_cache[company.id] = response.data
+                # Cache company history
+                response = self.supabase.table("company_history").select("*").eq("company_id", company.id).order("created_at", desc=False).execute()
+                self.company_history_cache[company.id] = response.data
+                progress.update(task, advance=1)
             
 
     def get_company_rate_of_reputation_change_over_time(self, company_id: int, history_scope: int):
