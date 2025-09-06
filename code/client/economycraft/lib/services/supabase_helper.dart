@@ -1999,33 +1999,34 @@ class SupabaseHelper {
     }
   }
 
-  static Future<Share> getShareByCompanyShareId(companyShareId) async {
+  static Future<Share> getOneShareByCompanyShareId(companyShareId) async {
     try {
-      final response =
-          await _client
-              .from('shares')
-              .select(
-                "*, company_share:share_id (value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
-              )
-              .eq('share_id', companyShareId)
-              .maybeSingle();
+      final response = await _client
+          .from('shares')
+          .select(
+            "*, company_share:share_id (value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
+          )
+          .eq('share_id', companyShareId)
+          .limit(1);
       if (response == null) {
         throw Exception(
           'Share not found for company share ID: $companyShareId',
         );
       }
-      final companyShareData = response['company_share'];
-      final companyData = response['companies'];
+      final responseData = response[0];
+
+      final companyShareData = responseData['company_share'];
+      final companyData = responseData['companies'];
       return Share(
-        id: response['id'],
-        createdAt: DateTime.parse(response['created_at']),
-        companyId: response['company_id'],
-        stake: response['stake'],
-        purchasePrice: response['purchased_price'],
+        id: responseData['id'],
+        createdAt: DateTime.parse(responseData['created_at']),
+        companyId: responseData['company_id'],
+        stake: responseData['stake'],
+        purchasePrice: responseData['purchased_price'],
         value: companyShareData['value']?.toDouble() ?? 0.0,
-        salePrice: response['sale_price'] ?? 0.0,
-        purchasable: response['purchasable'],
-        userId: response['user_id'],
+        salePrice: responseData['sale_price'] ?? 0.0,
+        purchasable: responseData['purchasable'],
+        userId: responseData['user_id'],
         isPublic: companyShareData['is_public'] ?? false,
         numberOfShares: companyShareData['number_of_shares'] ?? 0,
         company:
@@ -2078,7 +2079,9 @@ class SupabaseHelper {
           continue;
         }
 
-        final Share share = await getShareByCompanyShareId(companyShare['id']);
+        final Share share = await getOneShareByCompanyShareId(
+          companyShare['id'],
+        );
         if (share.company == null) {
           developer.log(
             'Error: Company not found for share ID: ${companyShare['id']}',

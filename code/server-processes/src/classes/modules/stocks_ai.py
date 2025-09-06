@@ -38,14 +38,14 @@ class StocksAI:
 
         with Progress() as progress:
 
-            task = progress.add_task("[grey50]AI Share Trading Simulation...", total=len(user_copies))
+            task = progress.add_task("[grey50]AI Share Trading Simulation...", total=len(user_copies[0:5]))
 
             # Limit to a subset of users for performance
 
             user_scores_map = {}
 
 
-            for user in user_copies:
+            for user in user_copies[0:5]:
                 try:
                     
                     #--------------------------------------------
@@ -145,6 +145,14 @@ class StocksAI:
                     # Sort shares by performance, reputation, and stock trend
 
                     sorted_shares = []
+                    score_by_metric = {
+                        'performance': 0,
+                        'reputation': 0,
+                        'trend_analysis': 0,
+                        'contrarian': 0,
+                        'listed_value': 0,
+                        'random': 0
+                    }
 
                     for share in current_shares_for_sale:
                         company = share.company
@@ -179,14 +187,22 @@ class StocksAI:
                             user.strategy_weights['random'] * random.uniform(0, 1) + 
                             user.strategy_weights['listed_value'] * (company_listed_value / company_estimated_value if company_estimated_value and company_estimated_value > 0 else 1)
                         )
+                        
+                        score_by_metric['performance'] += performance
+                        score_by_metric['reputation'] += reputation
+                        score_by_metric['trend_analysis'] += stock_trend
+                        score_by_metric['contrarian'] += (1 - stock_trend)
+                        score_by_metric['listed_value'] += (company_listed_value / company_estimated_value if company_estimated_value and company_estimated_value > 0 else 1)
+                        score_by_metric['random'] += random.uniform(0, 1)
+                        
 
                         sorted_shares.append((share, score))
 
                     # Sort shares by score in descending order
                     sorted_shares.sort(key=lambda x: x[1], reverse=True)
 
-                    # [Debugging]
-                    # add scores to scores map based on user type
+                    # # [Debugging]
+                    # # add scores to scores map based on user type
                     # ai_type_name = user.name
                     # if ai_type_name not in user_scores_map:
                     #     user_scores_map[ai_type_name] = {}
@@ -246,13 +262,15 @@ class StocksAI:
                     continue
             
             # Calculate averages for each AI type and share
-            for ai_type in user_scores_map:
-                for share_id in user_scores_map[ai_type]:
-                    total_score = user_scores_map[ai_type][share_id]['total_score']
-                    count = user_scores_map[ai_type][share_id]['count']
-                    user_scores_map[ai_type][share_id] = total_score / count if count > 0 else 0
+            # for ai_type in user_scores_map:
+            #     for share_id in user_scores_map[ai_type]:
+            #         total_score = user_scores_map[ai_type][share_id]['total_score']
+            #         count = user_scores_map[ai_type][share_id]['count']
+            #         user_scores_map[ai_type][share_id] = total_score / count if count > 0 else 0
             
-            return user_scores_map
+            # return user_scores_map
+            
+            return score_by_metric
 
 
 
