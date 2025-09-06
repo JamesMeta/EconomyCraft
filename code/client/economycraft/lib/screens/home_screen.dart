@@ -375,7 +375,12 @@ class _MyHomePageState extends State<MyHomePage>
         'isActive': true,
       },
 
-      {'title': 'Market', 'icon': Icons.storefront, 'route': '/home/market'},
+      {'title': 'Products', 'icon': Icons.storefront, 'route': '/home/market'},
+      {
+        'title': 'Stocks',
+        'icon': Icons.area_chart,
+        'route': '/home/stock_market',
+      },
       {'title': 'Orders', 'icon': Icons.receipt_long, 'route': '/home/orders'},
 
       {

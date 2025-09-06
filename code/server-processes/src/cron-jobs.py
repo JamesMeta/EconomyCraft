@@ -46,7 +46,10 @@ if (__name__ == "__main__"):
     
     admin = Administration(supabase)
     
-    admin.buy_order_manager.service_buy_orders()
+    scores = admin.make_ai_share_orders()
+    
+    for key, item in scores.items():
+        print(f"{key}: {item}")
     
     # scores = admin.make_ai_share_orders()
     

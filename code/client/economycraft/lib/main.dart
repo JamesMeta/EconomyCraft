@@ -1,5 +1,6 @@
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/share.dart';
+import 'package:economycraft/screens/stock_market_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/screens/home_screen.dart';
@@ -135,6 +136,12 @@ final GoRouter _router = GoRouter(
               },
             ),
           ],
+        ),
+        GoRoute(
+          path: 'stock_market',
+          builder: (BuildContext context, GoRouterState state) {
+            return const StockMarketScreen();
+          },
         ),
         GoRoute(
           path: 'profile',
