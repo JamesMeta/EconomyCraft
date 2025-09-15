@@ -142,6 +142,15 @@ final GoRouter _router = GoRouter(
           builder: (BuildContext context, GoRouterState state) {
             return const StockMarketScreen();
           },
+          routes: [
+            GoRoute(
+              path: 'sell_share',
+              builder: (BuildContext context, GoRouterState state) {
+                final data = state.extra as Share;
+                return SellHoldingScreen(share: data);
+              },
+            ),
+          ],
         ),
         GoRoute(
           path: 'profile',

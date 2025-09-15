@@ -1,5 +1,6 @@
 import 'package:economycraft/classes/admin_message.dart';
 import 'package:economycraft/classes/companyShare.dart';
+import 'package:economycraft/classes/company_info.dart';
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/player.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
@@ -827,6 +828,212 @@ class SupabaseHelper {
       );
     } catch (e) {
       developer.log('Error fetching company by ID: $e');
+      return null;
+    }
+  }
+
+  static Future<List<Company>?>? getAllPublicCompanies() async {
+    try {
+      final response = await _client
+          .from('companies')
+          .select("*")
+          .eq('is_public', true);
+
+      final List<Company> companies =
+          response.map<Company>((company) {
+            return Company(
+              id: company['id'],
+              name: company['name'],
+              slogan: company['slogan'],
+              avatarUrl: company['avatar_url'],
+              reputation: company['reputation'],
+              evaluation: company['evaluation'],
+              isPublic: company['is_public'],
+              userId: company['user_id'],
+              createdAt: DateTime.parse(company['created_at']),
+              lotNumber: company['lot_number'] ?? 0,
+              verified: company['verified'] ?? false,
+            );
+          }).toList();
+      return companies;
+    } catch (e) {
+      developer.log(e.toString());
+      return null;
+    }
+  }
+
+  static Future<CompanyInfo?> getCompanyInfo(Company company) async {
+    final userRowId = await getPlayerId();
+    late final List<Map<String, dynamic>>? orderResponse;
+    late final List<Map<String, dynamic>>? companyHistoryResponse;
+    late final Map<String, dynamic>? companyShareResponse;
+
+    try {
+      await Future.wait([
+        _client
+            .from('orders')
+            .select("*")
+            .eq("company_id", company.id)
+            .gt("created_at", DateTime.now().subtract(Duration(days: 120)))
+            .then((value) => orderResponse = value),
+        _client
+            .from('company_history')
+            .select("*")
+            .eq("company_id", company.id)
+            .limit(120)
+            .then((value) => companyHistoryResponse = value),
+        _client
+            .from('company_share')
+            .select("*")
+            .eq("company_id", company.id)
+            .limit(1)
+            .single()
+            .then((value) => companyShareResponse = value),
+      ]);
+
+      late final List<Map<String, dynamic>> userOwnedShares;
+      late final List<Map<String, dynamic>> shareHistory;
+
+      await Future.wait([
+        _client
+            .from('shares')
+            .select("*")
+            .eq("share_id", companyShareResponse!["id"])
+            .eq("user_id", userRowId)
+            .then((value) => userOwnedShares = value),
+        _client
+            .from('share_history')
+            .select("*")
+            .eq("share_id", companyShareResponse!["id"])
+            .gt("created_at", DateTime.now().subtract(Duration(days: 120)))
+            .then((value) => shareHistory = value),
+      ]);
+
+      final dailyOrderTotals = <String, double>{};
+
+      for (final row in orderResponse!) {
+        final createdAt = DateTime.parse(row['created_at']);
+        final day = DateTime(
+          createdAt.year,
+          createdAt.month,
+          createdAt.day,
+        ).toIso8601String().substring(0, 10);
+
+        final payment = (row['payment'] as num).toDouble();
+
+        dailyOrderTotals.update(
+          day,
+          (value) => value + payment,
+          ifAbsent: () => payment,
+        );
+      }
+
+      final now = DateTime.now();
+      final thisMonth = now.month;
+      final lastMonth = now.month - 1;
+      final thisYear = now.year;
+
+      final Map<String, double> thisMonthFiltered = Map.fromEntries(
+        dailyOrderTotals.entries.where((entry) {
+          final date = DateTime.parse(entry.key);
+          return date.month == thisMonth && date.year == thisYear;
+        }),
+      );
+
+      final Map<String, double> lastMonthFiltered = Map.fromEntries(
+        dailyOrderTotals.entries.where((entry) {
+          final date = DateTime.parse(entry.key);
+          return date.month == lastMonth && date.year == thisYear;
+        }),
+      );
+
+      final double thisMonthTotalSales = thisMonthFiltered.values.toList().fold(
+        0,
+        (a, b) => a + b,
+      );
+      final double lastMonthTotalSales = lastMonthFiltered.values.toList().fold(
+        0,
+        (a, b) => a + b,
+      );
+      final double total120DaySales = dailyOrderTotals.values.toList().fold(
+        0,
+        (a, b) => a + b,
+      );
+
+      List<PriceVsTime> reputation = [];
+      List<PriceVsTime> sales = [];
+      List<PriceVsTime> stockPrice = [];
+      List<PriceVsTime> companyEvaluation = [];
+      List<Share> shares = [];
+
+      for (final day in dailyOrderTotals.entries) {
+        sales.add(PriceVsTime(time: DateTime.parse(day.key), price: day.value));
+      }
+
+      for (final entry in companyHistoryResponse!) {
+        reputation.add(
+          PriceVsTime(
+            time: DateTime.parse(entry["created_at"]),
+            price: entry["reputation"],
+          ),
+        );
+        companyEvaluation.add(
+          PriceVsTime(
+            time: DateTime.parse(entry["created_at"]),
+            price: entry["evaluation"],
+          ),
+        );
+      }
+
+      for (final entry in shareHistory) {
+        stockPrice.add(
+          PriceVsTime(
+            time: DateTime.parse(entry["created_at"]),
+            price: entry['value'],
+          ),
+        );
+      }
+
+      for (final entry in userOwnedShares) {
+        shares.add(
+          Share(
+            companyId: company.id,
+            userId: entry['user_id'],
+            stake: entry['stake']?.toDouble() ?? 0.0,
+            id: entry['id'],
+            createdAt: DateTime.parse(entry['created_at']),
+            purchasePrice: entry['purchased_price'],
+            value: companyShareResponse!["value"],
+            salePrice: entry['sale_price'],
+            purchasable: entry['purchasable'],
+            isPublic: companyShareResponse!["is_public"],
+            numberOfShares: companyShareResponse!["number_of_shares"],
+            company: company,
+          ),
+        );
+      }
+
+      final ownerName = await getPlayerNameByUserRowID(company.userId);
+
+      reputation.sort((a, b) => a.time.compareTo(b.time));
+      sales.sort((a, b) => a.time.compareTo(b.time));
+      companyEvaluation.sort((a, b) => a.time.compareTo(b.time));
+      stockPrice.sort((a, b) => a.time.compareTo(b.time));
+
+      return CompanyInfo(
+        company: company,
+        reputation: reputation,
+        sales: sales,
+        stockPrice: stockPrice,
+        companyEvaluation: companyEvaluation,
+        usersShares: shares,
+        thisMonthTotalSales: thisMonthTotalSales,
+        lastMonthTotalSales: lastMonthTotalSales,
+        total120DaySales: total120DaySales,
+        ownerName: ownerName,
+      );
+    } catch (e) {
+      developer.log("Error getting company info $e");
       return null;
     }
   }
