@@ -932,6 +932,19 @@ class SupabaseHelper {
       final thisMonth = now.month;
       final lastMonth = now.month - 1;
       final thisYear = now.year;
+      final today = now.day;
+
+      List<Map<String, dynamic>> concatenatedShareHistory = [];
+
+      for (final shareHistoryHour in shareHistory) {
+        if (today != DateTime.parse(shareHistoryHour["created_at"]).day) {
+          if (DateTime.parse(shareHistoryHour["created_at"]).hour == 23) {
+            concatenatedShareHistory.add(shareHistoryHour);
+          }
+        } else {
+          concatenatedShareHistory.add(shareHistoryHour);
+        }
+      }
 
       final Map<String, double> thisMonthFiltered = Map.fromEntries(
         dailyOrderTotals.entries.where((entry) {
@@ -985,7 +998,7 @@ class SupabaseHelper {
         );
       }
 
-      for (final entry in shareHistory) {
+      for (final entry in concatenatedShareHistory) {
         stockPrice.add(
           PriceVsTime(
             time: DateTime.parse(entry["created_at"]),
