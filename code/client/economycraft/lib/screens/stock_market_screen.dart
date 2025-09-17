@@ -102,6 +102,9 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
+    const buttonSelectedColour = Color.fromARGB(255, 238, 237, 237);
+    const buttonStandbyColour = Color.fromARGB(255, 216, 216, 216);
+
     return FutureBuilder(
       future: _fetchAllData(),
       builder: (context, snapshot) {
@@ -263,246 +266,178 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                         Divider(height: 1),
                                         Expanded(
                                           child: Padding(
-                                            padding: const EdgeInsets.all(32.0),
-                                            child: Row(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              32,
+                                              8,
+                                              32,
+                                              16,
+                                            ),
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Expanded(
-                                                  child: Column(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment.start,
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          Expanded(
-                                                            child: ElevatedButton(
-                                                              onPressed: () {
-                                                                if (_buttonState !=
-                                                                    0) {
-                                                                  localSetState(
-                                                                    () {
-                                                                      _buttonState =
-                                                                          0;
-                                                                    },
-                                                                  );
-                                                                }
-                                                              },
-                                                              child: Text(
-                                                                "Stock Price",
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: ElevatedButton(
+                                                        onPressed: () {
+                                                          if (_buttonState !=
+                                                              0) {
+                                                            localSetState(() {
+                                                              _buttonState = 0;
+                                                            });
+                                                          }
+                                                        },
+                                                        child: Text(
+                                                          "Stock Price",
+                                                        ),
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              _buttonState == 0
+                                                                  ? buttonSelectedColour
+                                                                  : buttonStandbyColour,
+                                                          fixedSize:
+                                                              Size.fromHeight(
+                                                                screenHeight *
+                                                                    0.05,
                                                               ),
-                                                              style: ElevatedButton.styleFrom(
-                                                                backgroundColor:
-                                                                    _buttonState ==
-                                                                            0
-                                                                        ? Color.fromARGB(
-                                                                          255,
-                                                                          133,
-                                                                          133,
-                                                                          133,
-                                                                        )
-                                                                        : Color.fromARGB(
-                                                                          255,
-                                                                          209,
-                                                                          209,
-                                                                          209,
-                                                                        ),
-                                                                fixedSize:
-                                                                    Size.fromHeight(
-                                                                      screenHeight *
-                                                                          0.05,
-                                                                    ),
-                                                                shape: RoundedRectangleBorder(
-                                                                  borderRadius: BorderRadius.only(
-                                                                    topLeft:
-                                                                        Radius.circular(
-                                                                          5,
-                                                                        ),
-                                                                    bottomLeft:
-                                                                        Radius.circular(
-                                                                          5,
-                                                                        ),
-                                                                  ),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius.only(
+                                                                  topLeft:
+                                                                      Radius.circular(
+                                                                        5,
+                                                                      ),
+                                                                  bottomLeft:
+                                                                      Radius.circular(
+                                                                        5,
+                                                                      ),
                                                                 ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          Expanded(
-                                                            child: ElevatedButton(
-                                                              onPressed: () {
-                                                                if (_buttonState !=
-                                                                    1) {
-                                                                  localSetState(
-                                                                    () {
-                                                                      _buttonState =
-                                                                          1;
-                                                                    },
-                                                                  );
-                                                                }
-                                                              },
-                                                              child: Text(
-                                                                "Evaluation",
-                                                              ),
-                                                              style: ElevatedButton.styleFrom(
-                                                                backgroundColor:
-                                                                    _buttonState ==
-                                                                            1
-                                                                        ? Color.fromARGB(
-                                                                          255,
-                                                                          133,
-                                                                          133,
-                                                                          133,
-                                                                        )
-                                                                        : Color.fromARGB(
-                                                                          255,
-                                                                          209,
-                                                                          209,
-                                                                          209,
-                                                                        ),
-                                                                fixedSize:
-                                                                    Size.fromHeight(
-                                                                      screenHeight *
-                                                                          0.05,
-                                                                    ),
-                                                                shape:
-                                                                    RoundedRectangleBorder(),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          Expanded(
-                                                            child: ElevatedButton(
-                                                              onPressed: () {
-                                                                if (_buttonState !=
-                                                                    2) {
-                                                                  localSetState(
-                                                                    () {
-                                                                      _buttonState =
-                                                                          2;
-                                                                    },
-                                                                  );
-                                                                }
-                                                              },
-                                                              child: Text(
-                                                                "Sales",
-                                                              ),
-                                                              style: ElevatedButton.styleFrom(
-                                                                backgroundColor:
-                                                                    _buttonState ==
-                                                                            2
-                                                                        ? Color.fromARGB(
-                                                                          255,
-                                                                          133,
-                                                                          133,
-                                                                          133,
-                                                                        )
-                                                                        : Color.fromARGB(
-                                                                          255,
-                                                                          209,
-                                                                          209,
-                                                                          209,
-                                                                        ),
-                                                                fixedSize:
-                                                                    Size.fromHeight(
-                                                                      screenHeight *
-                                                                          0.05,
-                                                                    ),
-                                                                shape:
-                                                                    RoundedRectangleBorder(),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          Expanded(
-                                                            child: ElevatedButton(
-                                                              onPressed: () {
-                                                                if (_buttonState !=
-                                                                    3) {
-                                                                  localSetState(
-                                                                    () {
-                                                                      _buttonState =
-                                                                          3;
-                                                                    },
-                                                                  );
-                                                                }
-                                                              },
-                                                              child: Text(
-                                                                "Reputation",
-                                                              ),
-                                                              style: ElevatedButton.styleFrom(
-                                                                backgroundColor:
-                                                                    _buttonState ==
-                                                                            3
-                                                                        ? Color.fromARGB(
-                                                                          255,
-                                                                          133,
-                                                                          133,
-                                                                          133,
-                                                                        )
-                                                                        : Color.fromARGB(
-                                                                          255,
-                                                                          209,
-                                                                          209,
-                                                                          209,
-                                                                        ),
-                                                                fixedSize:
-                                                                    Size.fromHeight(
-                                                                      screenHeight *
-                                                                          0.05,
-                                                                    ),
-                                                                shape: RoundedRectangleBorder(
-                                                                  borderRadius: BorderRadius.only(
-                                                                    topRight:
-                                                                        Radius.circular(
-                                                                          5,
-                                                                        ),
-                                                                    bottomRight:
-                                                                        Radius.circular(
-                                                                          5,
-                                                                        ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      SizedBox(height: 4),
-                                                      Expanded(
-                                                        child: Container(
-                                                          decoration:
-                                                              BoxDecoration(
-                                                                border:
-                                                                    Border.all(),
-                                                              ),
-                                                          child: Linegraph2Widget(
-                                                            title: "",
-                                                            data:
-                                                                _data[_buttonState],
                                                           ),
                                                         ),
                                                       ),
-                                                      SizedBox(height: 16),
-                                                      Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          Text(
-                                                            "Data Last Updated:",
-                                                          ),
-                                                          Text(
-                                                            _lastDataRefresh!
-                                                                .toString(),
-                                                          ),
-                                                        ],
+                                                    ),
+                                                    Expanded(
+                                                      child: ElevatedButton(
+                                                        onPressed: () {
+                                                          if (_buttonState !=
+                                                              1) {
+                                                            localSetState(() {
+                                                              _buttonState = 1;
+                                                            });
+                                                          }
+                                                        },
+                                                        child: Text(
+                                                          "Evaluation",
+                                                        ),
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              _buttonState == 1
+                                                                  ? buttonSelectedColour
+                                                                  : buttonStandbyColour,
+                                                          fixedSize:
+                                                              Size.fromHeight(
+                                                                screenHeight *
+                                                                    0.05,
+                                                              ),
+                                                          shape:
+                                                              RoundedRectangleBorder(),
+                                                        ),
                                                       ),
-                                                    ],
+                                                    ),
+                                                    Expanded(
+                                                      child: ElevatedButton(
+                                                        onPressed: () {
+                                                          if (_buttonState !=
+                                                              2) {
+                                                            localSetState(() {
+                                                              _buttonState = 2;
+                                                            });
+                                                          }
+                                                        },
+                                                        child: Text("Sales"),
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              _buttonState == 2
+                                                                  ? buttonSelectedColour
+                                                                  : buttonStandbyColour,
+                                                          fixedSize:
+                                                              Size.fromHeight(
+                                                                screenHeight *
+                                                                    0.05,
+                                                              ),
+                                                          shape:
+                                                              RoundedRectangleBorder(),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      child: ElevatedButton(
+                                                        onPressed: () {
+                                                          if (_buttonState !=
+                                                              3) {
+                                                            localSetState(() {
+                                                              _buttonState = 3;
+                                                            });
+                                                          }
+                                                        },
+                                                        child: Text(
+                                                          "Reputation",
+                                                        ),
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              _buttonState == 3
+                                                                  ? buttonSelectedColour
+                                                                  : buttonStandbyColour,
+                                                          fixedSize:
+                                                              Size.fromHeight(
+                                                                screenHeight *
+                                                                    0.05,
+                                                              ),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius.only(
+                                                                  topRight:
+                                                                      Radius.circular(
+                                                                        5,
+                                                                      ),
+                                                                  bottomRight:
+                                                                      Radius.circular(
+                                                                        5,
+                                                                      ),
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                SizedBox(height: 8),
+                                                Expanded(
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(),
+                                                    ),
+                                                    child: Linegraph2Widget(
+                                                      title: "",
+                                                      data: _data[_buttonState],
+                                                    ),
                                                   ),
                                                 ),
-                                                Column(
+                                                SizedBox(height: 16),
+                                                Row(
                                                   mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [],
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text("Data Last Updated:"),
+                                                    Text(
+                                                      _lastDataRefresh!
+                                                          .toString(),
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
