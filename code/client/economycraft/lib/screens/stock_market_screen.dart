@@ -27,6 +27,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
   late List<Company> _companies;
   final List<List<ShareChanges>> chunks = [];
   late List<List<PriceVsTime>> _data = [];
+  late final Map<String, CompanyInfo> _companyInfoMap = {};
 
   int _buttonState = 0;
   late Company? _selectedCompany;
@@ -47,12 +48,15 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
 
     _selectedCompanyInfo = (await getCompanyInfo(_companies.first))!;
     _selectedCompany = _companies.first;
+
     _data.addAll([
       _selectedCompanyInfo.stockPrice,
       _selectedCompanyInfo.companyEvaluation,
       _selectedCompanyInfo.sales,
       _selectedCompanyInfo.reputation,
     ]);
+
+    _buildCompanyInfoMap(_companies);
 
     List<ShareChanges> currentChunk = [];
     for (var item in _shareChanges) {
@@ -67,6 +71,30 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     }
 
     return;
+  }
+
+  Future<void> _buildCompanyInfoMap(List<Company> companies) async {
+    final futures =
+        companies.map((company) async {
+          final companyInfo = await getCompanyInfo(company);
+          if (companyInfo != null &&
+              !_companyInfoMap.containsKey(company.name)) {
+            _companyInfoMap[company.name] = companyInfo;
+          }
+        }).toList();
+    await Future.wait(futures);
+  }
+
+  void _changeCompany(final company, final companyInfo) {
+    _selectedCompany = company;
+    _selectedCompanyInfo = companyInfo;
+    _data.clear();
+    _data.addAll([
+      _selectedCompanyInfo.stockPrice,
+      _selectedCompanyInfo.companyEvaluation,
+      _selectedCompanyInfo.sales,
+      _selectedCompanyInfo.reputation,
+    ]);
   }
 
   @override
@@ -563,11 +591,47 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                                           }).toList(),
                                                       onChanged: (
                                                         Company? newCompany,
-                                                      ) {
-                                                        localSetState(() {
-                                                          _selectedCompany =
-                                                              newCompany;
-                                                        });
+                                                      ) async {
+                                                        if (_companyInfoMap
+                                                            .containsKey(
+                                                              newCompany!.name,
+                                                            )) {
+                                                          localSetState(
+                                                            () => _changeCompany(
+                                                              newCompany,
+                                                              _companyInfoMap[newCompany
+                                                                  .name],
+                                                            ),
+                                                          );
+                                                        } else {
+                                                          final String
+                                                          companyNameCopy =
+                                                              _selectedCompany!
+                                                                  .name;
+
+                                                          localSetState(() {
+                                                            _selectedCompany!
+                                                                    .name =
+                                                                "Loading...";
+                                                          });
+
+                                                          final companyInfo =
+                                                              await getCompanyInfo(
+                                                                newCompany,
+                                                              );
+
+                                                          _selectedCompany
+                                                                  ?.name =
+                                                              companyNameCopy;
+
+                                                          localSetState(
+                                                            () => _changeCompany(
+                                                              newCompany,
+                                                              _companyInfoMap[newCompany
+                                                                  .name],
+                                                            ),
+                                                          );
+                                                        }
                                                       },
                                                     ),
                                                     _buildInfoRow(
@@ -793,20 +857,23 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                     ),
                     height: screenHeight * 0.6,
                     width: screenWidth * 0.4,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Starting MineExchange Stock Market",
-                          style: TextStyle(fontSize: 32),
-                        ),
-                        CircularProgressIndicator(),
-                        Text(
-                          "This should only take a moment.",
-                          style: TextStyle(fontSize: 32),
-                        ),
-                      ],
+                    child: Padding(
+                      padding: EdgeInsets.all(screenWidth * 0.045),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Starting MineExchange Stock Market",
+                            style: TextStyle(fontSize: 32),
+                          ),
+                          LinearProgressIndicator(minHeight: 20),
+                          Text(
+                            "This should only take a moment.",
+                            style: TextStyle(fontSize: 32),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -971,6 +1038,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
 
   Future<CompanyInfo?> getCompanyInfo(Company company) async {
     final companyInfo = await SupabaseHelper.getCompanyInfo(company);
+    _companyInfoMap[company.name] = companyInfo!;
     return companyInfo;
   }
 }
