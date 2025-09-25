@@ -60,8 +60,8 @@ class _SlidingRowState extends State<SlidingRow> {
   Timer? _timer;
   DateTime? _lastDataRefresh;
   final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
-  List<ShareChanges> _shareChanges = List.empty(growable: true);
-  List<List<ShareChanges>> _chunks = [];
+  final List<ShareChanges> _shareChanges = List.empty(growable: true);
+  final List<List<ShareChanges>> _chunks = [];
 
   @override
   void initState() {

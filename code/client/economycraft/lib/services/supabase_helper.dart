@@ -892,22 +892,49 @@ class SupabaseHelper {
       ]);
 
       late final List<Map<String, dynamic>> userOwnedShares;
+      late final List<Map<String, dynamic>> existingShares;
       late final List<Map<String, dynamic>> shareHistory;
+      late final Share share;
+      late final double cheapestShare;
 
       await Future.wait([
         _client
             .from('shares')
             .select("*")
             .eq("share_id", companyShareResponse!["id"])
-            .eq("user_id", userRowId)
-            .then((value) => userOwnedShares = value),
+            .then((value) => existingShares = value),
         _client
             .from('share_history')
             .select("*")
             .eq("share_id", companyShareResponse!["id"])
             .gt("created_at", DateTime.now().subtract(Duration(days: 120)))
             .then((value) => shareHistory = value),
+        findCheapestShareForCompanyShareId(
+          companyShareResponse!["id"],
+        ).then((value) => cheapestShare = value),
       ]);
+
+      final shareSingular = existingShares.first;
+
+      share = Share(
+        id: shareSingular["id"],
+        createdAt: DateTime.parse(shareSingular["created_at"]),
+        companyId: shareSingular["company_id"],
+        stake: shareSingular["stake"],
+        purchasePrice: shareSingular["purchased_price"],
+        value: companyShareResponse!["value"],
+        salePrice: shareSingular["sale_price"],
+        purchasable: shareSingular["purchasable"],
+        userId: shareSingular["user_id"],
+        isPublic: companyShareResponse!["is_public"],
+        numberOfShares: companyShareResponse!["number_of_shares"],
+        companyShareId: shareSingular["share_id"],
+      );
+
+      userOwnedShares =
+          existingShares
+              .where((share) => share["user_id"] == userRowId)
+              .toList();
 
       final dailyOrderTotals = <String, double>{};
 
@@ -1022,6 +1049,7 @@ class SupabaseHelper {
             isPublic: companyShareResponse!["is_public"],
             numberOfShares: companyShareResponse!["number_of_shares"],
             company: company,
+            companyShareId: companyShareResponse!["id"],
           ),
         );
       }
@@ -1035,6 +1063,7 @@ class SupabaseHelper {
 
       return CompanyInfo(
         company: company,
+        share: share,
         reputation: reputation,
         sales: sales,
         stockPrice: stockPrice,
@@ -1043,6 +1072,7 @@ class SupabaseHelper {
         thisMonthTotalSales: thisMonthTotalSales,
         lastMonthTotalSales: lastMonthTotalSales,
         total120DaySales: total120DaySales,
+        cheapestShare: cheapestShare,
         ownerName: ownerName,
       );
     } catch (e) {
@@ -1704,6 +1734,50 @@ class SupabaseHelper {
     }
   }
 
+  static Future<bool> newBuyOrder(
+    double maximumPrice,
+    int quantity,
+    DateTime expires,
+    int companyShareId,
+  ) async {
+    try {
+      final userRowId = await getPlayerId();
+      await _client.from("buy_orders").insert({
+        "expires_at": expires.toIso8601String(),
+        "company_share_id": companyShareId,
+        "user_id": userRowId,
+        "order_quantity": quantity,
+        "maximum_share_price": maximumPrice,
+      });
+
+      return true;
+    } catch (e) {
+      developer.log("Error making new buy order: $e");
+      return false;
+    }
+  }
+
+  static Future<double> findCheapestShareForCompanyShareId(
+    final companyShareId,
+  ) async {
+    try {
+      final response =
+          await _client
+              .from("shares")
+              .select("sale_price")
+              .eq("share_id", companyShareId)
+              .eq("purchasable", true)
+              .order('sale_price', ascending: true)
+              .limit(1)
+              .maybeSingle();
+
+      return response!["sale_price"];
+    } on Exception catch (e) {
+      developer.log("Error finding cheapest share: $e");
+      return -1;
+    }
+  }
+
   static Future<bool> makeSharesPurchasable(List<Share> shares) async {
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -1813,6 +1887,7 @@ class SupabaseHelper {
                         verified: companyData['verified'] ?? false,
                       )
                       : null,
+              companyShareId: companyShareData['id'],
             );
           }).toList();
 
@@ -1996,6 +2071,7 @@ class SupabaseHelper {
             company: company,
             isPublic: companyShareData['is_public'] ?? false,
             numberOfShares: companyShareData['number_of_shares'] ?? 0,
+            companyShareId: companyShareData['id'],
           );
         }).toList(),
       );
@@ -2098,6 +2174,7 @@ class SupabaseHelper {
                   verified: companyData['verified'] ?? false,
                 )
                 : null,
+        companyShareId: companyShareData['id'],
       );
     } catch (e) {
       developer.log('Error fetching share by ID: $e');
@@ -2155,6 +2232,7 @@ class SupabaseHelper {
             userId: share['user_id'],
             isPublic: companyShareData['is_public'] ?? false,
             numberOfShares: companyShareData['number_of_shares'] ?? 0,
+            companyShareId: companyShareData['id'],
           );
         }).toList(),
       );
@@ -2224,7 +2302,7 @@ class SupabaseHelper {
       final response = await _client
           .from('shares')
           .select(
-            "*, company_share:share_id (value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
+            "*, company_share:share_id (id, value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
           )
           .eq('share_id', companyShareId)
           .limit(1);
@@ -2265,6 +2343,7 @@ class SupabaseHelper {
                   verified: companyData['verified'] ?? false,
                 )
                 : null,
+        companyShareId: companyShareData['id'],
       );
     } catch (e) {
       developer.log('Error fetching share by company share ID: $e');

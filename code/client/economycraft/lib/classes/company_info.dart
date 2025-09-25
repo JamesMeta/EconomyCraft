@@ -4,6 +4,7 @@ import 'package:economycraft/classes/share.dart';
 
 class CompanyInfo {
   final Company company;
+  final Share share;
   final List<PriceVsTime> reputation;
   final List<PriceVsTime> sales;
   final List<PriceVsTime> stockPrice;
@@ -12,10 +13,12 @@ class CompanyInfo {
   final double lastMonthTotalSales;
   final double thisMonthTotalSales;
   final double total120DaySales;
+  final double cheapestShare;
   final String ownerName;
 
   const CompanyInfo({
     required this.company,
+    required this.share,
     required this.reputation,
     required this.sales,
     required this.stockPrice,
@@ -24,6 +27,7 @@ class CompanyInfo {
     required this.lastMonthTotalSales,
     required this.thisMonthTotalSales,
     required this.total120DaySales,
+    required this.cheapestShare,
     required this.ownerName,
   });
 }

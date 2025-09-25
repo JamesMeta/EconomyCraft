@@ -63,7 +63,12 @@ class _SlidingShareListWidgetState extends State<SlidingShareListWidget> {
               visibleItems
                   .map(
                     (item) => Container(
-                      width: screenWidth * 0.185,
+                      width:
+                          (screenWidth /
+                              5) - //screen width split between 5 widgets
+                          (32 /
+                              5) - //32 pixels of padding on each side of the row split between 5 widgets
+                          16, // 16 pixels of padding that each widget has
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
                         color: Colors.white,
