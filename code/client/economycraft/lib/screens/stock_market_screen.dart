@@ -1,13 +1,12 @@
+import 'package:economycraft/classes/buy_order.dart';
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/company_info.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/classes/share.dart';
-import 'package:economycraft/widgets/linegraph_1_widget.dart';
 import 'package:economycraft/widgets/linegraph_2_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:economycraft/services/supabase_helper.dart';
 import 'package:economycraft/classes/share_changes.dart';
-import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
@@ -29,8 +28,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
   final List<List<ShareChanges>> chunks = [];
   late final List<List<PriceVsTime>> _data = [];
   late final Map<String, CompanyInfo> _companyInfoMap = {};
-  bool _isLoadingBuyOrder = false;
-  bool _isLoadingSellOrder = false;
+  late List<BuyOrder> _userBuyOrders = [];
 
   int _buttonState = 0;
   late Company? _selectedCompany;
@@ -47,6 +45,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     await Future.wait([
       SupabaseHelper.getShareChanges().then((value) => _shareChanges = value),
       getAllPublicCompanies().then((value) => _companies = value),
+      getUserBuyOrders().then((value) => _userBuyOrders = value),
     ]);
 
     _selectedCompanyInfo = (await getCompanyInfo(_companies.first))!;
@@ -105,9 +104,6 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    const buttonSelectedColour = Color.fromARGB(255, 250, 250, 250);
-    const buttonStandbyColour = Color.fromARGB(255, 250, 250, 250);
-
     final List<String> labels = [
       "Stock Price",
       "Evaluation",
@@ -157,7 +153,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                 children: [
                                   Container(
                                     width: screenWidth * 0.23,
-                                    height: screenHeight * 0.75,
+                                    height: screenHeight * 0.80,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(12.0),
@@ -274,7 +270,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                   ),
                                   Container(
                                     width: screenWidth * 0.485,
-                                    height: screenHeight * 0.75,
+                                    height: screenHeight * 0.80,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(12.0),
@@ -395,7 +391,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                   ),
                                   Container(
                                     width: screenWidth * 0.23,
-                                    height: screenHeight * 0.75,
+                                    height: screenHeight * 0.80,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(12.0),
@@ -453,68 +449,75 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
                                                   children: [
-                                                    DropdownButton<Company>(
-                                                      value: _selectedCompany,
-                                                      hint: const Text(
-                                                        'Select a company',
-                                                      ),
-                                                      items:
-                                                          _companies.map((
-                                                            company,
-                                                          ) {
-                                                            return DropdownMenuItem<
-                                                              Company
-                                                            >(
-                                                              value: company,
-                                                              child: Text(
-                                                                company.name,
+                                                    SizedBox(
+                                                      width: double.infinity,
+                                                      child: DropdownButton<
+                                                        Company
+                                                      >(
+                                                        value: _selectedCompany,
+                                                        hint: const Text(
+                                                          'Select a company',
+                                                        ),
+                                                        isExpanded: true,
+                                                        items:
+                                                            _companies.map((
+                                                              company,
+                                                            ) {
+                                                              return DropdownMenuItem<
+                                                                Company
+                                                              >(
+                                                                value: company,
+                                                                child: Text(
+                                                                  company.name,
+                                                                ),
+                                                              );
+                                                            }).toList(),
+                                                        onChanged: (
+                                                          Company? newCompany,
+                                                        ) async {
+                                                          if (_companyInfoMap
+                                                              .containsKey(
+                                                                newCompany!
+                                                                    .name,
+                                                              )) {
+                                                            localSetState(
+                                                              () => _changeCompany(
+                                                                newCompany,
+                                                                _companyInfoMap[newCompany
+                                                                    .name],
                                                               ),
                                                             );
-                                                          }).toList(),
-                                                      onChanged: (
-                                                        Company? newCompany,
-                                                      ) async {
-                                                        if (_companyInfoMap
-                                                            .containsKey(
-                                                              newCompany!.name,
-                                                            )) {
-                                                          localSetState(
-                                                            () => _changeCompany(
-                                                              newCompany,
-                                                              _companyInfoMap[newCompany
-                                                                  .name],
-                                                            ),
-                                                          );
-                                                        } else {
-                                                          final String
-                                                          companyNameCopy =
+                                                          } else {
+                                                            final String
+                                                            companyNameCopy =
+                                                                _selectedCompany!
+                                                                    .name;
+
+                                                            localSetState(() {
                                                               _selectedCompany!
-                                                                  .name;
+                                                                      .name =
+                                                                  "Loading...";
+                                                            });
 
-                                                          localSetState(() {
-                                                            _selectedCompany!
-                                                                    .name =
-                                                                "Loading...";
-                                                          });
-
-                                                          final companyInfo =
-                                                              await getCompanyInfo(
-                                                                newCompany,
-                                                              );
-
-                                                          _selectedCompany
-                                                                  ?.name =
-                                                              companyNameCopy;
-
-                                                          localSetState(
-                                                            () =>
-                                                                _changeCompany(
+                                                            final companyInfo =
+                                                                await getCompanyInfo(
                                                                   newCompany,
-                                                                  companyInfo,
-                                                                ),
-                                                          );
-                                                        }
-                                                      },
+                                                                );
+
+                                                            _selectedCompany
+                                                                    ?.name =
+                                                                companyNameCopy;
+
+                                                            localSetState(
+                                                              () =>
+                                                                  _changeCompany(
+                                                                    newCompany,
+                                                                    companyInfo,
+                                                                  ),
+                                                            );
+                                                          }
+                                                        },
+                                                      ),
                                                     ),
                                                     _buildInfoRow(
                                                       "Company Name:",
@@ -627,7 +630,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                                               BuildContext
                                                               context,
                                                             ) {
-                                                              return _sellOrderDialog();
+                                                              return _viewbuyOrderDialog();
                                                             },
                                                           );
                                                         },
@@ -864,6 +867,105 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buyOrderListItem(
+    BuyOrder buyOrder,
+    void Function(void Function()) setDialogState,
+  ) {
+    CompanyInfo? companyInfo = null;
+
+    _companyInfoMap.forEach((key, value) {
+      if (value.share.companyShareId == buyOrder.companyShareId) {
+        companyInfo = value;
+      }
+    });
+
+    if (companyInfo == null) {
+      return ListTile();
+    } else {
+      return ListTile(
+        leading: Image(
+          height: 40,
+          width: 40,
+          image: NetworkImage(companyInfo!.company.avatarUrl),
+        ),
+        title: Text(companyInfo!.company.name),
+        subtitle: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text("Target Price: \$${buyOrder.maximumSharePrice.toString()}"),
+            SizedBox(width: 16),
+            Text("Remaining Quantity: ${buyOrder.orderQuality.toString()}"),
+          ],
+        ),
+        trailing: IconButton(
+          onPressed: () {
+            SupabaseHelper.deleteBuyOrder(buyOrder.id);
+            setDialogState(() {
+              _userBuyOrders.remove(buyOrder);
+            });
+          },
+          icon: Icon(Icons.delete),
+        ),
+      );
+    }
+  }
+
+  Widget _viewbuyOrderDialog() {
+    // List<BuyOrder> buyOrdersCopy = _userBuyOrders.where((element) {
+    //   return true;
+    // },).toList();
+
+    return StatefulBuilder(
+      builder: (context, viewBuyDialogSetState) {
+        final screenHeight = MediaQuery.of(context).size.height;
+        final screenWidth = MediaQuery.of(context).size.width;
+
+        return AlertDialog(
+          content: SizedBox(
+            width: screenWidth * (1 / 3),
+            height: screenHeight * (3 / 4),
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Currently Active Buy Orders",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Divider(),
+                      SizedBox(height: 8),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: _userBuyOrders.length,
+                          itemBuilder: (context, index) {
+                            return _buyOrderListItem(
+                              _userBuyOrders[index],
+                              viewBuyDialogSetState,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1586,6 +1688,10 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     final companyInfo = await SupabaseHelper.getCompanyInfo(company);
     _companyInfoMap[company.name] = companyInfo!;
     return companyInfo;
+  }
+
+  Future<List<BuyOrder>> getUserBuyOrders() async {
+    return await SupabaseHelper.getUserBuyOrders();
   }
 
   Future<void> createBuyOrder(

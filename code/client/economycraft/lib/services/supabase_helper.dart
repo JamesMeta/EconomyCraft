@@ -1,4 +1,5 @@
 import 'package:economycraft/classes/admin_message.dart';
+import 'package:economycraft/classes/buy_order.dart';
 import 'package:economycraft/classes/companyShare.dart';
 import 'package:economycraft/classes/company_info.dart';
 import 'package:economycraft/classes/order.dart';
@@ -1757,6 +1758,45 @@ class SupabaseHelper {
     }
   }
 
+  static Future<List<BuyOrder>> getUserBuyOrders() async {
+    try {
+      final userRowId = await getPlayerId();
+
+      final response = await _client
+          .from("buy_orders")
+          .select("*")
+          .eq("user_id", userRowId);
+
+      final List<BuyOrder> buyOrders =
+          response.map<BuyOrder>((buyOrder) {
+            return BuyOrder(
+              id: buyOrder["id"],
+              createdAt: DateTime.parse(buyOrder["created_at"]),
+              expiresAt: DateTime.parse(buyOrder["expires_at"]),
+              companyShareId: buyOrder["company_share_id"],
+              userId: buyOrder["user_id"],
+              orderQuality: buyOrder["order_quantity"],
+              maximumSharePrice: buyOrder["maximum_share_price"],
+            );
+          }).toList();
+
+      return buyOrders;
+    } catch (e) {
+      developer.log("Error getting users buy orders: $e");
+      return [];
+    }
+  }
+
+  static Future<bool> deleteBuyOrder(int buyOrderId) async {
+    try {
+      await _client.from("buy_orders").delete().eq("id", buyOrderId);
+      return true;
+    } catch (e) {
+      developer.log("error deleting buy order $e");
+      return false;
+    }
+  }
+
   static Future<double> findCheapestShareForCompanyShareId(
     final companyShareId,
   ) async {
@@ -1772,7 +1812,7 @@ class SupabaseHelper {
               .maybeSingle();
 
       return response!["sale_price"];
-    } on Exception catch (e) {
+    } catch (e) {
       developer.log("Error finding cheapest share: $e");
       return -1;
     }
