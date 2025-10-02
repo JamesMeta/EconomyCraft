@@ -233,7 +233,9 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                                         builder: (
                                                           BuildContext context,
                                                         ) {
-                                                          return _sellOrderDialog();
+                                                          return _sellOrderDialog(
+                                                            _selectedCompanyInfo,
+                                                          );
                                                         },
                                                       );
                                                     },
@@ -874,7 +876,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     BuyOrder buyOrder,
     void Function(void Function()) setDialogState,
   ) {
-    CompanyInfo? companyInfo = null;
+    CompanyInfo? companyInfo;
 
     _companyInfoMap.forEach((key, value) {
       if (value.share.companyShareId == buyOrder.companyShareId) {
@@ -988,7 +990,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
         final screenWidth = MediaQuery.of(context).size.width;
         return AlertDialog(
           content: SizedBox(
-            width: screenWidth * (1 / 2),
+            width: screenWidth * (1 / 3),
             height: screenHeight * (3 / 4),
             child: Center(
               child: SingleChildScrollView(
@@ -1002,7 +1004,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(32, 32, 32, 0),
+                        padding: const EdgeInsets.fromLTRB(32, 16, 32, 0),
 
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1013,7 +1015,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                               "Create Buy Order",
                               style: TextStyle(
                                 color: Colors.black,
-                                fontSize: 20,
+                                fontSize: 30,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -1450,7 +1452,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 10),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
@@ -1649,26 +1651,306 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     );
   }
 
-  Widget _sellOrderDialog() {
+  Widget _sellOrderDialog(CompanyInfo companyInfo) {
+    final lastSalePrice = companyInfo.share.value.toStringAsFixed(2);
+    final cheapestSalePrice = companyInfo.cheapestShare.toStringAsFixed(2);
+    final companyName = companyInfo.company.name;
+    final companyOwner = companyInfo.ownerName;
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    bool isLoading = false;
+    int spreadState = 0;
+
     return StatefulBuilder(
-      builder: (context, sellDialogSetState) {
+      builder: (context, buyDialogSetState) {
+        Widget spreadButton(
+          IconData icon,
+          double angle,
+          String title,
+          String subtitle,
+          int enabledSpreadState,
+        ) {
+          bool isEnabled = spreadState == enabledSpreadState;
+
+          return Material(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: isEnabled ? Colors.black : Colors.grey),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              hoverColor: const Color.fromARGB(255, 236, 236, 236),
+              onTap: () {
+                buyDialogSetState(() {
+                  spreadState = enabledSpreadState;
+                });
+              },
+              child: ListTile(
+                leading: Transform.rotate(
+                  angle: angle,
+                  child: Icon(
+                    icon,
+                    size: 40,
+                    color: isEnabled ? Colors.black : Colors.grey,
+                  ),
+                ),
+                title: Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isEnabled ? Colors.black : Colors.grey,
+                  ),
+                  maxLines: 1,
+                ),
+                subtitle: Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isEnabled ? Colors.black : Colors.grey,
+                  ),
+                  maxLines: 2,
+                ),
+              ),
+            ),
+          );
+        }
+
+        Widget spreadForms() {
+          final formKey = GlobalKey<FormState>();
+
+          final TextEditingController quantityController =
+              TextEditingController();
+          final TextEditingController priceController = TextEditingController();
+          final TextEditingController coefficientController =
+              TextEditingController();
+
+          return Form(
+            key: formKey,
+            child: Column(
+              children: [
+                TextFormField(controller: quantityController),
+                TextFormField(controller: priceController),
+                TextFormField(controller: coefficientController),
+              ],
+            ),
+          );
+        }
+
         return AlertDialog(
-          title: Text("Create Buy Order"),
-          content: Text("Create Buy order based on these requirements"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Cancel"),
+          content: SizedBox(
+            width: screenWidth * (1 / 3),
+            height: screenHeight * (3 / 4),
+            child: Center(
+              child: SingleChildScrollView(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 32, 32, 0),
+
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+
+                          children: [
+                            Text(
+                              "Create Sell Order",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 30,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "Create a sell order to offload a volume of shares with a static or variable price spread",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            Divider(),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 32,
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Color.fromARGB(255, 229, 255, 252),
+                                borderRadius: BorderRadius.circular(8),
+                                boxShadow: [
+                                  BoxShadow(
+                                    spreadRadius: 1,
+                                    color: const Color.fromARGB(38, 0, 0, 0),
+                                  ),
+                                ],
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                  horizontal: 0,
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        Text(
+                                          "$companyName",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+
+                                        Text(
+                                          "By: $companyOwner",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        Text(
+                                          "Last Sold Price: \$$lastSalePrice",
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                        Text(
+                                          "Current Lowest Price: \$$cheapestSalePrice",
+                                          style: TextStyle(fontSize: 16),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Linegraph2Widget(
+                              title: "",
+                              data: companyInfo.stockPrice,
+                            ),
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: spreadButton(
+                                    Icons.linear_scale,
+                                    -45,
+                                    "Linear Spread",
+                                    "Have your shares +/- in sale price linearly",
+                                    0,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: spreadButton(
+                                    Icons.redo,
+                                    0,
+                                    "Logarithmic Spread",
+                                    "Have your shares +/- in sale price on a log curve",
+                                    1,
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            if (spreadState == 0) spreadForms(),
+                            if (spreadState == 1) spreadForms(),
+                            if (spreadState == 2) spreadForms(),
+
+                            SizedBox(height: 12),
+
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(8),
+                                      ),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text(
+                                    "Cancel",
+                                    style: TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(8),
+                                      ),
+                                    ),
+                                    backgroundColor: Color.fromARGB(
+                                      255,
+                                      134,
+                                      255,
+                                      154,
+                                    ),
+                                  ),
+                                  onPressed: () async {
+                                    if (isLoading) {
+                                      return;
+                                    }
+                                    buyDialogSetState(() {
+                                      isLoading = true;
+                                    });
+                                    buyDialogSetState(() {
+                                      isLoading = false;
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                  child:
+                                      isLoading
+                                          ? CircularProgressIndicator(
+                                            color: Colors.black,
+                                          )
+                                          : Text(
+                                            "Create Buy Order",
+                                            style: TextStyle(
+                                              color: Colors.black,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Create Buy Order"),
-            ),
-          ],
+          ),
         );
       },
     );
