@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
-import 'package:economycraft/widgets/linegraph_2_widget.dart';
+import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
 
 class HoldingsScreen extends StatefulWidget {
   const HoldingsScreen({super.key});

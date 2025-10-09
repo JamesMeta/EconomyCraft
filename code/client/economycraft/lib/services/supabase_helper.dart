@@ -1531,6 +1531,13 @@ class SupabaseHelper {
       // Calculate the multiplier based on the order quantity
       final decreaseAmount = f(order.payment);
 
+      if (decreaseAmount < 0) {
+        developer.log(
+          'Error: Decrease amount is negative for order ${order.id}',
+        );
+        return false;
+      }
+
       //log the decrease amount
       developer.log(
         'Decrease amount for company $companyId based on order payment ${order.payment}: $decreaseAmount',
@@ -1758,6 +1765,100 @@ class SupabaseHelper {
     }
   }
 
+  static Future<bool> sellOrderPreCheck(int quantity, int shareId) async {
+    try {
+      final userRowId = await getPlayerId();
+      final response = await _client
+          .from("shares")
+          .select("*")
+          .eq("user_id", userRowId)
+          .eq("purchasable", false)
+          .eq("share_id", shareId);
+
+      developer.log(response.length.toString());
+      return response.length >= quantity;
+    } catch (e) {
+      developer.log("error conducting preecheck $e");
+      return false;
+    }
+  }
+
+  static Future<bool> newSellOrder(
+    double Function(int x) f,
+    int quantity,
+    int shareId,
+  ) async {
+    try {
+      final userRowId = await getPlayerId();
+      final response = await _client
+          .from("shares")
+          .select('''
+          *,
+          companies:company_id (
+            id, name, slogan, avatar_url, reputation, 
+            evaluation, is_public, user_id, created_at, 
+            lot_number, verified
+          ),
+          company_share:share_id (
+            id, value, number_of_shares, is_public
+            )
+        ''')
+          .eq("user_id", userRowId)
+          .eq("purchasable", false)
+          .eq("share_id", shareId)
+          .limit(quantity);
+
+      final List<Share> shares =
+          response.map<Share>((share) {
+            final companyData = share['companies'];
+            final companyShareData = share['company_share'];
+
+            return Share(
+              id: share['id'],
+              createdAt: DateTime.parse(share['created_at']),
+              companyId: share['company_id'],
+              stake: share['stake'],
+              purchasePrice: share['purchased_price'],
+              value: companyShareData['value']?.toDouble() ?? 0.0,
+              salePrice: share['sale_price'] ?? 0.0,
+              purchasable: share['purchasable'],
+              userId: share['user_id'],
+              isPublic: companyShareData['is_public'] ?? false,
+              numberOfShares: companyShareData['number_of_shares'] ?? 0,
+              company:
+                  companyData != null
+                      ? Company(
+                        id: companyData['id'],
+                        name: companyData['name'],
+                        slogan: companyData['slogan'],
+                        avatarUrl: companyData['avatar_url'],
+                        reputation: companyData['reputation'],
+                        evaluation: companyData['evaluation'],
+                        isPublic: companyData['is_public'],
+                        userId: companyData['user_id'],
+                        createdAt: DateTime.parse(companyData['created_at']),
+                        lotNumber: companyData['lot_number'] ?? 0,
+                        verified: companyData['verified'] ?? false,
+                      )
+                      : null,
+              companyShareId: companyShareData['id'],
+            );
+          }).toList();
+
+      for (int i = 0; i < shares.length; i++) {
+        final double price = f(i);
+        shares[i].salePrice = price;
+      }
+
+      final isForSale = await makeSharesPurchasable(shares);
+
+      return isForSale;
+    } catch (e) {
+      developer.log("unable to create sell order $e");
+      return false;
+    }
+  }
+
   static Future<List<BuyOrder>> getUserBuyOrders() async {
     try {
       final userRowId = await getPlayerId();
@@ -1829,7 +1930,7 @@ class SupabaseHelper {
         updateFutures.add(
           _client
               .from('shares')
-              .update({'purchasable': true})
+              .update({'purchasable': true, 'sale_price': share.salePrice})
               .eq('id', share.id),
         );
         developer.log('Share made purchasable: ${share.id}');
@@ -1883,17 +1984,16 @@ class SupabaseHelper {
             lot_number, verified
           ),
           company_share:share_id (
-            value, number_of_shares, is_public
+            id, value, number_of_shares, is_public
             )
         ''')
           .eq('user_id', userRowId)
           .order('value', ascending: false, referencedTable: 'company_share');
 
-      if (response == null || response.isEmpty) {
+      if (response.isEmpty) {
         return [];
       }
 
-      // Map the response to Share objects without additional queries
       final List<Share> shares =
           response.map<Share>((share) {
             final companyData = share['companies'];
@@ -2079,7 +2179,7 @@ class SupabaseHelper {
           .select('''
           *,
           company_share:share_id (
-            value, number_of_shares, is_public
+            id, value, number_of_shares, is_public
             )
         ''')
           .eq('company_id', companyId)
@@ -2174,7 +2274,7 @@ class SupabaseHelper {
           await _client
               .from('shares')
               .select(
-                "*, company_share:share_id (value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
+                "*, company_share:share_id (id, value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
               )
               .eq('id', shareId)
               .limit(1)
@@ -2249,7 +2349,7 @@ class SupabaseHelper {
       final response = await _client
           .from('shares')
           .select(
-            "*, company_share:share_id (value, is_public, number_of_shares)",
+            "*, company_share:share_id (id, value, is_public, number_of_shares)",
           )
           .eq('company_id', companyId)
           .order('value', ascending: false, referencedTable: 'company_share');

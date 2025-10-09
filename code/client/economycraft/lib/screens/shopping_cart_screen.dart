@@ -5,7 +5,7 @@ import 'package:economycraft/classes/product.dart';
 import 'package:economycraft/services/supabase_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import 'package:economycraft/widgets/empty_cart_widget.dart';
+import 'package:economycraft/common_widgets/empty_cart_widget.dart';
 
 class ShoppingCartScreen extends StatefulWidget {
   const ShoppingCartScreen({super.key});

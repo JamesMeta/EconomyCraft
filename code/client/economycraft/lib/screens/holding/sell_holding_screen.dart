@@ -3,7 +3,7 @@ import 'package:economycraft/services/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:economycraft/widgets/linegraph_1_widget.dart';
+import 'package:economycraft/common_widgets/linegraph_1_widget.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:intl/intl.dart';
 
