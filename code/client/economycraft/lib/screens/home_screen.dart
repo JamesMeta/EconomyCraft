@@ -2,11 +2,11 @@ import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/classes/share_changes.dart';
 import 'package:economycraft/services/supabase_helper.dart';
-import 'package:economycraft/widgets/linegraph_1_widget.dart';
+import 'package:economycraft/common_widgets/linegraph_1_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:economycraft/widgets/shopping_cart_widget.dart';
+import 'package:economycraft/common_widgets/shopping_cart_widget.dart';
 import 'package:intl/intl.dart';
 
 class MyHomePage extends StatefulWidget {

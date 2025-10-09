@@ -6,14 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/services/supabase_helper.dart';
 import 'package:economycraft/classes/product.dart';
-import 'package:economycraft/widgets/product_tile_widget.dart';
-import 'package:economycraft/widgets/new_product_button_widget.dart';
+import 'package:economycraft/common_widgets/product_tile_widget.dart';
+import 'package:economycraft/common_widgets/new_product_button_widget.dart';
 import 'package:intl/intl.dart';
-import 'package:economycraft/widgets/build_stat_card_widget.dart';
-import 'package:economycraft/widgets/build_edit_dialog_widget.dart';
-import 'package:economycraft/widgets/build_editable_field_widget.dart';
+import 'package:economycraft/common_widgets/build_stat_card_widget.dart';
+import 'package:economycraft/common_widgets/build_edit_dialog_widget.dart';
+import 'package:economycraft/common_widgets/build_editable_field_widget.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
-import 'package:economycraft/widgets/linegraph_2_widget.dart';
+import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
 import 'package:economycraft/classes/share.dart';
 
 class CompanyPageBackendScreen extends StatefulWidget {
