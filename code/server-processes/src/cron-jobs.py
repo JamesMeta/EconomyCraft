@@ -44,13 +44,14 @@ if (__name__ == "__main__"):
     # admin.make_ai_orders()
     # admin.complete_all_ai_orders()
     
-    admin = Administration(supabase)
+    # admin = Administration(supabase)
     
-    scores = admin.make_ai_share_orders()
+    # scores = admin.make_ai_share_orders()
     
-    for key, item in scores.items():
-        print(f"{key}: {item}")
+    # for key, item in scores.items():
+    #     print(f"{key}: {item}")
     
+    job2()
     # scores = admin.make_ai_share_orders()
     
     # for item in scores.items():
