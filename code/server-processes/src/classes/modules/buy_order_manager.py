@@ -24,8 +24,7 @@ class BuyOrderManager:
                     expires_at=order_data["expires_at"],
                     company_share_id=order_data["company_share_id"],
                     user_id=order_data["user_id"],
-                    order_target=order_data["order_target"],
-                    order_maximum=order_data["order_maximum"],
+                    order_maximum=order_data["maximum_share_price"],
                     order_quantity=order_data["order_quantity"]
                 )
                 orders.append(order)

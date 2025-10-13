@@ -28,7 +28,7 @@ import 'package:economycraft/screens/out_of_date_screen.dart';
 
 const supabaseUrl = 'https://ylgfgklcypqtbqrkhsba.supabase.co';
 const supabaseKey = "sb_publishable_tcxKxITjQOaJNt6fyc0geQ_dV8ItNuf";
-const appVersion = '1.3';
+const appVersion = '1.4';
 
 Future<void> main() async {
   await Supabase.initialize(
