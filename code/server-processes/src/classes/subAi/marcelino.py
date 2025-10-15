@@ -4,7 +4,31 @@ class Marcelino(AI):
     def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Marcelino"
-        self.description = "Marcelino is a long-term investor and a light consumer. He is very cautious with his spending and prefers to save money for future investments."
+        self.description = """
+        
+        Spending Habbits:
+        Low Spender
+        High Saver
+        
+        Holding Evaluations:
+        High Profit Goals
+        High loss limits
+        High Bubble Confortability
+        High Reputation Decline Confortability
+        High Company Growth Decline Confortablity
+        
+        Share Scoring:
+        Low Contrarian
+        Low Reputation
+        Low Share Peformance
+        Low Company Performance
+        Low Value Estimation
+        Low Volatility Tolerance
+        
+        Other:
+        High Share Diversity Requirements
+        Low Randomness
+        """
         self.investor_type = "CONTRARIAN"
 
         # Product buying data

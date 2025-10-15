@@ -4,7 +4,31 @@ class Spencer(AI):
     def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Spencer"
-        self.description = "Spencer is a medium spender and medium saver. He likes to buy products that are good value for money and is always looking for the best deals. He is good at saving money, but he is also good at spending it."
+        self.description = """
+        
+        Spending Habbits:
+        High Spender
+        Low Saver
+        
+        Holding Evaluations:
+        Medium Profit Goals
+        Medium loss limits
+        Medium Bubble Confortability
+        High Reputation Decline Confortability
+        Low Company Growth Decline Confortablity
+        
+        Share Scoring:
+        Low Conformist
+        Low Reputation
+        High Share Peformance
+        High Company Performance
+        Low Value Estimation
+        Medium Volatility Tolerance
+        
+        Other:
+        Medium Share Diversity Requirements
+        High Randomness
+        """
         self.investor_type = "CONFORMIST"
 
         # Product buying data

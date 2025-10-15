@@ -4,7 +4,31 @@ class Harsh(AI):
     def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Harsh"
-        self.description = "Harsh is a moderate trader and a light consumer. He is cautious with his spending and prefers to save money for future investments."
+        self.description = """
+        
+        Spending Habbits:
+        Low Spender
+        Medium Saver
+        
+        Holding Evaluations:
+        Medium Profit Goals
+        Low loss limits
+        Medium Bubble Confortability
+        High Reputation Decline Confortability
+        Low Company Growth Decline Confortablity
+        
+        Share Scoring:
+        High Contrarian
+        Low Reputation
+        Medium Share Peformance
+        Medium Company Performance
+        High Value Estimation
+        Medium Volatility Tolerance
+        
+        Other:
+        Medium Share Diversity Requirements
+        Low Randomness
+        """
         self.investor_type = "CONTRARIAN"
 
 

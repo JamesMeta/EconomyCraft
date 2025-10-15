@@ -17,7 +17,6 @@ if (__name__ == "__main__"):
     # Create the Supabase client using the service role key
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    # Create an instance of the Administration class
 
     def job1():
         admin = Administration(supabase)
@@ -29,18 +28,12 @@ if (__name__ == "__main__"):
         admin.complete_all_ai_orders()
     
     def job3():
-        admin = Administration(supabase)
+        admin = Administration(supabase, lite=True)
         admin.service_buy_orders()
 
     
-    schedule.every(8).hours.do(job2)
-    schedule.every(45).minutes.do(job1)
-    schedule.every(1).minute.do(job3)
+    job3()
 
-    while True:
-        print("Running scheduled tasks...")
-        schedule.run_pending()
-        time.sleep(1)  # Sleep for 1 second to avoid overwhelming the server
 
         
     

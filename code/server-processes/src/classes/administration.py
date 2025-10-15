@@ -7,23 +7,26 @@ from classes.modules.supabase_assistant import SupabaseAssistant
 from classes.modules.utility import Utility
 
 class Administration:
-    def __init__(self, supabase):
+    def __init__(self, supabase, lite = False):
         self.supabase = supabase
-        self.supabase_assistant = SupabaseAssistant(supabase)
-        self.performance = Performance(supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
-        self.utility = Utility(self.supabase_assistant.users)
-        self.services = Services()
-        self.products_ai = ProductsAI(supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
-        self.stocks_ai = StocksAI(
-            supabase, 
-            self.supabase_assistant.users, 
-            self.supabase_assistant.company_map, 
-            self.performance.company_performance_maps, 
-            self.performance.company_reputation_maps, 
-            self.performance.company_stock_trend_maps, 
-            self.performance.company_estimated_value_map, 
-            self.performance.company_listed_value_map
-            )
+        
+        if not lite:
+            self.supabase_assistant = SupabaseAssistant(supabase)
+            self.performance = Performance(supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
+            self.utility = Utility(self.supabase_assistant.users)
+            self.services = Services()
+            self.products_ai = ProductsAI(supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
+            self.stocks_ai = StocksAI(
+                supabase, 
+                self.supabase_assistant.users, 
+                self.supabase_assistant.company_map, 
+                self.performance.company_performance_maps, 
+                self.performance.company_reputation_maps, 
+                self.performance.company_stock_trend_maps, 
+                self.performance.company_estimated_value_map, 
+                self.performance.company_listed_value_map
+                )
+            
         self.buy_order_manager = BuyOrderManager(supabase)
         
     def make_ai_orders(self):

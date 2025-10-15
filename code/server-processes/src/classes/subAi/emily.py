@@ -4,7 +4,32 @@ class Emily(AI):
     def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Emily"
-        self.description = "Emily is a big spender and minimal saver. She loves to buy products and is always looking for the best deals. She is not very good at saving money, but she is great at finding the best products."
+        self.description = """
+        
+        Spending Habbits:
+        High Spender
+        low Saver
+        
+        Holding Evaluations:
+        Low Profit Goals
+        High loss limits
+        High Bubble Confortability
+        Low Reputation Decline Confortability
+        High Company Growth Decline Confortablity
+        
+        Share Scoring:
+        High Conformist
+        High Reputation
+        High Share Peformance
+        Low Company Performance
+        Low Value Estimation
+        High Volatility Tolerance
+        
+        Other:
+        Low Share Diversity Requirements
+        High Randomness
+        """
+        
         self.investor_type = "CONFORMIST"
         
         # Product buying data
@@ -15,20 +40,14 @@ class Emily(AI):
 
         # Share trading data
 
-        self.profit_margin = random.uniform(0.01, 0.50)  # Marcelino's profit margin for trading
-        self.loss_limit = random.uniform(0.1, 0.15)  # Marcelino's loss limit for trading
-        self.history_scope = 10 # Marcelino's history scope for trading
-        self.percentage_of_networth_to_invest = 0.15  # Percentage of networth Marcelino ideally wants to invest in trades
+        self.profit_margin = random.uniform(0.01, 0.50)  
+        self.loss_limit = random.uniform(0.1, 0.15)
+        self.history_scope = 10 
+        self.percentage_of_networth_to_invest = 0.15  
         self.range_of_premature_sell = [1, 10000]
-        self.buy_volume_limit = random.randint(1, 5)  # Emily's limit on the number of shares she can buy in a single transaction
-        self.diversity_minimum = 0.50  # Emily's minimum diversity threshold for her portfolio
+        self.buy_volume_limit = random.randint(1, 5)  
+        self.diversity_minimum = 0.50  
 
-        # emily strategy weighs
-        # Reputation and trend analysis are more important to Emily as she is fairly surface level and doesn't look too deep into the companies
-        # Sales is lower since she doesn't care about the company's sales as much
-        # Contrarian since the concept of going against the trend is not something she would do
-        # Random is higher since she isnt very strategic and is more likely to make random decisions
-        
         self.strategy_weights = {
             "sales": random.uniform(0.1, 0.2),
             "reputation": random.uniform(0.35, 0.45),

@@ -4,7 +4,31 @@ class Jehan(AI):
     def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Jehan"
-        self.description = "Jehan is a risky and active trader who is a moderate consumer."
+        self.description = """
+        
+        Spending Habbits:
+        Medium Spender
+        Medium Saver
+        
+        Holding Evaluations:
+        High Profit Goals
+        Medium loss limits
+        High Bubble Confortability
+        Low Reputation Decline Confortability
+        Low Company Growth Decline Confortablity
+        
+        Share Scoring:
+        Medium Conformist
+        Medium Reputation
+        High Share Peformance
+        Medium Company Performance
+        Medium Value Estimation
+        High Volatility Tolerance
+        
+        Other:
+        Medium Share Diversity Requirements
+        Medium Randomness
+        """
         self.investor_type = "CONFORMIST"
 
 
