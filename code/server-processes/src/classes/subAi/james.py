@@ -1,11 +1,34 @@
 from classes.AI import AI
 import random
-
 class James(AI):
     def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
         super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "James"
-        self.description = "James is a big saver and minimal spender. He loves to save money and is always looking for the best deals. He is not very good at spending money, but he is great at saving it."
+        self.description = """
+        
+        Spending Habbits:
+        Low Spender
+        High Saver
+        
+        Holding Evaluations:
+        Low Profit Goals
+        Low loss limits
+        Low Bubble Confortability
+        Low Reputation Decline Confortability
+        Low Company Growth Decline Confortablity
+        
+        Share Scoring:
+        Medium Contrarian
+        Medium Reputation
+        High Share Peformance
+        Medium Company Performance
+        Low Value Estimation
+        Low Volatility Tolerance
+        
+        Other:
+        Medium Share Diversity Requirements
+        Low Randomness
+        """
         self.investor_type = "CONTRARIAN"
         
         # Product buying data

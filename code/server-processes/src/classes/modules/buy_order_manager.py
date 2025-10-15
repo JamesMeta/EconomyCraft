@@ -83,6 +83,7 @@ class BuyOrderManager:
                 self.cancel_buy_order(order.id)
                 try:
                     self.buy_orders.remove(order)
+                    break
                 except ValueError:
                     print(f"Order {order.id} already removed from list.")
         
