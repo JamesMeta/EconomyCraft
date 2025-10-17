@@ -32,7 +32,7 @@ if (__name__ == "__main__"):
         admin.service_buy_orders()
 
     
-    job3()
+    job2()
 
 
         
