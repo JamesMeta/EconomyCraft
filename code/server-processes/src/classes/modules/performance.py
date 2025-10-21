@@ -1,5 +1,6 @@
 import datetime
 import numpy as np
+from classes.classes.line_of_best_fit import LineOfBestFit
 from classes.modules.constants import TIME_PERIOD_SHORT, TIME_PERIOD_MEDIUM, TIME_PERIOD_LONG, DEFAULT_RETURN_NO_DATA, DEFAULT_RETURN_NO_CHANGE
 
 from rich.progress import Progress
@@ -26,6 +27,7 @@ class Performance:
         Build maps of company performance and reputation metrics for different time periods.
         Used for AI decision making when investing.
         """
+        
         with Progress() as progress:
 
             task = progress.add_task("[grey50]Building company performance maps...", total=len(self.company_map))
@@ -102,7 +104,8 @@ class Performance:
 
         slope, intercept = np.polyfit(time_numeric, reputation_dx, 1)
 
-        return slope
+        best_fit = LineOfBestFit(slope,intercept)
+        return best_fit
     
     def get_company_rate_of_revenue_change_over_time(self, company_id: int, history_scope: int):
         """
@@ -141,12 +144,26 @@ class Performance:
         for order in orders_within_scope:
             date = order['created_at'].split("T")[0]
             if date not in daily_revenue:
-                daily_revenue[date] = 0.0
+                daily_revenue[date] = order['payment']
             daily_revenue[date] += order['payment']
             
         # Need at least 2 days of data to calculate change
         if len(daily_revenue) < 2:
             return DEFAULT_RETURN_NO_DATA
+        
+        # Need to account for days where no sales were made
+        if len(daily_revenue) < history_scope:
+            today = datetime.datetime.today()
+            
+            date_iterator = today - datetime.timedelta(days=history_scope)
+            
+            for i in range(history_scope):
+                date_iterator_string = (str(date_iterator)).split()[0]
+                
+                if date_iterator_string not in daily_revenue:
+                    daily_revenue[date_iterator_string] = 0.0
+                    
+                date_iterator = date_iterator + datetime.timedelta(days=1)
             
         # --------------------
         # Find slope of revenue change
@@ -159,18 +176,11 @@ class Performance:
         time_numeric = np.array([(datetime.datetime.fromisoformat(date) - start_date).days for date in dates])
         revenue_numeric = np.array(revenue_values)
         slope, intercept = np.polyfit(time_numeric, revenue_numeric, 1)
-        return slope
+        best_fit = LineOfBestFit(slope,intercept)
+        return best_fit
 
     def get_company_share_value_change_over_time(self, company_id: int, history_scope: int):
-        """
-        Calculate the change in share value of a company over a specific time period.
-        
-        Args:
-            company_id: ID of the company
-            history_scope: Number of days to analyze
-        Returns:
-            Change in share value as a decimal (e.g., 0.05 = 5% increase)
-        """
+
 
         # Get company share history
 
@@ -185,7 +195,8 @@ class Performance:
         start_date = time_dt[0]
         time_numeric = np.array([(dt - start_date).total_seconds() / 3600 for dt in time_dt])
         slope, intercept = np.polyfit(time_numeric, share_value_dx, 1)
-        return slope
+        best_fit = LineOfBestFit(slope,intercept)
+        return best_fit
     
     def calculate_company_estimated_value(self, company_id: int):
 

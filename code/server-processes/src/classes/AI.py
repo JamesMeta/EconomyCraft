@@ -19,4 +19,8 @@ class AI:
     
     def place_share_sell_order(self, share_id: int, sale_price: float):
         response = self.supabase.table("shares").update({"sale_price": sale_price, "purchasable": True}).eq("id", share_id).execute()
+        
+    def remove_share_for_sale(self, share_id: int):
+        response =  self.supabase.table("shares").update({"purchasable": True}).eq("id", share_id).execute()
+        
     
