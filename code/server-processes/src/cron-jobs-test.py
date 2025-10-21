@@ -14,8 +14,9 @@ if (__name__ == "__main__"):
     SUPABASE_URL = os.getenv("url")  # Get the Supabase URL from environment variables
     SUPABASE_SERVICE_ROLE_KEY = os.getenv("service_key")  # Get the Supabase service role key from environment variables
 
-    # Create the Supabase client using the service role key
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 
     def job1():
@@ -31,8 +32,16 @@ if (__name__ == "__main__"):
         admin = Administration(supabase, lite=True)
         admin.service_buy_orders()
 
+    def job_test():
+        admin = Administration(supabase)
+        maps = admin.performance.company_performance_maps
+        
+        for map, item in maps.items():
+            print(f"_______{map}______")
+            for company, slope in item.items():
+                print(f"{company}:{slope}")
     
-    job2()
+    job_test()
 
 
         

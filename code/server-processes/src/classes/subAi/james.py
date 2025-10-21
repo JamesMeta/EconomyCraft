@@ -14,7 +14,7 @@ class James(AI):
         Holding Evaluations:
         Low Profit Goals
         Low loss limits
-        Low Rapid Growth Percentage Confortability
+        Medium Rapid Growth Percentage Confortability
         Low Reputation Decline Confortability
         Low Company Growth Decline Confortablity
         
@@ -38,6 +38,7 @@ class James(AI):
         # Product buying data
         
         self.randomness = random.uniform(LOW_RANDOMNESS_RANGE[FIRST], LOW_RANDOMNESS_RANGE[SECOND]) 
+        self.random_range = (LOW_RANDOMNESS_RANGE[FIRST], LOW_RANDOMNESS_RANGE[SECOND]) 
         self.percentage_of_savings_to_spend = LOW_PERCENTAGE_OF_SAVINGS_TO_SPEND * self.randomness  
         self.range_of_bucket_draws = LOW_SPENDING_RANGE_OF_BUCKET_DRAWS  # Amount of purchases one will make when spending money, --> saving to spend / [3-10] = max money on singular product
         self.range_of_spending = LOW_CHANCE_TO_SPEND_MONEY # Chance to buy something --> 1/5 chance to save money on turn
@@ -46,7 +47,7 @@ class James(AI):
 
         self.profit_margin = LOW_PROFIT_GOALS * self.randomness
         self.loss_limit = LOW_LOSS_LIMITS * self.randomness
-        self.rapid_growth_percentage_confortability = LOW_SHARE_RAPID_GROWTH_PERCENTAGE_CONFORTABILITY * self.randomness  
+        self.rapid_growth_percentage_confortability = MEDIUM_SHARE_RAPID_GROWTH_PERCENTAGE_CONFORTABILITY * self.randomness  
         self.reputation_point_decline_confortability = LOW_REPUTATION_POINT_LOSS_CONFORTABILITY * self.randomness  
         self.company_sales_decline_confortability = LOW_COMPANY_SALES_DECLINE_PERCENTAGE_CONFORTABILITY * self.randomness  
         

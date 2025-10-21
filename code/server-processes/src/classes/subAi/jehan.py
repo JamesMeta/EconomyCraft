@@ -38,7 +38,8 @@ class Jehan(AI):
 
 # Product buying data
         
-        self.randomness = random.uniform(MEDIUM_RANDOMNESS_RANGE[FIRST], MEDIUM_RANDOMNESS_RANGE[SECOND]) 
+        self.randomness = random.uniform(MEDIUM_RANDOMNESS_RANGE[FIRST], MEDIUM_RANDOMNESS_RANGE[SECOND])
+        self.random_range = (MEDIUM_RANDOMNESS_RANGE[FIRST], MEDIUM_RANDOMNESS_RANGE[SECOND])
         self.percentage_of_savings_to_spend = MEDIUM_PERCENTAGE_OF_SAVINGS_TO_SPEND * self.randomness  
         self.range_of_bucket_draws = MEDIUM_SPENDING_RANGE_OF_BUCKET_DRAWS  # Amount of purchases one will make when spending money, --> saving to spend / [3-10] = max money on singular product
         self.range_of_spending = MEDIUM_CHANCE_TO_SPEND_MONEY # Chance to buy something --> 1/5 chance to save money on turn

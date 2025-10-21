@@ -14,8 +14,9 @@ if (__name__ == "__main__"):
     SUPABASE_URL = os.getenv("url")  # Get the Supabase URL from environment variables
     SUPABASE_SERVICE_ROLE_KEY = os.getenv("service_key")  # Get the Supabase service role key from environment variables
 
-    # Create the Supabase client using the service role key
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     # Create an instance of the Administration class
 

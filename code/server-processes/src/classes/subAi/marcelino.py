@@ -38,6 +38,7 @@ class Marcelino(AI):
 # Product buying data
         
         self.randomness = random.uniform(LOW_RANDOMNESS_RANGE[FIRST], LOW_RANDOMNESS_RANGE[SECOND]) 
+        self.random_range = (LOW_RANDOMNESS_RANGE[FIRST], LOW_RANDOMNESS_RANGE[SECOND]) 
         self.percentage_of_savings_to_spend = LOW_PERCENTAGE_OF_SAVINGS_TO_SPEND * self.randomness  
         self.range_of_bucket_draws = LOW_SPENDING_RANGE_OF_BUCKET_DRAWS  # Amount of purchases one will make when spending money, --> saving to spend / [3-10] = max money on singular product
         self.range_of_spending = LOW_CHANCE_TO_SPEND_MONEY # Chance to buy something --> 1/5 chance to save money on turn
