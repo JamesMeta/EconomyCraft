@@ -1,4 +1,6 @@
 import datetime
+
+from supabase import Client
 from classes.classes.buy_order import BuyOrder
 from classes.classes.share import Share
 from rich.progress import Progress
@@ -7,11 +9,11 @@ from rich.progress import Progress
 
 class BuyOrderManager:
     
-    def __init__(self, supabase):
+    def __init__(self, supabase: Client):
         self.supabase = supabase
         self.buy_orders = self.get_buy_orders()
     
-    def get_buy_orders(self):
+    def get_buy_orders(self) -> list[BuyOrder]:
         response = self.supabase.table("buy_orders").select("*").execute()
         orders = []
         
@@ -32,11 +34,11 @@ class BuyOrderManager:
         return orders
         
     
-    def place_buy_order(self, days_till_expiry, company_share_id, user_id, order_target, order_maximum, order_quantity):
+    def place_buy_order(self, days_till_expiry, company_share_id, user_id, order_target, order_maximum, order_quantity) -> None:
         
         expires_at = (datetime.datetime.now() + datetime.timedelta(days=days_till_expiry)).isoformat()
         
-        response = self.supabase.table("buy_orders").insert({
+        self.supabase.table("buy_orders").insert({
             "expires_at": expires_at,
             "company_share_id": company_share_id,
             "user_id": user_id,
@@ -45,18 +47,17 @@ class BuyOrderManager:
             "order_quantity": order_quantity
         }).execute()
         
-    def cancel_buy_order(self, order_id):
-        response = self.supabase.table("buy_orders").delete().eq("id", order_id).execute()
-        return response
+    def cancel_buy_order(self, order_id) -> None:
+        self.supabase.table("buy_orders").delete().eq("id", order_id).execute()
     
-    def update_buy_order(self, buy_order):
+    def update_buy_order(self, buy_order) -> None:
         buy_order.order_quantity -= 1
-        response = self.supabase.table("buy_orders").update({
+        self.supabase.table("buy_orders").update({
             "order_quantity": buy_order.order_quantity
         }).eq("id", buy_order.id).execute()
         self.cancel_buy_order(buy_order.id)
     
-    def service_buy_orders(self):
+    def service_buy_orders(self) -> None:
         
         if not self.buy_orders:
             return
@@ -64,7 +65,7 @@ class BuyOrderManager:
         current_time = datetime.datetime.now().isoformat()
         
         # Remove expired orders
-        expired_response = self.supabase.table("buy_orders").delete().lt("expires_at", current_time).execute()
+        self.supabase.table("buy_orders").delete().lt("expires_at", current_time).execute()
         
         for order in self.buy_orders:
             if order.expires_at < current_time:
@@ -72,9 +73,10 @@ class BuyOrderManager:
             else:
                 self.attempt_to_fulfill_order(order)
     
-    def attempt_to_fulfill_order(self, order: BuyOrder):
-        shares_response = self.supabase.table("shares").select("*").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
-        available_shares = [Share(share_data["id"], share_data["share_id"], share_data["stake"], share_data["purchased_price"], None, share_data["purchasable"], share_data["user_id"], None, share_data["sale_price"]) for share_data in shares_response.data]
+    def attempt_to_fulfill_order(self, order: BuyOrder) -> None:
+        shares_response = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
+        
+        available_shares = [Share(share_data["id"], share_data["share_id"], share_data["stake"], share_data["purchased_price"], share_data['company_share']['value'], share_data["purchasable"], share_data["user_id"], share_data['company_share']['is_public'], share_data["sale_price"], share_data['company_share']['id']) for share_data in shares_response.data]
          
         for share in available_shares:
             if order.order_quantity > 0:
@@ -88,6 +90,6 @@ class BuyOrderManager:
                     print(f"Order {order.id} already removed from list.")
         
     
-    def place_share_order(self, buy_order, share_id: int):
-        response = self.supabase.rpc("purchase_share", {"buyer_id": buy_order.user_id, "input_share_id": share_id}).execute()
+    def place_share_order(self, buy_order, share_id: int) -> None:
+        self.supabase.rpc("purchase_share", {"buyer_id": buy_order.user_id, "input_share_id": share_id}).execute()
         self.update_buy_order(buy_order)

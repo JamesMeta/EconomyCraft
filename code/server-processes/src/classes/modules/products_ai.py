@@ -1,26 +1,30 @@
 import random
 import numpy as np
 import math
+
+from supabase import Client
 from classes.classes.company import Company
 from classes.classes.product import Product
 from classes.modules.constants import PRODUCT_BUCKET_SIZE
 from rich.progress import Progress
 
+from classes.subAi.t_user import T_user
+
 class ProductsAI:
 
-    def __init__(self, supabase, users, company_map):
+    def __init__(self, supabase: Client, users: list[T_user], company_map: dict[int, Company]):
 
         self.supabase = supabase
         self.users = users
         self.company_map = company_map
         self.product_bucket = self.build_product_bucket()
 
-    def make_ai_orders(self):
+    def make_ai_orders(self) -> None:
         """
         Simulate AI users making product orders based on their personalities.
         """
 
-        def randomly_distribute_spending_amount(amount, num_draws):
+        def randomly_distribute_spending_amount(amount, num_draws) -> list[int]:
             """
             Randomly distribute a total spending amount across a number of draws.
             
@@ -80,7 +84,7 @@ class ProductsAI:
                         # print(f"[blue]AI {user.minecraft_username} placed an order for {quantity_to_buy} of product ID {product.id} at price {product.price}.[/blue]")
                         
                         # Notification logic for non-AI company owners
-                        company = self.company_map.get(product.company_id)
+                        company = self.company_map[product.company_id]
                         if not company.ai and company.notifications_enabled:
                             pass  # Placeholder for future notification system
                         break
@@ -105,7 +109,7 @@ class ProductsAI:
         """
         return (5 * N * (2 * math.tanh((2 * V / P) - 2) + 1.85) * math.log(S + 1, 1.2)) / (1 + math.e**(-0.5 * (R - 5)))
     
-    def build_product_bucket(self):
+    def build_product_bucket(self) -> list[Product]:
         """
         Build a weighted bucket of products based on their popularity.
         Products with higher popularity scores get more entries in the bucket.
@@ -181,5 +185,6 @@ class ProductsAI:
             )
 
         # Shuffle product bucket for randomness
-        np.random.shuffle(product_bucket)
-        return product_bucket
+        products_array = np.array(product_bucket, dtype=object)
+        np.random.shuffle(products_array)
+        return products_array.tolist()

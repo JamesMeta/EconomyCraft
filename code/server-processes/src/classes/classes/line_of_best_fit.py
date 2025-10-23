@@ -1,5 +1,5 @@
 class LineOfBestFit:
-    def __init__(self, slope: float, b: float) -> None:
+    def __init__(self, slope: float = 0, b: float = 1) -> None:
         self.slope: float = slope
         self.b: float = b
         

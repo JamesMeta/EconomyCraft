@@ -1,9 +1,13 @@
 import random
 
-from typing import Dict, List, Tuple, Optional, Iterable
+from typing import Optional, Iterable
+
+from supabase import Client
 
 
 
+from classes.classes.company import Company
+from classes.classes.line_of_best_fit import LineOfBestFit
 from classes.classes.share import Share
 from classes.modules import supabase_assistant
 from classes.modules import trade_helper
@@ -12,19 +16,20 @@ from rich.progress import Progress
 
 from classes.modules.trade_helper import TradeHelper
 from classes.subAi.level_constants import FIRST, SECOND
+from classes.subAi.t_user import T_user
 
 
 class StocksAI:
     def __init__(
         self, 
-        supabase,
-        users,
-        company_map, 
-        company_performance_maps,
-        company_reputation_maps, 
-        company_stock_trend_maps,
-        company_estimated_value_map,
-        company_listed_value_map
+        supabase: Client,
+        users: list[T_user],
+        company_map: dict[int, Company], 
+        company_performance_maps: dict[int, dict[int, LineOfBestFit]] ,
+        company_reputation_maps: dict[int, dict[int, LineOfBestFit]], 
+        company_stock_trend_maps: dict[int, dict[int, LineOfBestFit]],
+        company_estimated_value_map: dict[int, float],
+        company_listed_value_map: dict[int, float]
         ):
 
         self.supabase = supabase
@@ -40,7 +45,7 @@ class StocksAI:
         
         self.current_shares = self.get_current_available_shares()    
 
-    def make_ai_share_orders(self):
+    def make_ai_share_orders(self) -> None:
 
         # Randomize order of users to prevent bias
         user_copies = self.users.copy()
@@ -118,9 +123,9 @@ class StocksAI:
                     continue
     
 
-    def get_bot_state(self, user) -> Tuple:
+    def get_bot_state(self, user) -> tuple:
         
-        def company_value_bot_estimate(estimated_value_map: Dict, random_range: Tuple) -> Dict:
+        def company_value_bot_estimate(estimated_value_map: dict, random_range: tuple) -> dict:
             
             new_estimated_value_map = {}
             for key, value in estimated_value_map.items():
@@ -143,7 +148,7 @@ class StocksAI:
         
         
 
-    def evaluate_positions(self, user, current_shares, user_company_statistics_maps):
+    def evaluate_positions(self, user, current_shares, user_company_statistics_maps) -> None:
         
         def evaluate_purchasable_position_for_profit_loss_goals(value, sale_price) -> tuple[bool,str]:
             percent_difference = abs(1 - (sale_price / value))
@@ -283,15 +288,15 @@ class StocksAI:
         return True
     
     ## TODO:
-    def filter_current_shares(self, user) -> List:
+    def filter_current_shares(self, user) -> list:
         return []
     
     ## TODO:
-    def score_shares(self, user) -> Dict:
+    def score_shares(self, user) -> dict:
         return {}
     
     ## TODO:
-    def purchase_shares(self, user, shares):
+    def purchase_shares(self, user, shares) -> None:
         pass
 
     def get_company_stock_for_sale(self, company_id: int) -> Optional[Share]:
@@ -309,7 +314,7 @@ class StocksAI:
         
         return Share(
             id = lowest_price_share['id'],
-            company = self.company_map.get(company_id),
+            company = self.company_map[company_id],
             stake = lowest_price_share['stake'],
             purchased_price = lowest_price_share['purchased_price'],
             value = company_share['value'],
@@ -322,7 +327,7 @@ class StocksAI:
 
 
 
-    def get_shares_by_company_share_id(self, share_id: int, company_share) -> Optional[List[Share]]:
+    def get_shares_by_company_share_id(self, share_id: int, company_share) -> Optional[list[Share]]:
 
         response = self.supabase.table("shares").select("*").eq("share_id", share_id).eq("purchasable", True).execute()
         shares = response.data
@@ -337,7 +342,7 @@ class StocksAI:
         
             share_list.append(Share(
                 id=share_data['id'],
-                company=self.company_map.get(company_share['company_id']),
+                company=self.company_map[company_share['company_id']],
                 stake=share_data['stake'],
                 purchased_price=share_data['purchased_price'],
                 value= company_share['value'],
@@ -350,7 +355,7 @@ class StocksAI:
             ))
         return share_list
 
-    def get_current_available_shares(self) -> List:
+    def get_current_available_shares(self) -> list:
 
         response = self.supabase.table("company_share").select("*").eq("is_public", True).execute()
         shares = response.data
@@ -368,7 +373,7 @@ class StocksAI:
         
         return share_list
     
-    def get_user_owned_shares(self, user_id) -> List:
+    def get_user_owned_shares(self, user_id) -> list:
 
         response = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("user_id", user_id).execute()
         shares = response.data
@@ -394,7 +399,7 @@ class StocksAI:
             user_shares.append(share_object)
         return user_shares
 
-    def get_user_networth_breakdown(self, user_id: int) -> Dict:
+    def get_user_networth_breakdown(self, user_id: int) -> dict:
 
         response_shares = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("user_id", user_id).execute()
         response_user = self.supabase.table("users").select("*").eq("id", user_id).execute()

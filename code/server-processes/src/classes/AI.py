@@ -1,5 +1,10 @@
+from supabase import Client
+
+from classes.classes.share import Share
+
+
 class AI:
-    def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
+    def __init__(self, supabase: Client, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
         self.supabase = supabase
         self.id = id
         self.minecraft_username = minecraft_username
@@ -7,8 +12,8 @@ class AI:
         self.delivery_address = delivery_address
         self.daily_income = daily_income
         self.ai_type = ai_type
-        self.shares = [] 
-        self.networth_breakdown = {}
+        self.shares: list[Share] = [] 
+        self.networth_breakdown: dict[str, int] = {}
         
     def place_product_order(self, product_id: int, quantity: int):
         response = self.supabase.rpc("create_order_ai", {"input_row_id": self.id, "input_product_id": product_id, "input_quantity": quantity, "input_delivery_address": self.delivery_address}).execute()

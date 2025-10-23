@@ -1,5 +1,8 @@
+from classes.subAi.t_user import T_user
+
+
 class Utility:
-    def __init__(self, users):
+    def __init__(self, users: list[T_user]):
         self.users = users
 
     def get_sum_of_strategy_weights(self):
