@@ -6,9 +6,11 @@ from typing import Dict, List, Tuple, Optional, Iterable
 
 from classes.classes.share import Share
 from classes.modules import supabase_assistant
+from classes.modules import trade_helper
 from classes.modules.constants import SHARE_UNDERCUT_PERCENTAGE
 from rich.progress import Progress
 
+from classes.modules.trade_helper import TradeHelper
 from classes.subAi.level_constants import FIRST, SECOND
 
 
@@ -33,6 +35,8 @@ class StocksAI:
         self.company_stock_trend_maps = company_stock_trend_maps
         self.company_estimated_value_map = company_estimated_value_map
         self.company_listed_value_map = company_listed_value_map
+        
+        self.trade_helper = TradeHelper(supabase=supabase)
         
         self.current_shares = self.get_current_available_shares()    
 
@@ -113,7 +117,7 @@ class StocksAI:
                     progress.update(task, advance=1)
                     continue
     
-    ## TODO:
+
     def get_bot_state(self, user) -> Tuple:
         
         def company_value_bot_estimate(estimated_value_map: Dict, random_range: Tuple) -> Dict:
@@ -139,7 +143,6 @@ class StocksAI:
         
         
 
-    ## TODO:
     def evaluate_positions(self, user, current_shares, user_company_statistics_maps):
         
         def evaluate_purchasable_position_for_profit_loss_goals(value, sale_price) -> tuple[bool,str]:
@@ -170,21 +173,46 @@ class StocksAI:
             y1 = slope*x1 + b
             y2 = slope*x2 + b
             
-            diff = (y2-y1) / y1
+            percent_diff = (y2-y1) / y1
             
-            if diff > rapid_growth_percentage_confortability:
+            if percent_diff > rapid_growth_percentage_confortability:
+                return True, "SELL_NOW"
+            
+            else:
+                return False, "N/A"       
+        
+        def evaluate_position_for_reputation_point_decline(reputation_point_decline_confortability, user_company_reputation_line, history_scope) -> tuple[bool,str]:
+            slope, b = user_company_reputation_line.slope, user_company_reputation_line.b
+            
+            x1 = 0
+            x2 = history_scope
+            
+            y1 = slope*x1 + b
+            y2 = slope*x2 + b
+            
+            diff = y2 - y1
+            
+            if diff > reputation_point_decline_confortability:
+                return True, "SELL_NOW"
+            else:
+                return False, "N/A"
+        
+        def evaluate_position_for_company_growth_decline(company_sales_decline_confortability, user_company_sales_line, history_scope) -> tuple[bool,str]:
+            slope, b = user_company_sales_line.slope, user_company_sales_line.b
+            
+            x1 = 0
+            x2 = history_scope
+            
+            y1 = slope*x1 + b
+            y2 = slope*x2 + b
+            
+            percent_diff = (y2-y1) / y1
+            
+            if percent_diff > company_sales_decline_confortability:
                 return True, "SELL_NOW"
             
             else:
                 return False, "N/A"
-            
-        
-        # TODO: 
-        def evaluate_position_for_reputation_point_decline(reputation_point_decline_confortability, user_company_reputation_line, history_scope) -> tuple[bool,str]:
-        
-        # TODO: 
-        def evaluate_position_for_company_growth_decline(company_sales_decline_confortability, user_company_sales_line, history_scope) -> tuple[bool,str]:
-            
         
         def evalutate_position(share, user, user_company_statistics_maps) -> str:
             
@@ -221,19 +249,34 @@ class StocksAI:
             if to_sell:
                 return decision
             
-            is_bubble, decision = evaluate_position_for_rapid_share_value_growth_confortability(rapid_growth_percentage_confortability, user_company_performance_line, user.history_scope)
+            is_bubble, decision = evaluate_position_for_rapid_share_value_growth_confortability(rapid_growth_percentage_confortability, user_company_stock_trend_line, user.history_scope)
             
             if is_bubble:
                 return decision
+            
+            is_losing_support, decision = evaluate_position_for_reputation_point_decline(reputation_point_decline_confortability, user_company_reputation_line, user.history_scope)
+            
+            if is_losing_support:
+                return decision
+            
+            sales_declining, decision = evaluate_position_for_company_growth_decline(company_sales_decline_confortability, user_company_performance_line, user.history_scope)
+            if sales_declining:
+                return decision
+            
             
             return "NO_ACTION"
         
         for share in current_shares:
             decision = evalutate_position(share, user, user_company_statistics_maps)
             
-            if decision == "HOLD":
-                pass
-    
+            if decision == "NO_ACTION":
+                continue
+            
+            if decision == "SELL_GAIN":
+                self.trade_helper.sell_gain(user=user, share=share)
+            
+            if decision == "SELL_NOW":
+                self.trade_helper.sell_now(user=user, share=share)
     
     ## TODO:
     def evaluate_liquidity(self, user) -> bool:
@@ -274,20 +317,10 @@ class StocksAI:
             user_id = lowest_price_share['user_id'],
             is_public = company_share['is_public'],
             sale_price = lowest_price_share['sale_price'],
+            company_share_id=company_share['id']
         )    
 
-    def under_cut_shares_on_market(self, share: Share) -> float:
 
-        response = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("company_id", share.company.id).eq("purchasable", True).execute()
-        shares = response.data
-        
-        # If no shares on market, use the share's intrinsic value
-        if not shares or len(shares) == 0:
-            return share.value
-            
-        # Find the lowest priced share and undercut it
-        lowest_price_share = min(shares, key=lambda x: x['sale_price'])
-        return lowest_price_share['sale_price'] * SHARE_UNDERCUT_PERCENTAGE
 
     def get_shares_by_company_share_id(self, share_id: int, company_share) -> Optional[List[Share]]:
 
@@ -312,6 +345,8 @@ class StocksAI:
                 user_id=share_data['user_id'],
                 is_public= company_share['is_public'],
                 sale_price=share_data['sale_price'],
+                company_share_id=company_share['id']
+                
             ))
         return share_list
 
@@ -354,6 +389,7 @@ class StocksAI:
                 user_id=share['user_id'],
                 is_public = company_share['is_public'],
                 sale_price=share['sale_price'],
+                company_share_id=company_share['id']
             )
             user_shares.append(share_object)
         return user_shares
