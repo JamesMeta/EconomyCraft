@@ -13,4 +13,3 @@ class BuyOrder:
     
     def __str__(self):
         return f"BuyOrder Created At: {self.created_at}, Expires At: {self.expires_at}, Company Share ID: {self.company_share_id}, User ID: {self.user_id}, Order Maximum: {self.order_maximum}, Order Quantity: {self.order_quantity}"
-        
