@@ -1,3 +1,4 @@
+from supabase import Client
 from classes.modules.performance import Performance
 from classes.modules.products_ai import ProductsAI
 from classes.modules.services import Services
@@ -7,7 +8,7 @@ from classes.modules.supabase_assistant import SupabaseAssistant
 from classes.modules.utility import Utility
 
 class Administration:
-    def __init__(self, supabase, lite = False):
+    def __init__(self, supabase: Client, lite = False):
         self.supabase = supabase
         
         if not lite:

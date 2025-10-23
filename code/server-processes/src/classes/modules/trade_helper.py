@@ -1,4 +1,5 @@
 
+from supabase import Client
 from classes.AI import AI
 from classes.classes import buy_order
 from classes.classes.buy_order import BuyOrder
@@ -10,7 +11,7 @@ FIRST = 0
 
 class TradeHelper:
     
-    def __init__(self, supabase):
+    def __init__(self, supabase: Client):
         self.supabase = supabase
         
     

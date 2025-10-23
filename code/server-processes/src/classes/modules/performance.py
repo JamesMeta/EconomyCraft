@@ -1,28 +1,34 @@
 import datetime
+from typing import Any
 import numpy as np
+from supabase import Client
+from classes.AI import AI
+from classes.classes.company import Company
 from classes.classes.line_of_best_fit import LineOfBestFit
 from classes.modules.constants import TIME_PERIOD_SHORT, TIME_PERIOD_MEDIUM, TIME_PERIOD_LONG, DEFAULT_RETURN_NO_DATA, DEFAULT_RETURN_NO_CHANGE
 
 from rich.progress import Progress
 
+from classes.subAi.t_user import T_user
+
 class Performance:
 
-    def __init__(self, supabase, users, company_map):
+    def __init__(self, supabase: Client, users: list[T_user], company_map: dict[int, Company]):
         self.supabase = supabase
         self.company_map = company_map
         self.users = users
-        self.company_performance_maps = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
-        self.company_reputation_maps = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
-        self.company_stock_trend_maps = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
-        self.company_estimated_value_map = {}
-        self.company_listed_value_map = {}
-        self.order_history_cache = {}
-        self.share_history_cache = {}
-        self.company_history_cache = {}
+        self.company_performance_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
+        self.company_reputation_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
+        self.company_stock_trend_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
+        self.company_estimated_value_map: dict[int, float] = {}
+        self.company_listed_value_map: dict[int, float] = {}
+        self.order_history_cache: dict[int, list[dict[str, Any]]] = {}
+        self.share_history_cache: dict[int, list[dict[str, Any]]] = {}
+        self.company_history_cache: dict[int, list[dict[str, Any]]] = {}
         self.get_company_data_for_performance_maps()
         self.build_company_performance_maps()
     
-    def build_company_performance_maps(self):
+    def build_company_performance_maps(self) -> None:
         """
         Build maps of company performance and reputation metrics for different time periods.
         Used for AI decision making when investing.
@@ -55,7 +61,7 @@ class Performance:
 
                 progress.update(task, advance=1)
     
-    def get_company_data_for_performance_maps(self):
+    def get_company_data_for_performance_maps(self) -> None:
         with Progress() as progress:
             task = progress.add_task("[grey50]Caching company history data...", total=len(self.company_map))
             for company in self.company_map.values():
@@ -74,23 +80,14 @@ class Performance:
                 progress.update(task, advance=1)
             
 
-    def get_company_rate_of_reputation_change_over_time(self, company_id: int, history_scope: int):
-        """
-        Calculate the rate of change of a company's reputation over a specific time period.
+    def get_company_rate_of_reputation_change_over_time(self, company_id: int, history_scope: int) -> LineOfBestFit:
+
         
-        Args:
-            company_id: ID of the company
-            history_scope: Number of days to analyze
-            
-        Returns:
-            Rate of reputation change as a decimal (e.g., 0.05 = 5% increase)
-        """
-        
-        company_history = self.company_history_cache.get(company_id)[0:history_scope]
+        company_history = self.company_history_cache[company_id][0:history_scope]
         
         # If no history data, return no change
         if not company_history or len(company_history) < 2:
-            return DEFAULT_RETURN_NO_CHANGE
+            return LineOfBestFit()
             
         # --------------------
         # Find slope of reputation change
@@ -104,10 +101,10 @@ class Performance:
 
         slope, intercept = np.polyfit(time_numeric, reputation_dx, 1)
 
-        best_fit = LineOfBestFit(slope,intercept)
+        best_fit = LineOfBestFit(slope, intercept)
         return best_fit
     
-    def get_company_rate_of_revenue_change_over_time(self, company_id: int, history_scope: int):
+    def get_company_rate_of_revenue_change_over_time(self, company_id: int, history_scope: int) -> LineOfBestFit:
         """
         Calculate the rate of change of a company's revenue over a specific time period.
         
@@ -124,7 +121,7 @@ class Performance:
         
         # If no orders, return placeholder value
         if not orders or len(orders) <= 1:
-            return DEFAULT_RETURN_NO_DATA
+            return LineOfBestFit()
             
         # Use timezone-aware datetime for comparison
         now = datetime.datetime.now(datetime.timezone.utc)
@@ -137,7 +134,7 @@ class Performance:
         
         # If no orders within scope, return placeholder value
         if not orders_within_scope or len(orders_within_scope) == 0:
-            return DEFAULT_RETURN_NO_DATA
+            return LineOfBestFit()
             
         # Calculate daily revenue totals
         daily_revenue = {}
@@ -149,7 +146,7 @@ class Performance:
             
         # Need at least 2 days of data to calculate change
         if len(daily_revenue) < 2:
-            return DEFAULT_RETURN_NO_DATA
+            return LineOfBestFit()
         
         # Need to account for days where no sales were made
         if len(daily_revenue) < history_scope:
@@ -179,14 +176,14 @@ class Performance:
         best_fit = LineOfBestFit(slope,intercept)
         return best_fit
 
-    def get_company_share_value_change_over_time(self, company_id: int, history_scope: int):
+    def get_company_share_value_change_over_time(self, company_id: int, history_scope: int) -> LineOfBestFit:
 
 
         # Get company share history
 
-        share_history = self.share_history_cache.get(company_id)[0:history_scope]
+        share_history = self.share_history_cache[company_id][0:history_scope]
         if not share_history or len(share_history) < 2:
-            return DEFAULT_RETURN_NO_DATA
+            return LineOfBestFit()
         # --------------------
         # Find slope of share value change
         # --------------------
@@ -198,7 +195,7 @@ class Performance:
         best_fit = LineOfBestFit(slope,intercept)
         return best_fit
     
-    def calculate_company_estimated_value(self, company_id: int):
+    def calculate_company_estimated_value(self, company_id: int) -> float:
 
         """
         Calculate the estimated value of a company based on its revenue
@@ -220,7 +217,7 @@ class Performance:
 
         return total_revenue 
 
-    def calculate_company_listed_value(self, company_id: int):
+    def calculate_company_listed_value(self, company_id: int) -> float:
 
         """
         Calculate the listed value of a company based on its shares

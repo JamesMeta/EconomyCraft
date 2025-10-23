@@ -1,6 +1,6 @@
 class BuyOrder:
-    def __init__(self, id, created_at, expires_at, company_share_id, user_id, order_maximum, order_quantity) -> None:
-        self.id = id
+    def __init__(self, id : int, created_at: str, expires_at: str, company_share_id: int, user_id: int, order_maximum: float, order_quantity: int) -> None:
+        self.id = id 
         self.created_at = created_at
         self.expires_at = expires_at
         self.company_share_id = company_share_id

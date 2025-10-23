@@ -1,5 +1,8 @@
 
 import random
+from typing import Any
+
+from supabase import Client
 from classes.subAi.james import James
 from classes.subAi.emily import Emily
 from classes.subAi.spencer import Spencer
@@ -9,16 +12,18 @@ from classes.subAi.marcelino import Marcelino
 from classes.classes.company import Company
 from rich.progress import Progress
 
+from classes.subAi.t_user import T_user
+
 
 class SupabaseAssistant:
 
-    def __init__(self, supabase):
+    def __init__(self, supabase: Client):
         self.supabase = supabase
-        self.users = self.get_all_users()
-        self.company_map = {}
-        self.build_company_map()
+        self.users: list[T_user] = self.get_all_users()
+        self.company_map = self.build_company_map()
 
-    def make_new_company_shares_purchaseable(self, company_id, proportion_of_shares):
+
+    def make_new_company_shares_purchaseable(self, company_id, proportion_of_shares) -> None:
         """
         Make a proportion of new shares purchasable for a company.
         
@@ -52,7 +57,7 @@ class SupabaseAssistant:
                     else:
                         sale_price *= 1.0025
 
-    def modify_ai_companies_reputations(self):
+    def modify_ai_companies_reputations(self) -> None:
         """
         Modify a company's reputation based on its performance.
         
@@ -88,7 +93,7 @@ class SupabaseAssistant:
             self.supabase.table("companies").update({"reputation": new_reputation}).eq("id", company['id']).execute()
             print(f"[dim white]Modified reputation for company ID {company['id']} from {current_reputation} to {new_reputation}.[/dim white]")
 
-    def generate_new_ai_users(self, number_of_users: int):
+    def generate_new_ai_users(self, number_of_users: int) -> None:
         prefixes = [
     "Xx", "The", "Dark", "Shadow", "Epic", "Mr", "Dr", "Silent", "Crazy", "Lone",
     "Omega", "Ultra", "Noob", "Pro", "Ghost", "Cyber", "Iron", "Rapid", "Super", "Hyper",
@@ -183,11 +188,10 @@ class SupabaseAssistant:
             
             
 
-    def complete_all_ai_orders(self):
-        """Execute database function to complete all AI orders."""
-        response = self.supabase.rpc("complete_ai_orders").execute()
+    def complete_all_ai_orders(self) -> None:
+        self.supabase.rpc("complete_ai_orders").execute()
 
-    def get_all_users(self):
+    def get_all_users(self) -> list:
         """
         Retrieve all AI users from the database and instantiate the appropriate AI class.
         
@@ -196,7 +200,8 @@ class SupabaseAssistant:
         """
         response = self.supabase.table("users").select("*").eq("ai", True).execute()
         data = response.data
-        users_list = []
+        users_list: list[Any] = []
+        ai: Any = None
         
         with Progress() as progress:
             task = progress.add_task("[grey50]Building User List...", total=len(data))
@@ -224,14 +229,15 @@ class SupabaseAssistant:
                     print(f"[bold red]Error creating AI for user {user['minecraft_username']}: {e} [/bold red]")
         return users_list
     
-    def build_company_map(self):
+    def build_company_map(self) -> dict[int, Company]:
         company_response = self.supabase.table("companies").select("*").eq("verified", True).execute()
         companies = company_response.data
         
         with Progress() as progress:
             task = progress.add_task("[grey50]Building Company Map...", total=len(companies))
+            company_map = {}
             for company in companies:
-                self.company_map[company['id']] = Company(
+                company_map[company['id']] = Company(
                     id=company['id'],
                     created_at=company['created_at'],
                     name=company['name'],
@@ -243,3 +249,5 @@ class SupabaseAssistant:
                     notifications_enabled=company['notification']
                 )
                 progress.advance(task, advance=1)
+        
+        return company_map
