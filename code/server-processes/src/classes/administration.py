@@ -8,17 +8,19 @@ from classes.modules.supabase_assistant import SupabaseAssistant
 from classes.modules.utility import Utility
 
 class Administration:
-    def __init__(self, supabase: Client, lite = False):
-        self.supabase = supabase
-        
-        if not lite:
-            self.supabase_assistant = SupabaseAssistant(supabase)
-            self.performance = Performance(supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
-            self.utility = Utility(self.supabase_assistant.users)
-            self.services = Services()
-            self.products_ai = ProductsAI(supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
-            self.stocks_ai = StocksAI(
-                supabase, 
+    def __init__(self, supabase: Client):
+        self.supabase = supabase  
+        self.services = Services()
+                      
+    def __product_init__(self):
+        self.supabase_assistant = SupabaseAssistant(self.supabase)
+        self.products_ai = ProductsAI(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
+    
+    def __stock_init__(self):
+        self.supabase_assistant = SupabaseAssistant(self.supabase)
+        self.performance = Performance(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
+        self.stocks_ai = StocksAI(
+                self.supabase, 
                 self.supabase_assistant.users, 
                 self.supabase_assistant.company_map, 
                 self.performance.company_performance_maps, 
@@ -27,8 +29,13 @@ class Administration:
                 self.performance.company_estimated_value_map, 
                 self.performance.company_listed_value_map
                 )
-            
-        self.buy_order_manager = BuyOrderManager(supabase)
+    
+    def __buy_order_init__(self):
+        self.buy_order_manager = BuyOrderManager(self.supabase)
+    
+    def __utility_init__(self):
+        self.supabase_assistant = SupabaseAssistant(self.supabase)
+        self.utility = Utility(self.supabase_assistant.users)
         
     def make_ai_orders(self):
         self.products_ai.make_ai_orders()
@@ -40,7 +47,7 @@ class Administration:
         return self.stocks_ai.make_ai_share_orders()
     
     def get_current_shares(self):
-        return self.stocks_ai.get_current_shares()
+        return self.stocks_ai.get_current_available_shares()
     
     def make_new_company_shares_purchaseable(self, company_id, proportion_of_shares):
         self.supabase_assistant.make_new_company_shares_purchaseable(company_id, proportion_of_shares)

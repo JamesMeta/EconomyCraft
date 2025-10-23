@@ -21,19 +21,23 @@ if (__name__ == "__main__"):
 
     def job1():
         admin = Administration(supabase)
+        admin.__stock_init__()
         admin.make_ai_share_orders()
     
     def job2():
         admin = Administration(supabase)
+        admin.__product_init__()
         admin.make_ai_orders()
         admin.complete_all_ai_orders()
     
     def job3():
-        admin = Administration(supabase, lite=True)
+        admin = Administration(supabase)
+        admin.__buy_order_init__()
         admin.service_buy_orders()
 
     def job_test():
         admin = Administration(supabase)
+        admin.__stock_init__()
         maps = admin.performance.company_performance_maps
         
         for map, item in maps.items():
