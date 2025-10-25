@@ -53,7 +53,7 @@ class Marcelino(AI):
         
         # Constants for Share Scoring
         self.strategy_weights = {
-            "CONTRARIAN": LOW_CONTRARIAN_WEIGHT * self.randomness,
+            "TREND_ANALYSIS": LOW_CONTRARIAN_WEIGHT * self.randomness,
             "REPUTATION": LOW_REPUTATION_WEIGHT * self.randomness,
             "SHARE_PERFORMANCE": LOW_SHARE_PERFORMANCE_WEIGHT * self.randomness,
             "COMPANY_PERFORMANCE": LOW_COMPANY_PERFORMANCE_WEIGHT * self.randomness,

@@ -54,7 +54,7 @@ class Emily(AI):
         
         # Constants for Share Scoring
         self.strategy_weights = {
-            "CONFORMIST": HIGH_CONFORMIST_WEIGHT * self.randomness,
+            "TREND_ANALYSIS": HIGH_CONFORMIST_WEIGHT * self.randomness,
             "REPUTATION": HIGH_REPUTATION_WEIGHT * self.randomness,
             "SHARE_PERFORMANCE": HIGH_SHARE_PERFORMANCE_WEIGHT * self.randomness,
             "COMPANY_PERFORMANCE": LOW_COMPANY_PERFORMANCE_WEIGHT * self.randomness,

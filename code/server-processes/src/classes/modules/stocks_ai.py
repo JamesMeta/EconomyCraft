@@ -1,6 +1,6 @@
 import random
 
-from typing import Optional, Iterable
+from typing import Optional
 
 from supabase import Client
 
@@ -17,6 +17,9 @@ from rich.progress import Progress
 from classes.modules.trade_helper import TradeHelper
 from classes.subAi.level_constants import FIRST, SECOND
 from classes.subAi.t_user import T_user
+from classes.modules.constants import *
+
+
 
 
 class StocksAI:
@@ -106,13 +109,13 @@ class StocksAI:
                     # Randomness
                     #--------------------------------------------  
                 
-                    scores = self.score_shares(user)
+                    scores = self.score_shares(user, shares, user_company_statistics_maps, **user.strategy_weights)
                 
                     #--------------------------------------------
                     # Buy shares based on sorted scores
                     #--------------------------------------------  
                     
-                    self.purchase_shares(user, shares)
+                    self.purchase_shares(user, scores)
                             
                     
                     progress.update(task, advance=1)
@@ -123,7 +126,7 @@ class StocksAI:
                     continue
     
 
-    def get_bot_state(self, user) -> tuple:
+    def get_bot_state(self, user: T_user) -> tuple:
         
         def company_value_bot_estimate(estimated_value_map: dict, random_range: tuple) -> dict:
             
@@ -137,6 +140,7 @@ class StocksAI:
         
         user_owned_shares = self.get_user_owned_shares(user.id)
         user_company_statistics_maps = {
+            "TREND_ANALYSIS" : self.company_stock_trend_maps[TIME_PERIOD_TREND_ANALYSIS],
             "SALES" : self.company_performance_maps[user.history_scope],
             "REPUTATION" : self.company_reputation_maps[user.history_scope],
             "SHARE_PERFORMANCE" : self.company_stock_trend_maps[user.history_scope],
@@ -291,7 +295,7 @@ class StocksAI:
         return networth_invested > user.percentage_of_networth_to_invest, portfolio
     
 
-    def filter_current_shares(self, user: T_user, user_owned_shares: list[Share], all_shares: list[Share], user_share_asset_total: float) -> list[Share]:
+    def filter_current_shares(self, user: T_user, user_owned_shares: list[Share], all_shares: list[Share], user_share_asset_total: float) -> dict[int, Share]:
         
         diversity_requirement = user.diversity_minimum
         
@@ -308,22 +312,40 @@ class StocksAI:
             if share_totals[share.company_share_id] / user_share_asset_total > diversity_requirement and share.company_share_id not in invalid_share_list:
                 invalid_share_list.append(share.company_share_id)
         
-        filtered_shares : list[Share] = []
+        filtered_shares : dict[int, Share] = {}
         
         for share in all_shares:
-            if share.company_share_id in invalid_share_list or not share.purchasable or share.user_id == user.id:
+            if share.company_share_id in invalid_share_list or not share.purchasable or share.user_id == user.id or share.company_share_id in filtered_shares:
                 continue
             else:
-                filtered_shares.append(share)
+                filtered_shares[share.company_share_id] = share
         
         return filtered_shares
     
     ## TODO:
-    def score_shares(self, user) -> dict:
+    def score_shares(self, user: T_user, shares: dict[int, Share],
+                     user_company_statistic_maps: dict[int, float],
+                     trend_analysis: float,
+                     reputation: float,
+                     share_performance: float,
+                     company_performance: float,
+                     value_estimation: float
+                     , volatility_tolerance: float) -> dict[int, float]:
+        
+        is_contrarian = user.investor_type == "CONTRARIAN"
+        
+        
+        
+        
+        
+        
+        
         return {}
+            
+        
     
     ## TODO:
-    def purchase_shares(self, user, shares) -> None:
+    def purchase_shares(self, user: T_user, scores: dict[int, float]) -> None:
         pass
 
     def get_company_stock_for_sale(self, company_id: int) -> Optional[Share]:

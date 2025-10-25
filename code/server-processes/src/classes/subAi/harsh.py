@@ -54,7 +54,7 @@ class Harsh(AI):
         
         # Constants for Share Scoring
         self.strategy_weights = {
-            "CONTRARIAN": HIGH_CONTRARIAN_WEIGHT * self.randomness,
+            "TREND_ANALYSIS": HIGH_CONTRARIAN_WEIGHT * self.randomness,
             "REPUTATION": LOW_REPUTATION_WEIGHT * self.randomness,
             "SHARE_PERFORMANCE": MEDIUM_SHARE_PERFORMANCE_WEIGHT * self.randomness,
             "COMPANY_PERFORMANCE": MEDIUM_COMPANY_PERFORMANCE_WEIGHT * self.randomness,

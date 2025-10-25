@@ -5,7 +5,7 @@ from supabase import Client
 from classes.AI import AI
 from classes.classes.company import Company
 from classes.classes.line_of_best_fit import LineOfBestFit
-from classes.modules.constants import TIME_PERIOD_SHORT, TIME_PERIOD_MEDIUM, TIME_PERIOD_LONG, DEFAULT_RETURN_NO_DATA, DEFAULT_RETURN_NO_CHANGE
+from classes.modules.constants import TIME_PERIOD_SHORT, TIME_PERIOD_MEDIUM, TIME_PERIOD_LONG, TIME_PERIOD_TREND_ANALYSIS, DEFAULT_RETURN_NO_DATA, DEFAULT_RETURN_NO_CHANGE
 
 from rich.progress import Progress
 
@@ -19,7 +19,7 @@ class Performance:
         self.users = users
         self.company_performance_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
         self.company_reputation_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
-        self.company_stock_trend_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
+        self.company_stock_trend_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}, TIME_PERIOD_TREND_ANALYSIS:{}}
         self.company_estimated_value_map: dict[int, float] = {}
         self.company_listed_value_map: dict[int, float] = {}
         self.order_history_cache: dict[int, list[dict[str, Any]]] = {}
@@ -49,10 +49,11 @@ class Performance:
                 self.company_reputation_maps[TIME_PERIOD_MEDIUM][company.id] = self.get_company_rate_of_reputation_change_over_time(company.id, TIME_PERIOD_MEDIUM)
                 self.company_reputation_maps[TIME_PERIOD_LONG][company.id] = self.get_company_rate_of_reputation_change_over_time(company.id, TIME_PERIOD_LONG)
 
-                # Build trend and contrarian analysis maps
+                # Build trend and contrarian analysis maps 
                 self.company_stock_trend_maps[TIME_PERIOD_SHORT][company.id] = self.get_company_share_value_change_over_time(company.id, TIME_PERIOD_SHORT)
                 self.company_stock_trend_maps[TIME_PERIOD_MEDIUM][company.id] = self.get_company_share_value_change_over_time(company.id, TIME_PERIOD_MEDIUM)
                 self.company_stock_trend_maps[TIME_PERIOD_LONG][company.id] = self.get_company_share_value_change_over_time(company.id, TIME_PERIOD_LONG)
+                self.company_stock_trend_maps[TIME_PERIOD_TREND_ANALYSIS][company.id] = self.get_company_share_value_change_over_time(company.id, TIME_PERIOD_TREND_ANALYSIS)
 
                 # Build estimated value map
                 self.company_estimated_value_map[company.id] = self.calculate_company_estimated_value(company.id)
