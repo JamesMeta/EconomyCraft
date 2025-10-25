@@ -53,7 +53,7 @@ class Spencer(AI):
         
         # Constants for Share Scoring
         self.strategy_weights = {
-            "CONFORMIST": LOW_CONFORMIST_WEIGHT * self.randomness,
+            "TREND_ANALYSIS": LOW_CONFORMIST_WEIGHT * self.randomness,
             "REPUTATION": LOW_REPUTATION_WEIGHT * self.randomness,
             "SHARE_PERFORMANCE": HIGH_SHARE_PERFORMANCE_WEIGHT * self.randomness,
             "COMPANY_PERFORMANCE": HIGH_COMPANY_PERFORMANCE_WEIGHT * self.randomness,
