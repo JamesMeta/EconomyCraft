@@ -44,7 +44,7 @@ class Administration:
         self.supabase_assistant.complete_all_ai_orders() 
         
     def make_ai_share_orders(self):
-        return self.stocks_ai.make_ai_share_orders()
+        self.stocks_ai.make_ai_share_orders()
     
     def get_current_shares(self):
         return self.stocks_ai.get_current_available_shares()
