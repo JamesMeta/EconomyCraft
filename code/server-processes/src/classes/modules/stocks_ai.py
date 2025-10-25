@@ -64,7 +64,7 @@ class StocksAI:
                     # Bot's current shares, 
                     #--------------------------------------------
                     
-                    user_company_statistics_maps, current_shares, = self.get_bot_state(user)
+                    user_company_statistics_maps, user_owned_shares, = self.get_bot_state(user)
 
                     #--------------------------------------------
                     # Evaluate and potentially sell existing shares
@@ -75,27 +75,27 @@ class StocksAI:
                     # Check if company's growth decline exceeds the bot's growth confortability constant
                     #--------------------------------------------
                     
-                    self.evaluate_positions(user, current_shares, user_company_statistics_maps)
+                    self.evaluate_positions(user, user_owned_shares, user_company_statistics_maps)
                     
                     #--------------------------------------------
                     # Evaluate whether to buy new shares
                     # Check if the bot's portfolio is below its liquidity constant 
                     #--------------------------------------------  
                     
-                    portfolio_filled = self.evaluate_liquidity(user)
+                    is_portfolio_filled, portfolio = self.evaluate_liquidity(user)
                     
-                    if portfolio_filled:
+                    if is_portfolio_filled:
                         progress.update(task, advance=1)
                         continue
-
+ 
                     #--------------------------------------------
-                    # Filter current shares for shares for shares the bot can purchase
+                    # Filter current shares for shares the bot can purchase
                     # Share's that are for sale
                     # Share's that are not owned by the bot
                     # Share's that the bot doesn't exceed their diversity constant for
                     #--------------------------------------------
                     
-                    shares = self.filter_current_shares(user)
+                    shares = self.filter_current_shares(user, user_owned_shares, self.current_shares, portfolio["SHARE_ASSETS"])
                 
                     #--------------------------------------------
                     # Score shares based on bot's constants
@@ -148,7 +148,7 @@ class StocksAI:
         
         
 
-    def evaluate_positions(self, user, current_shares, user_company_statistics_maps) -> None:
+    def evaluate_positions(self, user: T_user, current_shares: list[Share], user_company_statistics_maps: dict[str, dict[int, LineOfBestFit]]) -> None:
         
         def evaluate_purchasable_position_for_profit_loss_goals(value, sale_price) -> tuple[bool,str]:
             percent_difference = abs(1 - (sale_price / value))
@@ -219,15 +219,15 @@ class StocksAI:
             else:
                 return False, "N/A"
         
-        def evalutate_position(share, user, user_company_statistics_maps) -> str:
+        def evalutate_position(share: Share, user: T_user, user_company_statistics_maps: dict[str, dict[int, LineOfBestFit]]) -> str:
             
             value = share.value
             purchased_price = share.purchased_price
             purchasable = share.purchasable
             sale_price = share.sale_price
             
-            profit_goals = user.profit_goals
-            loss_limits = user.loss_limits
+            profit_goals = user.profit_margin
+            loss_limits = user.loss_limit
             rapid_growth_percentage_confortability = user.rapid_growth_percentage_confortability
             reputation_point_decline_confortability = user.reputation_point_decline_confortability
             company_sales_decline_confortability = user.company_sales_decline_confortability
@@ -283,13 +283,40 @@ class StocksAI:
             if decision == "SELL_NOW":
                 self.trade_helper.sell_now(user=user, share=share)
     
-    ## TODO:
-    def evaluate_liquidity(self, user) -> bool:
-        return True
+
+    def evaluate_liquidity(self, user: T_user) -> tuple[bool, dict]:
+        portfolio = self.get_user_networth_breakdown(user.id)
+        networth_invested = portfolio["SHARE_ASSETS"] / portfolio["NETWORTH"]
+        
+        return networth_invested > user.percentage_of_networth_to_invest, portfolio
     
-    ## TODO:
-    def filter_current_shares(self, user) -> list:
-        return []
+
+    def filter_current_shares(self, user: T_user, user_owned_shares: list[Share], all_shares: list[Share], user_share_asset_total: float) -> list[Share]:
+        
+        diversity_requirement = user.diversity_minimum
+        
+        invalid_share_list: list[int] = []
+        share_totals: dict[int, float] = {}
+        
+        for share in user_owned_shares:
+            
+            if share.company_share_id in share_totals:
+                share_totals[share.company_share_id] = share.value + share_totals[share.company_share_id]
+            else:
+                share_totals[share.company_share_id] = share.value
+            
+            if share_totals[share.company_share_id] / user_share_asset_total > diversity_requirement and share.company_share_id not in invalid_share_list:
+                invalid_share_list.append(share.company_share_id)
+        
+        filtered_shares : list[Share] = []
+        
+        for share in all_shares:
+            if share.company_share_id in invalid_share_list or not share.purchasable or share.user_id == user.id:
+                continue
+            else:
+                filtered_shares.append(share)
+        
+        return filtered_shares
     
     ## TODO:
     def score_shares(self, user) -> dict:
@@ -325,8 +352,6 @@ class StocksAI:
             company_share_id=company_share['id']
         )    
 
-
-
     def get_shares_by_company_share_id(self, share_id: int, company_share) -> Optional[list[Share]]:
 
         response = self.supabase.table("shares").select("*").eq("share_id", share_id).eq("purchasable", True).execute()
@@ -355,7 +380,7 @@ class StocksAI:
             ))
         return share_list
 
-    def get_current_available_shares(self) -> list:
+    def get_current_available_shares(self) -> list[Share]:
 
         response = self.supabase.table("company_share").select("*").eq("is_public", True).execute()
         shares = response.data
@@ -399,7 +424,7 @@ class StocksAI:
             user_shares.append(share_object)
         return user_shares
 
-    def get_user_networth_breakdown(self, user_id: int) -> dict:
+    def get_user_networth_breakdown(self, user_id: int) -> dict[str, float]:
 
         response_shares = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("user_id", user_id).execute()
         response_user = self.supabase.table("users").select("*").eq("id", user_id).execute()
