@@ -4,6 +4,7 @@ import numpy as np
 from supabase import Client
 from classes.AI import AI
 from classes.classes.company import Company
+from classes.classes.volatility import Volatility
 from classes.classes.line_of_best_fit import LineOfBestFit
 from classes.modules.constants import TIME_PERIOD_SHORT, TIME_PERIOD_MEDIUM, TIME_PERIOD_LONG, TIME_PERIOD_TREND_ANALYSIS, DEFAULT_RETURN_NO_DATA, DEFAULT_RETURN_NO_CHANGE
 
@@ -22,6 +23,7 @@ class Performance:
         self.company_stock_trend_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}, TIME_PERIOD_TREND_ANALYSIS:{}}
         self.company_estimated_value_map: dict[int, float] = {}
         self.company_listed_value_map: dict[int, float] = {}
+        self.company_volatility_maps: dict[int, dict[int, Volatility]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
         self.order_history_cache: dict[int, list[dict[str, Any]]] = {}
         self.share_history_cache: dict[int, list[dict[str, Any]]] = {}
         self.company_history_cache: dict[int, list[dict[str, Any]]] = {}
@@ -58,6 +60,11 @@ class Performance:
                 # Build estimated value map
                 self.company_estimated_value_map[company.id] = self.calculate_company_estimated_value(company.id)
                 self.company_listed_value_map[company.id] = self.calculate_company_listed_value(company.id)
+                
+                # Build VOLATILITY map
+                self.company_volatility_maps[TIME_PERIOD_SHORT][company.id] = self.build_company_volatility(company.id, TIME_PERIOD_SHORT)
+                self.company_volatility_maps[TIME_PERIOD_MEDIUM][company.id] = self.build_company_volatility(company.id, TIME_PERIOD_MEDIUM)
+                self.company_volatility_maps[TIME_PERIOD_LONG][company.id] = self.build_company_volatility(company.id, TIME_PERIOD_LONG)
 
 
                 progress.update(task, advance=1)
@@ -67,16 +74,16 @@ class Performance:
             task = progress.add_task("[grey50]Caching company history data...", total=len(self.company_map))
             for company in self.company_map.values():
                 # Cache order history
-                response = self.supabase.table("orders").select("*").eq("company_id", company.id).order("created_at", desc=False).execute()
+                response = self.supabase.table("orders").select("*").eq("company_id", company.id).order("created_at", desc=True).execute()
                 self.order_history_cache[company.id] = response.data
                 # Cache share history
                 response = self.supabase.table("company_share").select("id").eq("company_id", company.id).execute()
                 if response.data:
                     company_share_id = response.data[0]['id']
-                    response = self.supabase.table("share_history").select("*").eq("share_id", company_share_id).order("created_at", desc=False).execute()
+                    response = self.supabase.table("share_history").select("*").eq("share_id", company_share_id).order("created_at", desc=True).execute()
                     self.share_history_cache[company.id] = response.data
                 # Cache company history
-                response = self.supabase.table("company_history").select("*").eq("company_id", company.id).order("created_at", desc=False).execute()
+                response = self.supabase.table("company_history").select("*").eq("company_id", company.id).order("created_at", desc=True).execute()
                 self.company_history_cache[company.id] = response.data
                 progress.update(task, advance=1)
             
@@ -106,16 +113,7 @@ class Performance:
         return best_fit
     
     def get_company_rate_of_revenue_change_over_time(self, company_id: int, history_scope: int) -> LineOfBestFit:
-        """
-        Calculate the rate of change of a company's revenue over a specific time period.
-        
-        Args:
-            company_id: ID of the company
-            history_scope: Number of days to analyze
-            
-        Returns:
-            Rate of revenue change as a decimal (e.g., 0.05 = 5% increase)
-        """
+
         # Get all orders for this company
         
         orders = self.order_history_cache.get(company_id)
@@ -182,7 +180,7 @@ class Performance:
 
         # Get company share history
 
-        share_history = self.share_history_cache[company_id][0:history_scope]
+        share_history = self.share_history_cache[company_id][0:history_scope * 24]  # Assuming hourly data
         if not share_history or len(share_history) < 2:
             return LineOfBestFit()
         # --------------------
@@ -236,6 +234,17 @@ class Performance:
         listed_value = company_share['value'] * company_share['number_of_shares']
 
         return listed_value
+    
+    def build_company_volatility(self, company_id: int, history_scope: int) -> Volatility:
+        share_history = self.share_history_cache[company_id][0:history_scope * 24]  # Assuming hourly data
+        if not share_history or len(share_history) < 2:
+            return Volatility([1,1])
+        
+        else:
+            dataset: list[float] = list(filter(lambda x:x != 0, map(lambda x:x['value'],share_history)))
+            
+            return Volatility(dataset)
+        
 
     
     
