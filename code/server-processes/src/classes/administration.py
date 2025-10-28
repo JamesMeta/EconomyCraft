@@ -1,4 +1,5 @@
 from supabase import Client
+from classes.modules import performance
 from classes.modules.performance import Performance
 from classes.modules.products_ai import ProductsAI
 from classes.modules.services import Services
@@ -27,7 +28,8 @@ class Administration:
                 self.performance.company_reputation_maps, 
                 self.performance.company_stock_trend_maps, 
                 self.performance.company_estimated_value_map, 
-                self.performance.company_listed_value_map
+                self.performance.company_listed_value_map,
+                self.performance.company_volatility_maps
                 )
     
     def __buy_order_init__(self):

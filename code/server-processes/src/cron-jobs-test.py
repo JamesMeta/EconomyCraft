@@ -38,12 +38,7 @@ if (__name__ == "__main__"):
     def job_test():
         admin = Administration(supabase)
         admin.__stock_init__()
-        maps = admin.performance.company_performance_maps
-        
-        for map, item in maps.items():
-            print(f"_______{map}______")
-            for company, slope in item.items():
-                print(f"{company}:{slope}")
+        admin.make_ai_share_orders()
     
     job_test()
 

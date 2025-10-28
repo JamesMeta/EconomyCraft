@@ -1,6 +1,6 @@
 import random
 
-from typing import Optional
+from typing import Any, Optional
 
 from supabase import Client
 
@@ -9,6 +9,7 @@ from supabase import Client
 from classes.classes.company import Company
 from classes.classes.line_of_best_fit import LineOfBestFit
 from classes.classes.share import Share
+from classes.classes.volatility import Volatility
 from classes.modules import supabase_assistant
 from classes.modules import trade_helper
 from classes.modules.constants import SHARE_UNDERCUT_PERCENTAGE
@@ -32,7 +33,8 @@ class StocksAI:
         company_reputation_maps: dict[int, dict[int, LineOfBestFit]], 
         company_stock_trend_maps: dict[int, dict[int, LineOfBestFit]],
         company_estimated_value_map: dict[int, float],
-        company_listed_value_map: dict[int, float]
+        company_listed_value_map: dict[int, float],
+        company_volatility_map: dict[int, dict[int, LineOfBestFit]],
         ):
 
         self.supabase = supabase
@@ -43,6 +45,7 @@ class StocksAI:
         self.company_stock_trend_maps = company_stock_trend_maps
         self.company_estimated_value_map = company_estimated_value_map
         self.company_listed_value_map = company_listed_value_map
+        self.company_volatility_map = company_volatility_map
         
         self.trade_helper = TradeHelper(supabase=supabase)
         
@@ -58,8 +61,8 @@ class StocksAI:
 
             task = progress.add_task("[grey50]AI Share Trading Simulation...", total=len(user_copies))
 
-            for user in user_copies:
-                try:
+            for user in user_copies[:1]:
+                # try:
                     
                     #--------------------------------------------
                     # Get Bot State
@@ -78,7 +81,7 @@ class StocksAI:
                     # Check if company's growth decline exceeds the bot's growth confortability constant
                     #--------------------------------------------
                     
-                    self.evaluate_positions(user, user_owned_shares, user_company_statistics_maps)
+                    # self.evaluate_positions(user, user_owned_shares, user_company_statistics_maps)
                     
                     #--------------------------------------------
                     # Evaluate whether to buy new shares
@@ -88,6 +91,7 @@ class StocksAI:
                     is_portfolio_filled, portfolio = self.evaluate_liquidity(user)
                     
                     if is_portfolio_filled:
+                        print("portfolio full skipping...")
                         progress.update(task, advance=1)
                         continue
  
@@ -120,13 +124,13 @@ class StocksAI:
                     
                     progress.update(task, advance=1)
                         
-                except Exception as e:
-                    # print(f"[bold red]AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red]")
-                    progress.update(task, advance=1)
-                    continue
+                # except Exception as e:
+                #     print(f"[bold red]AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red]")
+                #     progress.update(task, advance=1)
+                #     continue
     
 
-    def get_bot_state(self, user: T_user) -> tuple:
+    def get_bot_state(self, user: T_user) -> tuple[dict[str, dict[int, LineOfBestFit]], list[Share]]:
         
         def company_value_bot_estimate(estimated_value_map: dict, random_range: tuple) -> dict:
             
@@ -146,6 +150,7 @@ class StocksAI:
             "SHARE_PERFORMANCE" : self.company_stock_trend_maps[user.history_scope],
             "ESTIMATED_VALUE": company_value_bot_estimate(self.company_estimated_value_map, user.random_range),            
             "LISTED_VALUE" : self.company_listed_value_map,
+            "VOLATILITY_TOLERANCE": self.company_volatility_map[user.history_scope]
             }
         
         return user_company_statistics_maps,  user_owned_shares
@@ -315,32 +320,92 @@ class StocksAI:
         filtered_shares : dict[int, Share] = {}
         
         for share in all_shares:
-            if share.company_share_id in invalid_share_list or not share.purchasable or share.user_id == user.id or share.company_share_id in filtered_shares:
+            if share.company_share_id in invalid_share_list or share.company_share_id in filtered_shares:
                 continue
             else:
                 filtered_shares[share.company_share_id] = share
         
         return filtered_shares
     
-    ## TODO:
+
     def score_shares(self, user: T_user, shares: dict[int, Share],
-                     user_company_statistic_maps: dict[int, float],
-                     trend_analysis: float,
-                     reputation: float,
-                     share_performance: float,
-                     company_performance: float,
-                     value_estimation: float
-                     , volatility_tolerance: float) -> dict[int, float]:
+                     user_companies_statistics_maps: dict[str, dict[int, Any]],
+                     TREND_ANALYSIS: float,
+                     REPUTATION: float,
+                     SHARE_PERFORMANCE: float,
+                     COMPANY_PERFORMANCE: float,
+                     VALUE_ESTIMATION: float, 
+                     VOLATILITY_TOLERANCE: float) -> dict[int, float]:
+        
+        
+        def percentage_change(line: LineOfBestFit, history_scope: int = user.history_scope) -> float:
+            slope = line.slope
+            b = line.b
+            
+            y1 = slope * 0 + b
+            y2 = slope * history_scope + b
+            
+            return (y2 - y1) / y1 
         
         is_contrarian = user.investor_type == "CONTRARIAN"
         
+        user_companies_trend_analysis_map = user_companies_statistics_maps["TREND_ANALYSIS"]
+        user_companies_performance_map = user_companies_statistics_maps["SALES"]
+        user_companies_reputation_map = user_companies_statistics_maps["REPUTATION"]
+        user_companies_stock_trend_map = user_companies_statistics_maps["SHARE_PERFORMANCE"]
+        user_companies_estimated_value_map = user_companies_statistics_maps["ESTIMATED_VALUE"]
+        user_companies_listed_value_map = user_companies_statistics_maps["LISTED_VALUE"]
+        user_companies_volatility_map = user_companies_statistics_maps["VOLATILITY_TOLERANCE"]
         
+        scores: dict[int, float] = {}
         
+        for company_share_id, share in shares.items():
+            
+            company_id = share.company.id
+            
+            trend_analysis_line: LineOfBestFit = user_companies_trend_analysis_map[company_id]
+            performance_line: LineOfBestFit = user_companies_performance_map[company_id]
+            reputation_line: LineOfBestFit = user_companies_reputation_map[company_id]
+            stock_line: LineOfBestFit = user_companies_stock_trend_map[company_id]
+            estimated_value: float = user_companies_estimated_value_map[company_id]
+            listed_value: float = user_companies_listed_value_map[company_id]
+            company_volatility: Volatility = user_companies_volatility_map[company_id]
+            
+            trend_analysis_change = percentage_change(trend_analysis_line, TIME_PERIOD_TREND_ANALYSIS)
+            performance_change = percentage_change(performance_line)
+            reputation_change = percentage_change(reputation_line)
+            stock_line_change = percentage_change(stock_line)
+            
+            real_value_difference = listed_value / estimated_value
+            
+            
+            
+            if is_contrarian:
+                trend_analysis_change *= -1
+            
+            trend_analysis_weight = trend_analysis_change * TREND_ANALYSIS
+            performance_weight = performance_change * COMPANY_PERFORMANCE
+            reputation_weight = reputation_change * REPUTATION
+            share_performance_weight = stock_line_change * SHARE_PERFORMANCE
+            value_estimation_weight = real_value_difference * VALUE_ESTIMATION
+            volatility_weight = company_volatility.volatility * VOLATILITY_TOLERANCE
+            
+            score = trend_analysis_weight + performance_weight + reputation_weight + share_performance_weight + value_estimation_weight + volatility_weight
+            
+            print("---------GIVEN SCORES-----------")
+            print(f"\t{share.company.name}")
+            print("Trend Analysis Weight: ", trend_analysis_weight)
+            print("Performance Weight: ", performance_weight)
+            print("Reputation Weight: ", reputation_weight)
+            print("Share Performance Weight: ", share_performance_weight)
+            print("Value Estimation Weight: ", value_estimation_weight)
+            print("Volatility Weight: ", volatility_weight)
+            print("Total Score: ", score)
+            print("-------------------------------")
+            
+            scores[company_id] = score
         
-        
-        
-        
-        return {}
+        return scores
             
         
     
@@ -374,20 +439,14 @@ class StocksAI:
             company_share_id=company_share['id']
         )    
 
-    def get_shares_by_company_share_id(self, share_id: int, company_share) -> Optional[list[Share]]:
+    def get_shares_by_company_share_id(self, share_id: int, company_share) -> Optional[Share]:
 
-        response = self.supabase.table("shares").select("*").eq("share_id", share_id).eq("purchasable", True).execute()
-        shares = response.data
-        
-        if not shares or len(shares) == 0:
-            return None
-            
-        share_list = []
-        for share in shares:
+        response = self.supabase.table("shares").select("*").eq("share_id", share_id).limit(1).single().execute()
 
-            share_data = share
-        
-            share_list.append(Share(
+        share_data = response.data
+    
+        try:
+            share = Share(
                 id=share_data['id'],
                 company=self.company_map[company_share['company_id']],
                 stake=share_data['stake'],
@@ -399,8 +458,11 @@ class StocksAI:
                 sale_price=share_data['sale_price'],
                 company_share_id=company_share['id']
                 
-            ))
-        return share_list
+            )
+            
+            return share
+        except:
+            return None
 
     def get_current_available_shares(self) -> list[Share]:
 
@@ -411,23 +473,23 @@ class StocksAI:
         for share in shares:
 
             # Get the share details
-            share_objects = self.get_shares_by_company_share_id(share['id'], share)
+            share_object = self.get_shares_by_company_share_id(share['id'], share)
             
-            if not share_objects:
+            if share_object == None:
                 continue
             
-            share_list.extend(share_objects)
+            share_list.append(share_object)
         
         return share_list
     
     def get_user_owned_shares(self, user_id) -> list:
 
-        response = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("user_id", user_id).execute()
+        response = self.supabase.table("shares").select("*, company_share:share_id (id, value, is_public, number_of_shares)").eq("user_id", user_id).execute()
         shares = response.data
         user_shares = []
         for share in shares:
             company_share = share['company_share']
-            company = self.company_map.get(share['company_id'])
+            company = self.company_map[share['company_id']]
             if not company or company_share['is_public'] is False:
                 continue
             
