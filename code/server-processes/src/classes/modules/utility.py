@@ -36,3 +36,25 @@ class Utility:
             print(f"ID: {user.id}, Username: {user.minecraft_username}, Money: {user.money}, "
                   f"Delivery Address: {user.delivery_address}, Daily Income: {user.daily_income}, "
                   f"AI Type: {user.ai_type}")
+    
+    def print_user_history_scope_spread(self):
+        spread = {10:0,30:0,90:0}
+        for user in self.users:
+            if user.history_scope in spread:
+                spread[user.history_scope] += 1
+            else:
+                spread[user.history_scope] = 1
+        
+        for key, item in spread.items():
+            print(f"History Scope: {key} Number of Users: {item}")
+    
+    def print_user_type_spread(self):
+        spread = {}
+        for user in self.users:
+            if user.name in spread:
+                spread[user.name] += 1
+            else:
+                spread[user.name] = 1
+        
+        for key, item in spread.items():
+            print(f"Investor Type: {key} Number of Users: {item}")

@@ -1,4 +1,5 @@
 from supabase import Client
+from classes.classes.data_log import DataLog
 from classes.modules import performance
 from classes.modules.performance import Performance
 from classes.modules.products_ai import ProductsAI
@@ -12,6 +13,7 @@ class Administration:
     def __init__(self, supabase: Client):
         self.supabase = supabase  
         self.services = Services()
+        
                       
     def __product_init__(self):
         self.supabase_assistant = SupabaseAssistant(self.supabase)
@@ -31,6 +33,8 @@ class Administration:
                 self.performance.company_listed_value_map,
                 self.performance.company_volatility_maps
                 )
+        
+        self.logger = DataLog()
     
     def __buy_order_init__(self):
         self.buy_order_manager = BuyOrderManager(self.supabase)
@@ -45,8 +49,8 @@ class Administration:
     def complete_all_ai_orders(self):
         self.supabase_assistant.complete_all_ai_orders() 
         
-    def make_ai_share_orders(self):
-        self.stocks_ai.make_ai_share_orders()
+    def make_ai_share_orders(self) -> DataLog:
+        self.logger = self.stocks_ai.make_ai_share_orders()
     
     def get_current_shares(self):
         return self.stocks_ai.get_current_available_shares()
@@ -65,4 +69,8 @@ class Administration:
     
     def print_all_users(self):
         self.utility.print_all_users(self.supabase_assistant.users)
+    
+    def print_user_history_scope_spread(self):
+        self.utility.print_user_history_scope_spread()
+        self.utility.print_user_type_spread()
         
