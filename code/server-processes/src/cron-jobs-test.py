@@ -39,6 +39,13 @@ if (__name__ == "__main__"):
         admin = Administration(supabase)
         admin.__stock_init__()
         admin.make_ai_share_orders()
+        admin.logger.print_all_tables()
+        admin.logger.build_all_charts()
+    
+    def job_test2():
+        admin = Administration(supabase)
+        admin.__utility_init__()
+        admin.print_user_history_scope_spread()
     
     job_test()
 

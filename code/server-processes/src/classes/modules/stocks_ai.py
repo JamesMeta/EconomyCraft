@@ -6,7 +6,9 @@ from supabase import Client
 
 
 
+from classes.classes import data_log
 from classes.classes.company import Company
+from classes.classes.data_log import DataLog
 from classes.classes.line_of_best_fit import LineOfBestFit
 from classes.classes.share import Share
 from classes.classes.volatility import Volatility
@@ -51,17 +53,21 @@ class StocksAI:
         
         self.current_shares = self.get_current_available_shares()    
 
-    def make_ai_share_orders(self) -> None:
+    def make_ai_share_orders(self) -> DataLog:
 
         # Randomize order of users to prevent bias
         user_copies = self.users.copy()
         random.shuffle(user_copies)
+        
+        logger = DataLog()
 
         with Progress() as progress:
 
             task = progress.add_task("[grey50]AI Share Trading Simulation...", total=len(user_copies))
+            
+            total_scores: dict[int, float] = {}
 
-            for user in user_copies[:1]:
+            for user in user_copies:
                 # try:
                     
                     #--------------------------------------------
@@ -91,7 +97,6 @@ class StocksAI:
                     is_portfolio_filled, portfolio = self.evaluate_liquidity(user)
                     
                     if is_portfolio_filled:
-                        print("portfolio full skipping...")
                         progress.update(task, advance=1)
                         continue
  
@@ -113,7 +118,9 @@ class StocksAI:
                     # Randomness
                     #--------------------------------------------  
                 
-                    scores = self.score_shares(user, shares, user_company_statistics_maps, **user.strategy_weights)
+                    scores = self.score_shares(logger, user, shares, user_company_statistics_maps, **user.strategy_weights)     
+                    
+                    logger.log_users_wins(scores, user)             
                 
                     #--------------------------------------------
                     # Buy shares based on sorted scores
@@ -128,6 +135,8 @@ class StocksAI:
                 #     print(f"[bold red]AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red]")
                 #     progress.update(task, advance=1)
                 #     continue
+            
+            return logger
     
 
     def get_bot_state(self, user: T_user) -> tuple[dict[str, dict[int, LineOfBestFit]], list[Share]]:
@@ -328,7 +337,7 @@ class StocksAI:
         return filtered_shares
     
 
-    def score_shares(self, user: T_user, shares: dict[int, Share],
+    def score_shares(self, logger: DataLog, user: T_user, shares: dict[int, Share],
                      user_companies_statistics_maps: dict[str, dict[int, Any]],
                      TREND_ANALYSIS: float,
                      REPUTATION: float,
@@ -379,29 +388,28 @@ class StocksAI:
             real_value_difference = listed_value / estimated_value
             
             
-            
             if is_contrarian:
                 trend_analysis_change *= -1
             
-            trend_analysis_weight = trend_analysis_change * TREND_ANALYSIS
-            performance_weight = performance_change * COMPANY_PERFORMANCE
-            reputation_weight = reputation_change * REPUTATION
-            share_performance_weight = stock_line_change * SHARE_PERFORMANCE
-            value_estimation_weight = real_value_difference * VALUE_ESTIMATION
-            volatility_weight = company_volatility.volatility * VOLATILITY_TOLERANCE
+            trend_analysis_weight = min(trend_analysis_change * TREND_ANALYSIS, 1)
+            performance_weight = min(performance_change * COMPANY_PERFORMANCE, 1)
+            reputation_weight = min(reputation_change * REPUTATION, 1)
+            share_performance_weight = min(stock_line_change * SHARE_PERFORMANCE, 1)
+            value_estimation_weight = min(real_value_difference * VALUE_ESTIMATION, 1)
+            volatility_weight = min(company_volatility.volatility * VOLATILITY_TOLERANCE, 1)
+            
+            score_map = {
+                "TREND_ANALYSIS": trend_analysis_weight,
+                "PERFORMANCE": performance_weight,
+                "REPUTATION": reputation_weight,
+                "SHARE_PERFORMANCE": share_performance_weight,
+                "VALUE_ESTIMATION": value_estimation_weight,
+                "VOLATILITY": volatility_weight
+                }
+            
+            logger.log_users_scores(score_map, user, company_id)
             
             score = trend_analysis_weight + performance_weight + reputation_weight + share_performance_weight + value_estimation_weight + volatility_weight
-            
-            print("---------GIVEN SCORES-----------")
-            print(f"\t{share.company.name}")
-            print("Trend Analysis Weight: ", trend_analysis_weight)
-            print("Performance Weight: ", performance_weight)
-            print("Reputation Weight: ", reputation_weight)
-            print("Share Performance Weight: ", share_performance_weight)
-            print("Value Estimation Weight: ", value_estimation_weight)
-            print("Volatility Weight: ", volatility_weight)
-            print("Total Score: ", score)
-            print("-------------------------------")
             
             scores[company_id] = score
         

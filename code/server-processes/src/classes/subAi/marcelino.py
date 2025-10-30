@@ -62,7 +62,7 @@ class Marcelino(AI):
         }
         
         # Other Constants
-        self.history_scope = LOW_HISTORY_SCOPE 
+        self.history_scope = HIGH_HISTORY_SCOPE 
         self.percentage_of_networth_to_invest = HIGH_PERCENTAGE_OF_NETWORTH_TO_INVEST 
         self.range_of_premature_sell = LOW_CHANCE_OF_PREMATURE_SELL_RANGE
         self.diversity_minimum = HIGH_PORTFOLIO_DIVERSITY_REQUIREMENTS 
