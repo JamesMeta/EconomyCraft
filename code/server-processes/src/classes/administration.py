@@ -22,6 +22,7 @@ class Administration:
     def __stock_init__(self):
         self.supabase_assistant = SupabaseAssistant(self.supabase)
         self.performance = Performance(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
+        self.logger = DataLog()
         self.stocks_ai = StocksAI(
                 self.supabase, 
                 self.supabase_assistant.users, 
@@ -31,10 +32,11 @@ class Administration:
                 self.performance.company_stock_trend_maps, 
                 self.performance.company_estimated_value_map, 
                 self.performance.company_listed_value_map,
-                self.performance.company_volatility_maps
+                self.performance.company_volatility_maps,
+                self.logger
                 )
         
-        self.logger = DataLog()
+        
     
     def __buy_order_init__(self):
         self.buy_order_manager = BuyOrderManager(self.supabase)
@@ -50,7 +52,7 @@ class Administration:
         self.supabase_assistant.complete_all_ai_orders() 
         
     def make_ai_share_orders(self) -> DataLog:
-        self.logger = self.stocks_ai.make_ai_share_orders()
+        self.stocks_ai.make_ai_share_orders()
     
     def get_current_shares(self):
         return self.stocks_ai.get_current_available_shares()

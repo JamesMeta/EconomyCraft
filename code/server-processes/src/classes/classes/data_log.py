@@ -1,9 +1,9 @@
 from collections import Counter
-from typing import Optional, Iterable, Any, TYPE_CHECKING
+from typing import Optional, Iterable, Any
 
-if TYPE_CHECKING:
-    # for type checking only; prevents importing T_user (and its heavy deps) at runtime
-    from classes.subAi.t_user import T_user  # type: ignore
+from classes.subAi.t_user import T_user
+
+
 
 # Optional dependencies for nicer output and charts
 try:
@@ -18,42 +18,77 @@ try:
 except Exception:  # pragma: no cover - best-effort import
     plt = None  # type: ignore
 
+import os
 
 class DataLog:
     
     def __init__(self) -> None:
         
-        # {company_id: {category: score}}
-        self.company_share_category_scores_all_users_total: dict[int, dict[str,float]] = {}
+        # {company_name: {category: score}}
+        self.company_share_category_scores_all_users_total: dict[str, dict[str,float]] = {}
         
-        # {ai_name: {company_id: {category: score}}}
-        self.company_share_category_scores_by_user_type: dict[str, dict[int, dict[str, float]]] = {}
+        # {ai_name: {company_name: {category: score}}}
+        self.company_share_category_scores_by_user_type: dict[str, dict[str, dict[str, float]]] = {}
         
-        # {ai_history_scope_in_days: {company_id: {category: score}}}
-        self.company_share_category_scores_by_history_scope: dict[int, dict[int, dict[str, float]]] = {}
+        # {ai_history_scope_in_days: {company_name: {category: score}}}
+        self.company_share_category_scores_by_history_scope: dict[int, dict[str, dict[str, float]]] = {}
         
-        # {company_id: number_of_wins}
-        self.company_share_score_wins_all_users_total: dict[int, int] = {}
+        # {company_name: number_of_wins}
+        self.company_share_score_wins_all_users_total: dict[str, int] = {}
         
-        # {ai_name: {company_id: number_of_wins}}
-        self.company_share_score_wins_by_user_type: dict[str, dict[int, int]] = {}
+        # {ai_name: {company_name: number_of_wins}}
+        self.company_share_score_wins_by_user_type: dict[str, dict[str, int]] = {}
         
-        # {ai_history_scope_in_days: {company_id: number_of_wins}}
-        self.company_share_score_wins_by_history_scope: dict[int, dict[int, int]] = {}
+        # {ai_history_scope_in_days: {company_name: number_of_wins}}
+        self.company_share_score_wins_by_history_scope: dict[int, dict[str, int]] = {}
         
         self.score_data_collected = False
         self.win_data_collected = False
+        
+        self.user_type_counter: dict[str, int] = {}
+        self.history_scope_counter: dict[int, int] = {}
     
+    def count_user(self, user: T_user):
+        user_type = user.name
+        history_scope = user.history_scope
+        
+        if user_type in self.user_type_counter:
+            self.user_type_counter[user_type] += 1
+        
+        else:
+            self.user_type_counter[user_type] = 1
+        
+        if history_scope in self.history_scope_counter:
+            
+            self.history_scope_counter[history_scope] += 1
+        else:
+            self.history_scope_counter[history_scope] = 1
     
-    def log_users_scores(self, scores: dict[str, float], user: "T_user", company_id: int):
-        self.add_scores_to_all_users_total_map(scores,company_id)
-        self.add_scores_to_scores_map_by_history_scope(scores, company_id, user)
-        self.add_scores_to_scores_map_by_user_type(scores, company_id, user)
+    def calculate_averages(self):
+        for company_name, item in self.company_share_category_scores_all_users_total.items():
+            for category, score in item.items():
+                self.company_share_category_scores_all_users_total[company_name][category] = score / sum(self.user_type_counter.values())
+        
+        for history_scope, company_map in self.company_share_category_scores_by_history_scope.items():
+            for company_name, score_map in company_map.items():
+                for category, score in score_map.items():
+                    self.company_share_category_scores_by_history_scope[history_scope][company_name][category] = score / self.history_scope_counter[history_scope]
+                    
+        for user_type, company_map in self.company_share_category_scores_by_user_type.items():
+            for company_name, score_map in company_map.items():
+                for category, score in score_map.items():
+                    self.company_share_category_scores_by_user_type[user_type][company_name][category] = score / self.user_type_counter[user_type]
+        
+    
+    def log_users_scores(self, scores: dict[str, float], user: T_user, company_name: str):
+        self.add_scores_to_all_users_total_map(scores,company_name)
+        self.add_scores_to_scores_map_by_history_scope(scores, company_name, user)
+        self.add_scores_to_scores_map_by_user_type(scores, company_name, user)
         
         self.score_data_collected = True
         
         
-    def log_users_wins(self, scores: dict[int, float], user: "T_user"):
+    def log_users_wins(self, scores: dict[str, float], user: T_user):
         self.add_wins_to_company_share_all_users(scores)
         self.add_wins_to_company_share_by_user_type(scores, user)
         self.add_wins_to_company_share_by_history_scope(scores, user)
@@ -77,12 +112,14 @@ class DataLog:
         if not self.score_data_collected or not self.win_data_collected:
             raise Exception("Data Logger contains incomplete data")
         
-        self.chart_company_share_category_scores_all_users_total(show=True)
-        self.chart_company_share_category_scores_by_history_scope(show=True)
-        self.chart_company_share_category_scores_by_user_type(show=True)
-        self.chart_company_share_score_wins_all_users_total(show=True)
-        self.chart_company_share_score_wins_by_history_scope(show=True)
-        self.chart_company_share_score_wins_by_user_type(show=True)
+        self.chart_company_share_category_scores_all_users_total(filename="charts/category-scores-all-users")
+        self.chart_company_share_category_scores_by_history_scope(filename="charts/category-scores-history-scope")
+        self.chart_company_share_category_scores_by_user_type(filename="charts/category-scores-by-users")
+        self.chart_company_share_score_wins_all_users_total(filename="charts/share-wins-all-users")
+        self.chart_company_share_score_wins_by_history_scope(filename="charts/share-wins-by-history-scope")
+        self.chart_company_share_score_wins_by_user_type(filename="charts/share-wins-by-users")
+    
+
     
     def add_scores_to_score_map(self, score_map: dict[str, float], scores: dict[str,float]) -> dict[str,float]:
         
@@ -90,63 +127,63 @@ class DataLog:
         
         return combined
     
-    def add_wins_to_win_map(self, score_map: dict[int, int], winning_company_id: int) -> None:
+    def add_wins_to_win_map(self, score_map: dict[str, int], winning_company_name: str) -> None:
         
-        if winning_company_id in score_map:
-            score_map[winning_company_id] += 1
+        if winning_company_name in score_map:
+            score_map[winning_company_name] += 1
         else:
-            score_map[winning_company_id] = 1
+            score_map[winning_company_name] = 1
         
         
     
-    def add_scores_to_all_users_total_map(self, scores: dict[str, float], company_id : int) -> None:
-        if company_id in self.company_share_category_scores_all_users_total:
-            score_map = self.company_share_category_scores_all_users_total[company_id]
-            self.company_share_category_scores_all_users_total[company_id] = self.add_scores_to_score_map(score_map, scores)
+    def add_scores_to_all_users_total_map(self, scores: dict[str, float], company_name: str) -> None:
+        if company_name in self.company_share_category_scores_all_users_total:
+            score_map = self.company_share_category_scores_all_users_total[company_name]
+            self.company_share_category_scores_all_users_total[company_name] = self.add_scores_to_score_map(score_map, scores)
         else:
-            self.company_share_category_scores_all_users_total[company_id] = scores
+            self.company_share_category_scores_all_users_total[company_name] = scores
         
-    def add_scores_to_scores_map_by_user_type(self, scores: dict[str, float], company_id: int, user: "T_user") -> None:
+    def add_scores_to_scores_map_by_user_type(self, scores: dict[str, float], company_name: str, user: T_user) -> None:
         user_type = user.name
         
         if user_type in self.company_share_category_scores_by_user_type:
             score_map_user = self.company_share_category_scores_by_user_type[user_type]
             
-            if company_id in score_map_user:
-                score_map = score_map_user[company_id]
-                score_map_user[company_id] = self.add_scores_to_score_map(score_map, scores)
+            if company_name in score_map_user:
+                score_map = score_map_user[company_name]
+                score_map_user[company_name] = self.add_scores_to_score_map(score_map, scores)
             
             else:
-                score_map_user[company_id] = scores
+                score_map_user[company_name] = scores
         
         else:
             self.company_share_category_scores_by_user_type[user_type] = {}
-            self.company_share_category_scores_by_user_type[user_type][company_id] = scores
+            self.company_share_category_scores_by_user_type[user_type][company_name] = scores
     
-    def add_scores_to_scores_map_by_history_scope(self, scores: dict[str, float], company_id: int, user: "T_user") -> None:
+    def add_scores_to_scores_map_by_history_scope(self, scores: dict[str, float], company_name: str, user: T_user) -> None:
         user_type = user.history_scope
         
         if user_type in self.company_share_category_scores_by_history_scope:
             score_map_user = self.company_share_category_scores_by_history_scope[user_type]
             
-            if company_id in score_map_user:
-                score_map = score_map_user[company_id]
-                score_map_user[company_id] = self.add_scores_to_score_map(score_map, scores)
+            if company_name in score_map_user:
+                score_map = score_map_user[company_name]
+                score_map_user[company_name] = self.add_scores_to_score_map(score_map, scores)
             
             else:
-                score_map_user[company_id] = scores
+                score_map_user[company_name] = scores
         
         else:
             self.company_share_category_scores_by_history_scope[user_type] = {}
-            self.company_share_category_scores_by_history_scope[user_type][company_id] = scores
+            self.company_share_category_scores_by_history_scope[user_type][company_name] = scores
     
-    def add_wins_to_company_share_all_users(self, scores: dict[int, float]):
+    def add_wins_to_company_share_all_users(self, scores: dict[str, float]):
         # pick the company id with the highest score
         winning_company = max(scores, key=lambda k: scores[k])
         winners_map = self.company_share_score_wins_all_users_total
         self.add_wins_to_win_map(winners_map,  winning_company)
     
-    def add_wins_to_company_share_by_user_type(self, scores: dict[int, float], user: "T_user") -> None:
+    def add_wins_to_company_share_by_user_type(self, scores: dict[str, float], user: T_user) -> None:
         winning_company = max(scores, key=lambda k: scores[k])
         user_type = user.name
         
@@ -158,7 +195,7 @@ class DataLog:
         
         self.add_wins_to_win_map(winners_map, winning_company)
         
-    def add_wins_to_company_share_by_history_scope(self, scores: dict[int, float], user: "T_user") -> None:
+    def add_wins_to_company_share_by_history_scope(self, scores: dict[str, float], user: T_user) -> None:
         winning_company = max(scores, key=lambda k: scores[k])
         user_type = user.history_scope
         if user_type in self.company_share_score_wins_by_history_scope:
@@ -189,7 +226,7 @@ class DataLog:
     def print_company_share_category_scores_all_users_total(self, console: Optional[object] = None) -> None:
         """Print `company_share_category_scores_all_users_total` as a table.
 
-        Structure: {company_id: {category: score}}
+        Structure: {company_name: {category: score}}
         """
         cons = self._get_console(console)
         if not self.company_share_category_scores_all_users_total:
@@ -217,7 +254,7 @@ class DataLog:
     def print_company_share_category_scores_by_user_type(self, console: Optional[object] = None) -> None:
         """Print `company_share_category_scores_by_user_type`.
 
-        Structure: {ai_name: {company_id: {category: score}}}
+        Structure: {ai_name: {company_name: {category: score}}}
         """
         cons = self._get_console(console)
         if not self.company_share_category_scores_by_user_type:
@@ -247,7 +284,7 @@ class DataLog:
     def print_company_share_category_scores_by_history_scope(self, console: Optional[object] = None) -> None:
         """Print `company_share_category_scores_by_history_scope`.
 
-        Structure: {ai_history_scope_in_days: {company_id: {category: score}}}
+        Structure: {ai_history_scope_in_days: {company_name: {category: score}}}
         """
         cons = self._get_console(console)
         if not self.company_share_category_scores_by_history_scope:
@@ -277,7 +314,7 @@ class DataLog:
     def print_company_share_score_wins_all_users_total(self, console: Optional[object] = None) -> None:
         """Print `company_share_score_wins_all_users_total`.
 
-        Structure: {company_id: number_of_wins}
+        Structure: {company_name: number_of_wins}
         """
         cons = self._get_console(console)
         if not self.company_share_score_wins_all_users_total:
@@ -296,7 +333,7 @@ class DataLog:
     def print_company_share_score_wins_by_user_type(self, console: Optional[object] = None) -> None:
         """Print `company_share_score_wins_by_user_type`.
 
-        Structure: {ai_name: {company_id: number_of_wins}}
+        Structure: {ai_name: {company_name: number_of_wins}}
         """
         cons = self._get_console(console)
         if not self.company_share_score_wins_by_user_type:
@@ -318,7 +355,7 @@ class DataLog:
     def print_company_share_score_wins_by_history_scope(self, console: Optional[object] = None) -> None:
         """Print `company_share_score_wins_by_history_scope`.
 
-        Structure: {ai_history_scope_in_days: {company_id: number_of_wins}}
+        Structure: {ai_history_scope_in_days: {company_name: number_of_wins}}
         """
         cons = self._get_console(console)
         if not self.company_share_score_wins_by_history_scope:
@@ -373,7 +410,9 @@ class DataLog:
         fig.tight_layout()
 
         if filename:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
             fig.savefig(filename)
+            
         if show:
             plt.show()
         plt.close(fig)
@@ -405,11 +444,9 @@ class DataLog:
             ax.legend(title="Company ID", bbox_to_anchor=(1.02, 1), loc="upper left")
             fig.tight_layout()
 
-            out = None
             if filename:
-                base, dot, ext = (filename.rpartition('.'))
-                out = f"{base}_{user_type}.{ext}" if base else f"{user_type}.{ext}"
-                fig.savefig(out)
+                os.makedirs(os.path.dirname(filename + "-" + str(user_type)), exist_ok=True)
+                fig.savefig(filename + "-" + str(user_type))
             if show:
                 plt.show()
             plt.close(fig)
@@ -417,7 +454,7 @@ class DataLog:
     def chart_company_share_category_scores_by_history_scope(self, filename: Optional[str] = None, show: bool = False) -> None:
         """Create charts per history scope.
 
-        Structure: {history_scope: {company_id: {category: score}}}
+        Structure: {history_scope: {company_name: {category: score}}}
         """
         self._ensure_plt()
         if not self.company_share_category_scores_by_history_scope:
@@ -445,9 +482,8 @@ class DataLog:
 
             out = None
             if filename:
-                base, dot, ext = (filename.rpartition('.'))
-                out = f"{base}_scope{scope}.{ext}" if base else f"scope{scope}.{ext}"
-                fig.savefig(out)
+                os.makedirs(os.path.dirname(filename + "-" + str(scope)), exist_ok=True)
+                fig.savefig(filename + "-" + str(scope))
             if show:
                 plt.show()
             plt.close(fig)
@@ -471,6 +507,7 @@ class DataLog:
             ax.text(i, v + max(vals) * 0.01 if max(vals) else v, str(v), ha='center', va='bottom')
         fig.tight_layout()
         if filename:
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
             fig.savefig(filename)
         if show:
             plt.show()
@@ -496,9 +533,8 @@ class DataLog:
             fig.tight_layout()
             out = None
             if filename:
-                base, dot, ext = (filename.rpartition('.'))
-                out = f"{base}_{user_type}.{ext}" if base else f"{user_type}.{ext}"
-                fig.savefig(out)
+                os.makedirs(os.path.dirname(filename + "-" + str(user_type)), exist_ok=True)
+                fig.savefig(filename + "-" + str(user_type))
             if show:
                 plt.show()
             plt.close(fig)
@@ -523,9 +559,8 @@ class DataLog:
             fig.tight_layout()
             out = None
             if filename:
-                base, dot, ext = (filename.rpartition('.'))
-                out = f"{base}_scope{scope}.{ext}" if base else f"scope{scope}.{ext}"
-                fig.savefig(out)
+                os.makedirs(os.path.dirname(filename + "-" + str(scope)), exist_ok=True)
+                fig.savefig(filename + "-" + str(scope))
             if show:
                 plt.show()
             plt.close(fig)
