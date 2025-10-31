@@ -20,8 +20,8 @@ class Jehan(AI):
         
         Share Scoring:
         Medium Conformist
-        Medium Reputation
-        High Share Peformance
+        High Reputation
+        Medium Share Peformance
         Medium Company Performance
         Medium Value Estimation
         High Volatility Tolerance
@@ -55,8 +55,8 @@ class Jehan(AI):
         # Constants for Share Scoring
         self.strategy_weights = {
             "TREND_ANALYSIS": MEDIUM_CONFORMIST_WEIGHT * self.randomness,
-            "REPUTATION": MEDIUM_REPUTATION_WEIGHT * self.randomness,
-            "SHARE_PERFORMANCE": HIGH_SHARE_PERFORMANCE_WEIGHT * self.randomness,
+            "REPUTATION": HIGH_REPUTATION_WEIGHT * self.randomness,
+            "SHARE_PERFORMANCE": MEDIUM_SHARE_PERFORMANCE_WEIGHT * self.randomness,
             "COMPANY_PERFORMANCE": MEDIUM_COMPANY_PERFORMANCE_WEIGHT * self.randomness,
             "VALUE_ESTIMATION": MEDIUM_VALUE_ESTIMATION_WEIGHT * self.randomness,
             "VOLATILITY_TOLERANCE": HIGH_VOLATILITY_TOLERANCE_WEIGHT * self.randomness

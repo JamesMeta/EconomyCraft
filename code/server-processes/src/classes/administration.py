@@ -64,7 +64,7 @@ class Administration:
         self.supabase_assistant.modify_ai_companies_reputations()
         
     def get_sum_of_strategy_weights(self):
-        return self.utility.get_sum_of_strategy_weights(self.supabase_assistant.users)
+        return self.utility.print_sum_of_strategy_weights()
     
     def service_buy_orders(self):
         self.buy_order_manager.service_buy_orders()

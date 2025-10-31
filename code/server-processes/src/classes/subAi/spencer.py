@@ -21,7 +21,7 @@ class Spencer(AI):
         Share Scoring:
         Low Conformist
         Low Reputation
-        High Share Peformance
+        Medium Share Peformance
         High Company Performance
         Low Value Estimation
         Medium Volatility Tolerance
@@ -55,7 +55,7 @@ class Spencer(AI):
         self.strategy_weights = {
             "TREND_ANALYSIS": LOW_CONFORMIST_WEIGHT * self.randomness,
             "REPUTATION": LOW_REPUTATION_WEIGHT * self.randomness,
-            "SHARE_PERFORMANCE": HIGH_SHARE_PERFORMANCE_WEIGHT * self.randomness,
+            "SHARE_PERFORMANCE": MEDIUM_SHARE_PERFORMANCE_WEIGHT * self.randomness,
             "COMPANY_PERFORMANCE": HIGH_COMPANY_PERFORMANCE_WEIGHT * self.randomness,
             "VALUE_ESTIMATION": LOW_VALUE_ESTIMATION_WEIGHT * self.randomness,
             "VOLATILITY_TOLERANCE": MEDIUM_VOLATILITY_TOLERANCE_WEIGHT * self.randomness

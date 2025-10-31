@@ -175,3 +175,4 @@ cython_debug/
 front-end/economycraft/build_web.bat
 front-end/economycraft/debug.bat
 front-end/economycraft/build.bat
+code/server-processes/src/charts/*

@@ -404,12 +404,13 @@ class StocksAI:
                 "REPUTATION": reputation_weight,
                 "SHARE_PERFORMANCE": share_performance_weight,
                 "VALUE_ESTIMATION": value_estimation_weight,
-                "VOLATILITY": volatility_weight
+                "VOLATILITY": volatility_weight,
+                "TOTAL_SCORE" : trend_analysis_weight + performance_weight + reputation_weight + share_performance_weight + value_estimation_weight - volatility_weight
                 }
             
             self.logger.log_users_scores(score_map, user, share.company.name)
             
-            score = trend_analysis_weight + performance_weight + reputation_weight + share_performance_weight + value_estimation_weight + volatility_weight
+            score = trend_analysis_weight + performance_weight + reputation_weight + share_performance_weight + value_estimation_weight - volatility_weight
             
             scores[company_id] = score
         

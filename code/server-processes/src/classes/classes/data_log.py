@@ -47,6 +47,8 @@ class DataLog:
         
         self.user_type_counter: dict[str, int] = {}
         self.history_scope_counter: dict[int, int] = {}
+        
+ 
     
     def count_user(self, user: T_user):
         user_type = user.name
@@ -123,7 +125,10 @@ class DataLog:
     
     def add_scores_to_score_map(self, score_map: dict[str, float], scores: dict[str,float]) -> dict[str,float]:
         
-        combined: dict[str, float] = dict(Counter(score_map) + Counter(scores))
+        combined: dict[str, float] = {
+            k: score_map.get(k, 0) + scores.get(k, 0)
+            for k in set(score_map) | set(scores)
+        }
         
         return combined
     
@@ -246,7 +251,7 @@ class DataLog:
             catmap = self.company_share_category_scores_all_users_total.get(cid, {})
             for c in all_cats:
                 val = catmap.get(c, 0)
-                row.append(f"{val:.2f}")
+                row.append(f"{val:.5f}")
             table.add_row(*row)
 
         cons.print(table)
@@ -276,7 +281,7 @@ class DataLog:
                 row = [str(cid)]
                 catmap = compmap.get(cid, {})
                 for c in all_cats:
-                    row.append(f"{catmap.get(c,0):.2f}")
+                    row.append(f"{catmap.get(c,0):.5f}")
                 table.add_row(*row)
 
             cons.print(table)
@@ -306,7 +311,7 @@ class DataLog:
                 row = [str(cid)]
                 catmap = compmap.get(cid, {})
                 for c in all_cats:
-                    row.append(f"{catmap.get(c,0):.2f}")
+                    row.append(f"{catmap.get(c,0):.5f}")
                 table.add_row(*row)
 
             cons.print(table)
