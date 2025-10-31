@@ -37,6 +37,7 @@ class StocksAI:
         company_estimated_value_map: dict[int, float],
         company_listed_value_map: dict[int, float],
         company_volatility_map: dict[int, dict[int, LineOfBestFit]],
+        logger: DataLog,
         ):
 
         self.supabase = supabase
@@ -48,27 +49,26 @@ class StocksAI:
         self.company_estimated_value_map = company_estimated_value_map
         self.company_listed_value_map = company_listed_value_map
         self.company_volatility_map = company_volatility_map
+        self.logger = logger
         
         self.trade_helper = TradeHelper(supabase=supabase)
         
         self.current_shares = self.get_current_available_shares()    
 
-    def make_ai_share_orders(self) -> DataLog:
+    def make_ai_share_orders(self):
 
         # Randomize order of users to prevent bias
         user_copies = self.users.copy()
         random.shuffle(user_copies)
-        
-        logger = DataLog()
 
         with Progress() as progress:
 
             task = progress.add_task("[grey50]AI Share Trading Simulation...", total=len(user_copies))
-            
-            total_scores: dict[int, float] = {}
 
             for user in user_copies:
                 # try:
+                    
+                    self.logger.count_user(user)
                     
                     #--------------------------------------------
                     # Get Bot State
@@ -118,9 +118,9 @@ class StocksAI:
                     # Randomness
                     #--------------------------------------------  
                 
-                    scores = self.score_shares(logger, user, shares, user_company_statistics_maps, **user.strategy_weights)     
+                    scores = self.score_shares(user, shares, user_company_statistics_maps, **user.strategy_weights)     
                     
-                    logger.log_users_wins(scores, user)             
+                    self.logger.log_users_wins(scores, user)             
                 
                     #--------------------------------------------
                     # Buy shares based on sorted scores
@@ -136,7 +136,7 @@ class StocksAI:
                 #     progress.update(task, advance=1)
                 #     continue
             
-            return logger
+            self.logger.calculate_averages()
     
 
     def get_bot_state(self, user: T_user) -> tuple[dict[str, dict[int, LineOfBestFit]], list[Share]]:
@@ -337,7 +337,7 @@ class StocksAI:
         return filtered_shares
     
 
-    def score_shares(self, logger: DataLog, user: T_user, shares: dict[int, Share],
+    def score_shares(self,user: T_user, shares: dict[int, Share],
                      user_companies_statistics_maps: dict[str, dict[int, Any]],
                      TREND_ANALYSIS: float,
                      REPUTATION: float,
@@ -391,12 +391,12 @@ class StocksAI:
             if is_contrarian:
                 trend_analysis_change *= -1
             
-            trend_analysis_weight = min(trend_analysis_change * TREND_ANALYSIS, 1)
-            performance_weight = min(performance_change * COMPANY_PERFORMANCE, 1)
-            reputation_weight = min(reputation_change * REPUTATION, 1)
-            share_performance_weight = min(stock_line_change * SHARE_PERFORMANCE, 1)
-            value_estimation_weight = min(real_value_difference * VALUE_ESTIMATION, 1)
-            volatility_weight = min(company_volatility.volatility * VOLATILITY_TOLERANCE, 1)
+            trend_analysis_weight = trend_analysis_change * TREND_ANALYSIS
+            performance_weight = performance_change * COMPANY_PERFORMANCE
+            reputation_weight = reputation_change * REPUTATION
+            share_performance_weight = stock_line_change * SHARE_PERFORMANCE
+            value_estimation_weight = real_value_difference * VALUE_ESTIMATION
+            volatility_weight = company_volatility.volatility * VOLATILITY_TOLERANCE
             
             score_map = {
                 "TREND_ANALYSIS": trend_analysis_weight,
@@ -407,7 +407,7 @@ class StocksAI:
                 "VOLATILITY": volatility_weight
                 }
             
-            logger.log_users_scores(score_map, user, company_id)
+            self.logger.log_users_scores(score_map, user, share.company.name)
             
             score = trend_analysis_weight + performance_weight + reputation_weight + share_performance_weight + value_estimation_weight + volatility_weight
             
