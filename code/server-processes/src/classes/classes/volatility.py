@@ -19,7 +19,8 @@ class Volatility:
         daily_volatility = hourly_volatility * np.sqrt(24)
         
         if daily_volatility != 0:
-            scored_volatility = math.log(0.1/daily_volatility, 10)
+            # scored_volatility = math.log(0.1/daily_volatility, 10)
+            scored_volatility = daily_volatility
         else:
             scored_volatility = 0.6
         

@@ -21,7 +21,7 @@ class Emily(AI):
         Share Scoring:
         High Conformist
         High Reputation
-        High Share Peformance
+        Medium Share Peformance
         Low Company Performance
         Low Value Estimation
         High Volatility Tolerance
@@ -56,7 +56,7 @@ class Emily(AI):
         self.strategy_weights = {
             "TREND_ANALYSIS": HIGH_CONFORMIST_WEIGHT * self.randomness,
             "REPUTATION": HIGH_REPUTATION_WEIGHT * self.randomness,
-            "SHARE_PERFORMANCE": HIGH_SHARE_PERFORMANCE_WEIGHT * self.randomness,
+            "SHARE_PERFORMANCE": MEDIUM_SHARE_PERFORMANCE_WEIGHT * self.randomness,
             "COMPANY_PERFORMANCE": LOW_COMPANY_PERFORMANCE_WEIGHT * self.randomness,
             "VALUE_ESTIMATION": LOW_VALUE_ESTIMATION_WEIGHT * self.randomness,
             "VOLATILITY_TOLERANCE": HIGH_VOLATILITY_TOLERANCE_WEIGHT * self.randomness

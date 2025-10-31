@@ -46,6 +46,7 @@ if (__name__ == "__main__"):
         admin = Administration(supabase)
         admin.__utility_init__()
         admin.print_user_history_scope_spread()
+        admin.get_sum_of_strategy_weights()
     
     job_test()
 
