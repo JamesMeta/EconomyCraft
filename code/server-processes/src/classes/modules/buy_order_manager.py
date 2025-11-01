@@ -1,10 +1,11 @@
 import datetime
+from re import L
 
 from supabase import Client
 from classes.classes.buy_order import BuyOrder
 from classes.classes.share import Share
-from rich.progress import Progress
-
+from rich import print
+import datetime
 
 
 class BuyOrderManager:
@@ -17,20 +18,18 @@ class BuyOrderManager:
         response = self.supabase.table("buy_orders").select("*").execute()
         orders = []
         
-        with Progress() as progress:
-            task = progress.add_task("[grey50]Loading buy orders...", total=len(response.data))
-            for order_data in response.data:
-                order = BuyOrder(
-                    id = order_data["id"],
-                    created_at=order_data["created_at"],
-                    expires_at=order_data["expires_at"],
-                    company_share_id=order_data["company_share_id"],
-                    user_id=order_data["user_id"],
-                    order_maximum=order_data["maximum_share_price"],
-                    order_quantity=order_data["order_quantity"]
-                )
-                orders.append(order)
-                progress.update(task, advance=1)
+        for order_data in response.data:
+            order = BuyOrder(
+                id = order_data["id"],
+                created_at=order_data["created_at"],
+                expires_at=order_data["expires_at"],
+                company_share_id=order_data["company_share_id"],
+                user_id=order_data["user_id"],
+                order_maximum=order_data["maximum_share_price"],
+                order_quantity=order_data["order_quantity"]
+            )
+            orders.append(order)
+
         return orders
         
     
@@ -74,22 +73,30 @@ class BuyOrderManager:
                 self.attempt_to_fulfill_order(order)
     
     def attempt_to_fulfill_order(self, order: BuyOrder) -> None:
-        shares_response = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
+        shares_response = self.supabase.table("shares").select("*, company_share:share_id (id, value, is_public, number_of_shares)").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
         
         available_shares = [Share(share_data["id"], share_data["share_id"], share_data["stake"], share_data["purchased_price"], share_data['company_share']['value'], share_data["purchasable"], share_data["user_id"], share_data['company_share']['is_public'], share_data["sale_price"], share_data['company_share']['id']) for share_data in shares_response.data]
+        
+        filtered_available_shares = filter(lambda x: x.user_id != order.user_id, available_shares)
          
-        for share in available_shares:
+        for share in filtered_available_shares:
             if order.order_quantity > 0:
                 self.place_share_order(order, share.id)
+                print(f"[blue][{datetime.datetime.now().replace(second=0, microsecond=0)}] Completing buy order for user: {order.user_id} and company share id: {order.company_share_id}[/blue]")
             else:
                 self.cancel_buy_order(order.id)
                 try:
                     self.buy_orders.remove(order)
                     break
                 except ValueError:
-                    print(f"Order {order.id} already removed from list.")
+                    print(f"[bold red underline] Order {order.id} already removed from list.[/bold red underline]")
         
     
     def place_share_order(self, buy_order, share_id: int) -> None:
-        self.supabase.rpc("purchase_share", {"buyer_id": buy_order.user_id, "input_share_id": share_id}).execute()
-        self.update_buy_order(buy_order)
+        try:
+            self.supabase.rpc("purchase_share", {"buyer_id": buy_order.user_id, "input_share_id": share_id}).execute()
+            self.update_buy_order(buy_order)
+        except Exception as e:
+            print(f"[bold red underline]{e}[/bold red underline]") 
+            
+        
