@@ -1,3 +1,4 @@
+import datetime
 import random
 
 from typing import Any, Optional
@@ -7,6 +8,7 @@ from supabase import Client
 
 
 from classes.classes import data_log
+from classes.classes.buy_order import BuyOrder
 from classes.classes.company import Company
 from classes.classes.data_log import DataLog
 from classes.classes.line_of_best_fit import LineOfBestFit
@@ -21,6 +23,7 @@ from classes.modules.trade_helper import TradeHelper
 from classes.subAi.level_constants import FIRST, SECOND
 from classes.subAi.t_user import T_user
 from classes.modules.constants import *
+from rich import print
 
 
 
@@ -66,7 +69,7 @@ class StocksAI:
             task = progress.add_task("[grey50]AI Share Trading Simulation...", total=len(user_copies))
 
             for user in user_copies:
-                # try:
+                try:
                     
                     self.logger.count_user(user)
                     
@@ -87,7 +90,7 @@ class StocksAI:
                     # Check if company's growth decline exceeds the bot's growth confortability constant
                     #--------------------------------------------
                     
-                    # self.evaluate_positions(user, user_owned_shares, user_company_statistics_maps)
+                    self.evaluate_positions(user, user_owned_shares, user_company_statistics_maps)
                     
                     #--------------------------------------------
                     # Evaluate whether to buy new shares
@@ -126,15 +129,15 @@ class StocksAI:
                     # Buy shares based on sorted scores
                     #--------------------------------------------  
                     
-                    self.purchase_shares(user, scores)
+                    self.purchase_shares(user, scores, portfolio, shares)
                             
                     
                     progress.update(task, advance=1)
                         
-                # except Exception as e:
-                #     print(f"[bold red]AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red]")
-                #     progress.update(task, advance=1)
-                #     continue
+                except Exception as e:
+                    print(f"[bold red underline][{datetime.datetime.now().replace(second=0, microsecond=0)}] AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red underline]")
+                    progress.update(task, advance=1)
+                    continue
             
             self.logger.calculate_averages()
     
@@ -257,6 +260,8 @@ class StocksAI:
             company_id : int = share.company.id
             
             
+            
+            
             if (purchasable):
                 
                 to_re_evaluate, decision = evaluate_purchasable_position_for_profit_loss_goals(value, sale_price)
@@ -266,6 +271,13 @@ class StocksAI:
                 
                 else:
                     user.remove_share_for_sale(share.id)
+             
+            premature_sell = random.randint(user.range_of_premature_sell[FIRST], user.range_of_premature_sell[SECOND]) == 1   
+                 
+            if (premature_sell):
+                
+                print(f"[magenta][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is prematurely selling one of his shares for {share.company.name}[\magenta]")
+                return "SELL_NOW"
             
             to_sell, decision = evaluate_position_for_profit_loss_goals(value, purchased_price, profit_goals, loss_limits)
             
@@ -297,13 +309,15 @@ class StocksAI:
             
             if decision == "SELL_GAIN":
                 self.trade_helper.sell_gain(user=user, share=share)
+                print(f"[green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is selling one of their shares in {share.company.name} for some profit[/green]")
             
             if decision == "SELL_NOW":
                 self.trade_helper.sell_now(user=user, share=share)
+                print(f"[bright_magenta][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is dumping one of their shares in {share.company.name} to prevent further loss[/bright_magenta]")
     
 
     def evaluate_liquidity(self, user: T_user) -> tuple[bool, dict]:
-        portfolio = self.get_user_networth_breakdown(user.id)
+        portfolio = self.get_user_networth_breakdown(user)
         networth_invested = portfolio["SHARE_ASSETS"] / portfolio["NETWORTH"]
         
         return networth_invested > user.percentage_of_networth_to_invest, portfolio
@@ -416,11 +430,75 @@ class StocksAI:
         
         return scores
             
+    def purchase_shares(self, user: T_user, scores: dict[int, float], portfolio: dict[str, float], shares: dict[int, Share]) -> None:
         
-    
-    ## TODO:
-    def purchase_shares(self, user: T_user, scores: dict[int, float]) -> None:
-        pass
+        items_sorted = sorted(scores.items(), key = lambda k: k[SECOND], reverse = True)
+        
+        top_three_companies = items_sorted[0:3]
+        
+        company_id_to_buy = int(random.choices(top_three_companies, weights=[0.6, 0.3, 0.1])[FIRST][FIRST])
+        
+        share_to_buy = None
+        
+        for share in shares.values():
+            if share.company.id == company_id_to_buy:
+                share_to_buy = share
+                break
+        
+        if share_to_buy == None:
+            print(f"[orange][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they share for the company they selected wasn't in the dictionary passed.[/orange]")
+            return
+        
+        max_amount_to_invest_currently = (portfolio["NETWORTH"] * user.percentage_of_networth_to_invest) - portfolio["SHARE_ASSETS"]
+        
+        if max_amount_to_invest_currently > user.money:
+            max_amount_to_invest_currently = user.money
+        
+        max_amount_to_invest_into_one_stock = portfolio["NETWORTH"] * user.diversity_minimum
+        
+        if max_amount_to_invest_into_one_stock < max_amount_to_invest_currently:
+            max_amount_to_invest_currently = max_amount_to_invest_into_one_stock
+        
+        quanitity_of_shares_to_buy = int(max_amount_to_invest_currently // (share_to_buy.value * 1.1) )
+        
+        if quanitity_of_shares_to_buy <= 0:
+            print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they cannot afford to purchase a share for {share_to_buy.company.name}[/yellow]")
+            return
+        
+        current_buy_orders = self.trade_helper.get_buy_orders_for_share(share_to_buy.company_share_id)
+        
+        current_user_buy_orders = list(filter(lambda x: x.user_id == user.id, current_buy_orders))
+        
+        if len(current_user_buy_orders) > 0:
+            print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they already have a buy order for {share_to_buy.company.name}[/yellow]")
+            return 
+        
+        buy_order_price = self.decide_buy_order_max_price(share_to_buy, current_buy_orders)
+        
+        time_plus_one = datetime.datetime.now() + datetime.timedelta(hours=1)
+        
+        buy_order = BuyOrder(id = 0, created_at = "", expires_at = time_plus_one.isoformat(), company_share_id = share_to_buy.company_share_id, user_id = user.id, order_maximum = buy_order_price, order_quantity = quanitity_of_shares_to_buy)
+        
+        user.place_buy_order(buy_order=buy_order)
+        
+        print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.name} placed a buy order for {share_to_buy.company.name} at ${buy_order.order_maximum} with {buy_order.order_quantity} quantity[/bright_green]")
+        
+        
+        
+    def decide_buy_order_max_price(self, share: Share, current_buy_orders: list[BuyOrder]) -> float:
+        
+        if current_buy_orders:
+        
+            most_expensive_order = current_buy_orders[FIRST].order_maximum
+            
+            if most_expensive_order / share.value > 1.1:
+                return share.value * 1.1
+            
+            else:
+                return most_expensive_order * 1.01
+        
+        else:
+            return share.value
 
     def get_company_stock_for_sale(self, company_id: int) -> Optional[Share]:
 
@@ -517,14 +595,12 @@ class StocksAI:
             user_shares.append(share_object)
         return user_shares
 
-    def get_user_networth_breakdown(self, user_id: int) -> dict[str, float]:
+    def get_user_networth_breakdown(self, user: T_user) -> dict[str, float]:
 
-        response_shares = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("user_id", user_id).execute()
-        response_user = self.supabase.table("users").select("*").eq("id", user_id).execute()
+        response_shares = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("user_id", user.id).execute()
         shares = response_shares.data
-        user = response_user.data[0]
 
-        liquid_assets = user['money']
+        liquid_assets = user.money
         share_assets = 0.0
         for share in shares:
             company_share = share['company_share'] 
@@ -532,9 +608,13 @@ class StocksAI:
             
         
         networth = liquid_assets + share_assets
+        
         networth_breakdown = {
             "LIQUID_ASSETS": liquid_assets,
             "SHARE_ASSETS": share_assets,
             "NETWORTH": networth
         }
+        
+        user.networth_breakdown = networth_breakdown
+        
         return networth_breakdown
