@@ -30,6 +30,7 @@ if (__name__ == "__main__"):
     
     counter = 0
     
+    job()
     while True:
         schedule.run_pending()
         time.sleep(1)  # Sleep for 1 second to avoid overwhelming the server
