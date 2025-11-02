@@ -481,7 +481,7 @@ class StocksAI:
         
         user.place_buy_order(buy_order=buy_order)
         
-        print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.name} placed a buy order for {share_to_buy.company.name} at ${buy_order.order_maximum} with {buy_order.order_quantity} quantity[/bright_green]")
+        print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} placed a buy order for {share_to_buy.company.name} at ${buy_order.order_maximum} with {buy_order.order_quantity} quantity[/bright_green]")
         
         
         

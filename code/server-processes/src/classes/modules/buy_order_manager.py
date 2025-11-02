@@ -63,14 +63,19 @@ class BuyOrderManager:
         
         current_time = datetime.datetime.now().isoformat()
         
-        # Remove expired orders
-        self.supabase.table("buy_orders").delete().lt("expires_at", current_time).execute()
+        try:
+            # Remove expired orders
+            self.supabase.table("buy_orders").delete().lt("expires_at", current_time).execute()
+            
+            for order in self.buy_orders:
+                if order.expires_at < current_time:
+                    self.buy_orders.remove(order)
+                else:
+                    self.attempt_to_fulfill_order(order)
+        except Exception as e:
+            print(f"[bold red underline]{e}[/bold red underline]")
         
-        for order in self.buy_orders:
-            if order.expires_at < current_time:
-                self.buy_orders.remove(order)
-            else:
-                self.attempt_to_fulfill_order(order)
+        
     
     def attempt_to_fulfill_order(self, order: BuyOrder) -> None:
         shares_response = self.supabase.table("shares").select("*, company_share:share_id (id, value, is_public, number_of_shares)").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
