@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:economycraft/services/supabase_helper.dart';
 import 'package:flutter/widgets.dart';
 
-const appVersion = '1.1';
+const appVersion = '1.4';
 
 class OutOfDateScreen extends StatefulWidget {
   const OutOfDateScreen({super.key});

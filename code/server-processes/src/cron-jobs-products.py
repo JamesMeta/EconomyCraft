@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 import os
 import random
+from rich import print
+import datetime
 
 if (__name__ == "__main__"):
 
@@ -18,31 +20,27 @@ if (__name__ == "__main__"):
 
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    # Create an instance of the Administration class
 
-    def job1():
+
+    def job():
         admin = Administration(supabase)
-        admin.make_ai_share_orders()
-    
-    def job2():
-        admin = Administration(supabase)
+        admin.__product_init__()
         admin.make_ai_orders()
         admin.complete_all_ai_orders()
+ 
+    schedule.every(8).hours.do(job)
+ 
+    counter = 0
     
-    def job3():
-        admin = Administration(supabase)
-        admin.service_buy_orders()
-
-    
-    schedule.every(8).hours.do(job2)
-    schedule.every(45).minutes.do(job1)
-    schedule.every(1).minute.do(job3)
-
+    job()
     while True:
-        print("Running scheduled tasks...")
         schedule.run_pending()
-        time.sleep(1)  # Sleep for 1 second to avoid overwhelming the server
+        time.sleep(1)
+        
+        if counter % 60 == 0:
+            print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Product Manager ---------- [/bright_green]")
 
+        counter += 1
         
     
     

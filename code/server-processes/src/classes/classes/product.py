@@ -1,8 +1,9 @@
 class Product:
-    def __init__(self, id: int, created_at: str, name: str, company_id: int, price: float, quantity: int, value: float, niche_coefficient: float):
+    def __init__(self, id: int, created_at: str, name: str, minecraft_tag: str, company_id: int, price: float, quantity: int, value: float, niche_coefficient: float):
         self.id = id
         self.created_at = created_at
         self.name = name
+        self.minecraft_tag = minecraft_tag
         self.company_id = company_id
         self.price = price
         self.quantity = quantity

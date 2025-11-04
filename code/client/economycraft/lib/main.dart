@@ -1,5 +1,6 @@
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/share.dart';
+import 'package:economycraft/screens/stockmarket/stock_market_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/screens/home_screen.dart';
@@ -27,7 +28,7 @@ import 'package:economycraft/screens/out_of_date_screen.dart';
 
 const supabaseUrl = 'https://ylgfgklcypqtbqrkhsba.supabase.co';
 const supabaseKey = "sb_publishable_tcxKxITjQOaJNt6fyc0geQ_dV8ItNuf";
-const appVersion = '1.2';
+const appVersion = '1.4';
 
 Future<void> main() async {
   await Supabase.initialize(
@@ -132,6 +133,21 @@ final GoRouter _router = GoRouter(
               builder: (BuildContext context, GoRouterState state) {
                 final data = state.extra as Company;
                 return CompanyPageScreen(company: data);
+              },
+            ),
+          ],
+        ),
+        GoRoute(
+          path: 'stock_market',
+          builder: (BuildContext context, GoRouterState state) {
+            return const StockMarketScreen();
+          },
+          routes: [
+            GoRoute(
+              path: 'sell_share',
+              builder: (BuildContext context, GoRouterState state) {
+                final data = state.extra as Share;
+                return SellHoldingScreen(share: data);
               },
             ),
           ],
