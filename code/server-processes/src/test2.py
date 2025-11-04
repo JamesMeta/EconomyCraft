@@ -1,4 +1,6 @@
-from rich import print
+# Generate 10 numbers from a normal distribution with mean=0 and stddev=1
 
-
-print("[bold magenta]Hello[/bold magenta] [green]World![/green]")
+import random
+for _ in range(10):
+    daily_income = random.normalvariate(500, 250)
+    print(daily_income)

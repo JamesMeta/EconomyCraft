@@ -1,5 +1,7 @@
 import 'package:economycraft/classes/admin_message.dart';
+import 'package:economycraft/classes/buy_order.dart';
 import 'package:economycraft/classes/companyShare.dart';
+import 'package:economycraft/classes/company_info.dart';
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/player.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
@@ -831,6 +833,255 @@ class SupabaseHelper {
     }
   }
 
+  static Future<List<Company>?>? getAllPublicCompanies() async {
+    try {
+      final response = await _client
+          .from('companies')
+          .select("*")
+          .eq('is_public', true);
+
+      final List<Company> companies =
+          response.map<Company>((company) {
+            return Company(
+              id: company['id'],
+              name: company['name'],
+              slogan: company['slogan'],
+              avatarUrl: company['avatar_url'],
+              reputation: company['reputation'],
+              evaluation: company['evaluation'],
+              isPublic: company['is_public'],
+              userId: company['user_id'],
+              createdAt: DateTime.parse(company['created_at']),
+              lotNumber: company['lot_number'] ?? 0,
+              verified: company['verified'] ?? false,
+            );
+          }).toList();
+      return companies;
+    } catch (e) {
+      developer.log(e.toString());
+      return null;
+    }
+  }
+
+  static Future<CompanyInfo?> getCompanyInfo(Company company) async {
+    final userRowId = await getPlayerId();
+    late final List<Map<String, dynamic>>? orderResponse;
+    late final List<Map<String, dynamic>>? companyHistoryResponse;
+    late final Map<String, dynamic>? companyShareResponse;
+
+    try {
+      await Future.wait([
+        _client
+            .from('orders')
+            .select("*")
+            .eq("company_id", company.id)
+            .gt("created_at", DateTime.now().subtract(Duration(days: 120)))
+            .then((value) => orderResponse = value),
+        _client
+            .from('company_history')
+            .select("*")
+            .eq("company_id", company.id)
+            .limit(120)
+            .then((value) => companyHistoryResponse = value),
+        _client
+            .from('company_share')
+            .select("*")
+            .eq("company_id", company.id)
+            .limit(1)
+            .single()
+            .then((value) => companyShareResponse = value),
+      ]);
+
+      late final List<Map<String, dynamic>> userOwnedShares;
+      late final List<Map<String, dynamic>> existingShares;
+      late final List<Map<String, dynamic>> shareHistory;
+      late final Share share;
+      late final double cheapestShare;
+
+      await Future.wait([
+        _client
+            .from('shares')
+            .select("*")
+            .eq("share_id", companyShareResponse!["id"])
+            .then((value) => existingShares = value),
+        _client
+            .from('share_history')
+            .select("*")
+            .eq("share_id", companyShareResponse!["id"])
+            .gt("created_at", DateTime.now().subtract(Duration(days: 120)))
+            .then((value) => shareHistory = value),
+        findCheapestShareForCompanyShareId(
+          companyShareResponse!["id"],
+        ).then((value) => cheapestShare = value),
+      ]);
+
+      final shareSingular = existingShares.first;
+
+      share = Share(
+        id: shareSingular["id"],
+        createdAt: DateTime.parse(shareSingular["created_at"]),
+        companyId: shareSingular["company_id"],
+        stake: shareSingular["stake"],
+        purchasePrice: shareSingular["purchased_price"],
+        value: companyShareResponse!["value"],
+        salePrice: shareSingular["sale_price"],
+        purchasable: shareSingular["purchasable"],
+        userId: shareSingular["user_id"],
+        isPublic: companyShareResponse!["is_public"],
+        numberOfShares: companyShareResponse!["number_of_shares"],
+        companyShareId: shareSingular["share_id"],
+      );
+
+      userOwnedShares =
+          existingShares
+              .where((share) => share["user_id"] == userRowId)
+              .toList();
+
+      final dailyOrderTotals = <String, double>{};
+
+      for (final row in orderResponse!) {
+        final createdAt = DateTime.parse(row['created_at']);
+        final day = DateTime(
+          createdAt.year,
+          createdAt.month,
+          createdAt.day,
+        ).toIso8601String().substring(0, 10);
+
+        final payment = (row['payment'] as num).toDouble();
+
+        dailyOrderTotals.update(
+          day,
+          (value) => value + payment,
+          ifAbsent: () => payment,
+        );
+      }
+
+      final now = DateTime.now();
+      final thisMonth = now.month;
+      final lastMonth = now.month - 1;
+      final thisYear = now.year;
+      final today = now.day;
+
+      List<Map<String, dynamic>> concatenatedShareHistory = [];
+
+      for (final shareHistoryHour in shareHistory) {
+        if (today != DateTime.parse(shareHistoryHour["created_at"]).day) {
+          if (DateTime.parse(shareHistoryHour["created_at"]).hour == 23) {
+            concatenatedShareHistory.add(shareHistoryHour);
+          }
+        } else {
+          concatenatedShareHistory.add(shareHistoryHour);
+        }
+      }
+
+      final Map<String, double> thisMonthFiltered = Map.fromEntries(
+        dailyOrderTotals.entries.where((entry) {
+          final date = DateTime.parse(entry.key);
+          return date.month == thisMonth && date.year == thisYear;
+        }),
+      );
+
+      final Map<String, double> lastMonthFiltered = Map.fromEntries(
+        dailyOrderTotals.entries.where((entry) {
+          final date = DateTime.parse(entry.key);
+          return date.month == lastMonth && date.year == thisYear;
+        }),
+      );
+
+      final double thisMonthTotalSales = thisMonthFiltered.values.toList().fold(
+        0,
+        (a, b) => a + b,
+      );
+      final double lastMonthTotalSales = lastMonthFiltered.values.toList().fold(
+        0,
+        (a, b) => a + b,
+      );
+      final double total120DaySales = dailyOrderTotals.values.toList().fold(
+        0,
+        (a, b) => a + b,
+      );
+
+      List<PriceVsTime> reputation = [];
+      List<PriceVsTime> sales = [];
+      List<PriceVsTime> stockPrice = [];
+      List<PriceVsTime> companyEvaluation = [];
+      List<Share> shares = [];
+
+      for (final day in dailyOrderTotals.entries) {
+        sales.add(PriceVsTime(time: DateTime.parse(day.key), price: day.value));
+      }
+
+      for (final entry in companyHistoryResponse!) {
+        reputation.add(
+          PriceVsTime(
+            time: DateTime.parse(entry["created_at"]),
+            price: entry["reputation"],
+          ),
+        );
+        companyEvaluation.add(
+          PriceVsTime(
+            time: DateTime.parse(entry["created_at"]),
+            price: entry["evaluation"],
+          ),
+        );
+      }
+
+      for (final entry in concatenatedShareHistory) {
+        stockPrice.add(
+          PriceVsTime(
+            time: DateTime.parse(entry["created_at"]),
+            price: entry['value'],
+          ),
+        );
+      }
+
+      for (final entry in userOwnedShares) {
+        shares.add(
+          Share(
+            companyId: company.id,
+            userId: entry['user_id'],
+            stake: entry['stake']?.toDouble() ?? 0.0,
+            id: entry['id'],
+            createdAt: DateTime.parse(entry['created_at']),
+            purchasePrice: entry['purchased_price'],
+            value: companyShareResponse!["value"],
+            salePrice: entry['sale_price'],
+            purchasable: entry['purchasable'],
+            isPublic: companyShareResponse!["is_public"],
+            numberOfShares: companyShareResponse!["number_of_shares"],
+            company: company,
+            companyShareId: companyShareResponse!["id"],
+          ),
+        );
+      }
+
+      final ownerName = await getPlayerNameByUserRowID(company.userId);
+
+      reputation.sort((a, b) => a.time.compareTo(b.time));
+      sales.sort((a, b) => a.time.compareTo(b.time));
+      companyEvaluation.sort((a, b) => a.time.compareTo(b.time));
+      stockPrice.sort((a, b) => a.time.compareTo(b.time));
+
+      return CompanyInfo(
+        company: company,
+        share: share,
+        reputation: reputation,
+        sales: sales,
+        stockPrice: stockPrice,
+        companyEvaluation: companyEvaluation,
+        usersShares: shares,
+        thisMonthTotalSales: thisMonthTotalSales,
+        lastMonthTotalSales: lastMonthTotalSales,
+        total120DaySales: total120DaySales,
+        cheapestShare: cheapestShare,
+        ownerName: ownerName,
+      );
+    } catch (e) {
+      developer.log("Error getting company info $e");
+      return null;
+    }
+  }
+
   static Future<int> getCompanyOwnerId(int companyId) async {
     try {
       final response =
@@ -1235,13 +1486,12 @@ class SupabaseHelper {
           },
         );
         developer.log('Order created for product ID: $productId');
-        return true;
       }
+      return true;
     } catch (e) {
       developer.log('Error creating order: $e');
       return false;
     }
-    return false;
   }
 
   static Future<bool> cancelOrderUser(int orderId) async {
@@ -1280,6 +1530,13 @@ class SupabaseHelper {
 
       // Calculate the multiplier based on the order quantity
       final decreaseAmount = f(order.payment);
+
+      if (decreaseAmount < 0) {
+        developer.log(
+          'Error: Decrease amount is negative for order ${order.id}',
+        );
+        return false;
+      }
 
       //log the decrease amount
       developer.log(
@@ -1485,6 +1742,183 @@ class SupabaseHelper {
     }
   }
 
+  static Future<bool> newBuyOrder(
+    double maximumPrice,
+    int quantity,
+    DateTime expires,
+    int companyShareId,
+  ) async {
+    try {
+      final userRowId = await getPlayerId();
+      await _client.from("buy_orders").insert({
+        "expires_at": expires.toIso8601String(),
+        "company_share_id": companyShareId,
+        "user_id": userRowId,
+        "order_quantity": quantity,
+        "maximum_share_price": maximumPrice,
+      });
+
+      return true;
+    } catch (e) {
+      developer.log("Error making new buy order: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> sellOrderPreCheck(int quantity, int shareId) async {
+    try {
+      final userRowId = await getPlayerId();
+      final response = await _client
+          .from("shares")
+          .select("*")
+          .eq("user_id", userRowId)
+          .eq("purchasable", false)
+          .eq("share_id", shareId);
+
+      developer.log(response.length.toString());
+      return response.length >= quantity;
+    } catch (e) {
+      developer.log("error conducting preecheck $e");
+      return false;
+    }
+  }
+
+  static Future<bool> newSellOrder(
+    double Function(int x) f,
+    int quantity,
+    int shareId,
+  ) async {
+    try {
+      final userRowId = await getPlayerId();
+      final response = await _client
+          .from("shares")
+          .select('''
+          *,
+          companies:company_id (
+            id, name, slogan, avatar_url, reputation, 
+            evaluation, is_public, user_id, created_at, 
+            lot_number, verified
+          ),
+          company_share:share_id (
+            id, value, number_of_shares, is_public
+            )
+        ''')
+          .eq("user_id", userRowId)
+          .eq("purchasable", false)
+          .eq("share_id", shareId)
+          .limit(quantity);
+
+      final List<Share> shares =
+          response.map<Share>((share) {
+            final companyData = share['companies'];
+            final companyShareData = share['company_share'];
+
+            return Share(
+              id: share['id'],
+              createdAt: DateTime.parse(share['created_at']),
+              companyId: share['company_id'],
+              stake: share['stake'],
+              purchasePrice: share['purchased_price'],
+              value: companyShareData['value']?.toDouble() ?? 0.0,
+              salePrice: share['sale_price'] ?? 0.0,
+              purchasable: share['purchasable'],
+              userId: share['user_id'],
+              isPublic: companyShareData['is_public'] ?? false,
+              numberOfShares: companyShareData['number_of_shares'] ?? 0,
+              company:
+                  companyData != null
+                      ? Company(
+                        id: companyData['id'],
+                        name: companyData['name'],
+                        slogan: companyData['slogan'],
+                        avatarUrl: companyData['avatar_url'],
+                        reputation: companyData['reputation'],
+                        evaluation: companyData['evaluation'],
+                        isPublic: companyData['is_public'],
+                        userId: companyData['user_id'],
+                        createdAt: DateTime.parse(companyData['created_at']),
+                        lotNumber: companyData['lot_number'] ?? 0,
+                        verified: companyData['verified'] ?? false,
+                      )
+                      : null,
+              companyShareId: companyShareData['id'],
+            );
+          }).toList();
+
+      for (int i = 0; i < shares.length; i++) {
+        final double price = f(i);
+        shares[i].salePrice = price;
+      }
+
+      final isForSale = await makeSharesPurchasable(shares);
+
+      return isForSale;
+    } catch (e) {
+      developer.log("unable to create sell order $e");
+      return false;
+    }
+  }
+
+  static Future<List<BuyOrder>> getUserBuyOrders() async {
+    try {
+      final userRowId = await getPlayerId();
+
+      final response = await _client
+          .from("buy_orders")
+          .select("*")
+          .eq("user_id", userRowId);
+
+      final List<BuyOrder> buyOrders =
+          response.map<BuyOrder>((buyOrder) {
+            return BuyOrder(
+              id: buyOrder["id"],
+              createdAt: DateTime.parse(buyOrder["created_at"]),
+              expiresAt: DateTime.parse(buyOrder["expires_at"]),
+              companyShareId: buyOrder["company_share_id"],
+              userId: buyOrder["user_id"],
+              orderQuality: buyOrder["order_quantity"],
+              maximumSharePrice: buyOrder["maximum_share_price"],
+            );
+          }).toList();
+
+      return buyOrders;
+    } catch (e) {
+      developer.log("Error getting users buy orders: $e");
+      return [];
+    }
+  }
+
+  static Future<bool> deleteBuyOrder(int buyOrderId) async {
+    try {
+      await _client.from("buy_orders").delete().eq("id", buyOrderId);
+      return true;
+    } catch (e) {
+      developer.log("error deleting buy order $e");
+      return false;
+    }
+  }
+
+  static Future<double> findCheapestShareForCompanyShareId(
+    final companyShareId,
+  ) async {
+    try {
+      final response =
+          await _client
+              .from("shares")
+              .select("sale_price")
+              .eq("share_id", companyShareId)
+              .eq("purchasable", true)
+              .order('sale_price', ascending: true)
+              .limit(1)
+              .maybeSingle();
+
+      return response!["sale_price"];
+    } catch (e) {
+      developer.log("Error finding cheapest share: $e");
+      return -1;
+    }
+  }
+
   static Future<bool> makeSharesPurchasable(List<Share> shares) async {
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -1496,7 +1930,7 @@ class SupabaseHelper {
         updateFutures.add(
           _client
               .from('shares')
-              .update({'purchasable': true})
+              .update({'purchasable': true, 'sale_price': share.salePrice})
               .eq('id', share.id),
         );
         developer.log('Share made purchasable: ${share.id}');
@@ -1550,17 +1984,16 @@ class SupabaseHelper {
             lot_number, verified
           ),
           company_share:share_id (
-            value, number_of_shares, is_public
+            id, value, number_of_shares, is_public
             )
         ''')
           .eq('user_id', userRowId)
           .order('value', ascending: false, referencedTable: 'company_share');
 
-      if (response == null || response.isEmpty) {
+      if (response.isEmpty) {
         return [];
       }
 
-      // Map the response to Share objects without additional queries
       final List<Share> shares =
           response.map<Share>((share) {
             final companyData = share['companies'];
@@ -1594,6 +2027,7 @@ class SupabaseHelper {
                         verified: companyData['verified'] ?? false,
                       )
                       : null,
+              companyShareId: companyShareData['id'],
             );
           }).toList();
 
@@ -1745,7 +2179,7 @@ class SupabaseHelper {
           .select('''
           *,
           company_share:share_id (
-            value, number_of_shares, is_public
+            id, value, number_of_shares, is_public
             )
         ''')
           .eq('company_id', companyId)
@@ -1777,6 +2211,7 @@ class SupabaseHelper {
             company: company,
             isPublic: companyShareData['is_public'] ?? false,
             numberOfShares: companyShareData['number_of_shares'] ?? 0,
+            companyShareId: companyShareData['id'],
           );
         }).toList(),
       );
@@ -1839,7 +2274,7 @@ class SupabaseHelper {
           await _client
               .from('shares')
               .select(
-                "*, company_share:share_id (value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
+                "*, company_share:share_id (id, value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
               )
               .eq('id', shareId)
               .limit(1)
@@ -1879,6 +2314,7 @@ class SupabaseHelper {
                   verified: companyData['verified'] ?? false,
                 )
                 : null,
+        companyShareId: companyShareData['id'],
       );
     } catch (e) {
       developer.log('Error fetching share by ID: $e');
@@ -1913,7 +2349,7 @@ class SupabaseHelper {
       final response = await _client
           .from('shares')
           .select(
-            "*, company_share:share_id (value, is_public, number_of_shares)",
+            "*, company_share:share_id (id, value, is_public, number_of_shares)",
           )
           .eq('company_id', companyId)
           .order('value', ascending: false, referencedTable: 'company_share');
@@ -1936,6 +2372,7 @@ class SupabaseHelper {
             userId: share['user_id'],
             isPublic: companyShareData['is_public'] ?? false,
             numberOfShares: companyShareData['number_of_shares'] ?? 0,
+            companyShareId: companyShareData['id'],
           );
         }).toList(),
       );
@@ -2000,33 +2437,34 @@ class SupabaseHelper {
     }
   }
 
-  static Future<Share> getShareByCompanyShareId(companyShareId) async {
+  static Future<Share> getOneShareByCompanyShareId(companyShareId) async {
     try {
-      final response =
-          await _client
-              .from('shares')
-              .select(
-                "*, company_share:share_id (value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
-              )
-              .eq('share_id', companyShareId)
-              .maybeSingle();
+      final response = await _client
+          .from('shares')
+          .select(
+            "*, company_share:share_id (id, value, is_public, number_of_shares), companies:company_id (id, name, slogan, avatar_url, reputation, evaluation, is_public, user_id, created_at, lot_number, verified)",
+          )
+          .eq('share_id', companyShareId)
+          .limit(1);
       if (response == null) {
         throw Exception(
           'Share not found for company share ID: $companyShareId',
         );
       }
-      final companyShareData = response['company_share'];
-      final companyData = response['companies'];
+      final responseData = response[0];
+
+      final companyShareData = responseData['company_share'];
+      final companyData = responseData['companies'];
       return Share(
-        id: response['id'],
-        createdAt: DateTime.parse(response['created_at']),
-        companyId: response['company_id'],
-        stake: response['stake'],
-        purchasePrice: response['purchased_price'],
+        id: responseData['id'],
+        createdAt: DateTime.parse(responseData['created_at']),
+        companyId: responseData['company_id'],
+        stake: responseData['stake'],
+        purchasePrice: responseData['purchased_price'],
         value: companyShareData['value']?.toDouble() ?? 0.0,
-        salePrice: response['sale_price'] ?? 0.0,
-        purchasable: response['purchasable'],
-        userId: response['user_id'],
+        salePrice: responseData['sale_price'] ?? 0.0,
+        purchasable: responseData['purchasable'],
+        userId: responseData['user_id'],
         isPublic: companyShareData['is_public'] ?? false,
         numberOfShares: companyShareData['number_of_shares'] ?? 0,
         company:
@@ -2045,6 +2483,7 @@ class SupabaseHelper {
                   verified: companyData['verified'] ?? false,
                 )
                 : null,
+        companyShareId: companyShareData['id'],
       );
     } catch (e) {
       developer.log('Error fetching share by company share ID: $e');
@@ -2079,7 +2518,9 @@ class SupabaseHelper {
           continue;
         }
 
-        final Share share = await getShareByCompanyShareId(companyShare['id']);
+        final Share share = await getOneShareByCompanyShareId(
+          companyShare['id'],
+        );
         if (share.company == null) {
           developer.log(
             'Error: Company not found for share ID: ${companyShare['id']}',
@@ -2415,6 +2856,61 @@ class SupabaseHelper {
     }
   }
 
+  static Future<bool> markCompanyAIOwned(int companyId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      await _client.from('companies').update({'ai': true}).eq('id', companyId);
+
+      developer.log('Company marked as AI owned successfully: $companyId');
+      return true;
+    } catch (e) {
+      developer.log('Error marking company as AI owned: $e');
+      return false;
+    }
+  }
+
+  static Future<List<Order>> getOrdersMadeForCompanyAdmin(int companyId) async {
+    try {
+      final response = await _client
+          .from('orders')
+          .select()
+          .eq('company_id', companyId)
+          .eq('complete', false)
+          .order('created_at', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<Order> orders = await Future.wait(
+        response.map<Future<Order>>((order) async {
+          return Order(
+            id: order['id'],
+            productId: order['product_id'],
+            companyId: order['company_id'],
+            userId: order['user_id'],
+            quantity: order['quantity'],
+            payment: order['payment'],
+            deliveryAddress: order['delivery_address'],
+            orderTimeout: DateTime.parse(order['order_timeout']),
+            createdAt: DateTime.parse(order['created_at']),
+            complete: order['complete'] ?? false,
+            received: order['received'] ?? false,
+
+            product: await getProductById(order['product_id']),
+            company: await getCompanyById(order['company_id']),
+          );
+        }).toList(),
+      );
+      return orders;
+    } catch (e) {
+      developer.log('Error fetching orders made for company: $e');
+      return [];
+    }
+  }
+
   static Future<List<Order>> getAllOrdersForAiCompanies() async {
     try {
       final aiCompanies = await _client
@@ -2427,7 +2923,7 @@ class SupabaseHelper {
       }
       final List<Future<List<Order>>> futures =
           aiCompanies.map((company) {
-            return getOrdersMadeForCompany(company['id']);
+            return getOrdersMadeForCompanyAdmin(company['id']);
           }).toList();
       final List<List<Order>> nestedOrders = await Future.wait(futures);
       // Flatten the list of lists
@@ -2435,6 +2931,51 @@ class SupabaseHelper {
       return orders;
     } catch (e) {
       developer.log('Error fetching orders for AI companies: $e');
+      return [];
+    }
+  }
+
+  static Future<List<Order>> getOrdersMadeByUserAdmin(int userId) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      developer.log('Error: User not authenticated');
+      return [];
+    }
+    try {
+      // If userid is provided, use it; otherwise, get the current user's ID
+      final userRowId = userId;
+      final response = await _client
+          .from('orders')
+          .select()
+          .eq('user_id', userRowId)
+          .eq('received', false)
+          .order('created_at', ascending: false);
+      if (response.isEmpty) {
+        return [];
+      }
+      final List<Order> orders = await Future.wait(
+        response.map<Future<Order>>((order) async {
+          return Order(
+            id: order['id'],
+            productId: order['product_id'] ?? 0,
+            companyId: order['company_id'] ?? 0,
+            userId: order['user_id'],
+            quantity: order['quantity'],
+            payment: order['payment'],
+            deliveryAddress: order['delivery_address'],
+            orderTimeout: DateTime.parse(order['order_timeout']),
+            createdAt: DateTime.parse(order['created_at']),
+            complete: order['complete'] ?? false,
+            received: order['received'] ?? false,
+
+            product: await getProductById(order['product_id']),
+            company: await getCompanyById(order['company_id']),
+          );
+        }).toList(),
+      );
+      return orders;
+    } catch (e) {
+      developer.log('Error fetching orders made by user: $e');
       return [];
     }
   }
@@ -2448,7 +2989,7 @@ class SupabaseHelper {
       }
       final List<Future<List<Order>>> futures =
           AiUsers.map((user) {
-            return getOrdersMadeByUser(user['id']);
+            return getOrdersMadeByUserAdmin(user['id']);
           }).toList();
       final List<List<Order>> nestedOrders = await Future.wait(futures);
       // Flatten the list of lists

@@ -86,10 +86,16 @@ class _AdminScreenState extends State<AdminScreen>
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
     try {
-      final companies = await getAllCompanies();
-      final aiCompanyOrders = await getAllOrdersForAiCompanies();
-      final aiUserOrders = await getAllOrdersForAiUser();
-      final unverifiedProducts = await getAllNonVerifiedProducts();
+      final results = await Future.wait([
+        getAllCompanies(),
+        getAllOrdersForAiCompanies(),
+        getAllOrdersForAiUser(),
+        getAllNonVerifiedProducts(),
+      ]);
+      final companies = results[0] as List<Company>;
+      final aiCompanyOrders = results[1] as List<Order>;
+      final aiUserOrders = results[2] as List<Order>;
+      final unverifiedProducts = results[3] as List<Product>;
 
       setState(() {
         _companies = companies;
@@ -377,6 +383,17 @@ class _AdminScreenState extends State<AdminScreen>
                                                   )
                                                   : 1,
                                             ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                  ElevatedButton.icon(
+                                    icon: const Icon(Icons.verified),
+                                    label: const Text('MakeAI'),
+                                    onPressed: () {
+                                      makeCompanyAi(company.id);
+                                    },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.green,
                                       foregroundColor: Colors.white,
@@ -1821,6 +1838,7 @@ class _AdminScreenState extends State<AdminScreen>
       if (companies.isEmpty) {
         return [];
       }
+      print('Fetched ${companies.length} companies');
       return companies;
     } catch (e) {
       debugPrint('Error fetching companies: $e');
@@ -1834,6 +1852,7 @@ class _AdminScreenState extends State<AdminScreen>
       if (aiCompanies.isEmpty) {
         return [];
       }
+      print('Fetched ${aiCompanies.length} AI company orders');
       return aiCompanies;
     } catch (e) {
       debugPrint('Error fetching AI companies: $e');
@@ -1847,6 +1866,7 @@ class _AdminScreenState extends State<AdminScreen>
       if (aiUsers.isEmpty) {
         return [];
       }
+      print('Fetched ${aiUsers.length} AI user orders');
       return aiUsers;
     } catch (e) {
       debugPrint('Error fetching AI users: $e');
@@ -2142,6 +2162,7 @@ class _AdminScreenState extends State<AdminScreen>
       if (products.isEmpty) {
         return [];
       }
+      print('Fetched ${products.length} non-verified products');
       return products;
     } catch (e) {
       debugPrint('Error fetching non-verified products: $e');
@@ -2238,6 +2259,35 @@ class _AdminScreenState extends State<AdminScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error making company private: $e'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> makeCompanyAi(companyId) async {
+    try {
+      final success = await SupabaseHelper.markCompanyAIOwned(companyId);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Company $companyId set as AI company successfully!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to set company as AI. Please try again.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error setting company as AI: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error setting company as AI: $e'),
           duration: const Duration(seconds: 2),
         ),
       );
