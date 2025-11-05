@@ -9,7 +9,7 @@ import 'package:economycraft/screens/stockmarket/widgets/buy_order_dialog_widget
 import 'package:economycraft/screens/stockmarket/widgets/sell_order_dialog_widget.dart';
 import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/classes/share_changes.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
@@ -47,7 +47,9 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
 
     // Load all data in parallel
     await Future.wait([
-      SupabaseHelper.getShareChanges().then((value) => _shareChanges = value),
+      SupabaseHelper.home.getShareChanges().then(
+        (value) => _shareChanges = value,
+      ),
       getAllPublicCompanies().then((value) => _companies = value),
       getUserBuyOrders().then((value) => _userBuyOrders = value),
     ]);
@@ -921,7 +923,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
   }
 
   Future<List<Share>> getUsersShares() async {
-    return SupabaseHelper.getSharesByUser();
+    return SupabaseHelper.share.getSharesByUser();
   }
 
   Widget _buildInfoRow(String label, String value, {Color? textColor}) {
@@ -976,7 +978,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
         ),
         trailing: IconButton(
           onPressed: () {
-            SupabaseHelper.deleteBuyOrder(buyOrder.id);
+            SupabaseHelper.share.deleteBuyOrder(buyOrder.id);
             setDialogState(() {
               _userBuyOrders.remove(buyOrder);
             });
@@ -1089,7 +1091,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
   }
 
   Future<List<Company>> getAllPublicCompanies() async {
-    final companies = await SupabaseHelper.getAllPublicCompanies();
+    final companies = await SupabaseHelper.company.getAllPublicCompanies();
 
     if (companies != null) {
       return companies;
@@ -1099,12 +1101,12 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
   }
 
   Future<CompanyInfo?> getCompanyInfo(Company company) async {
-    final companyInfo = await SupabaseHelper.getCompanyInfo(company);
+    final companyInfo = await SupabaseHelper.company.getCompanyInfo(company);
     _companyInfoMap[company.name] = companyInfo!;
     return companyInfo;
   }
 
   Future<List<BuyOrder>> getUserBuyOrders() async {
-    return await SupabaseHelper.getUserBuyOrders();
+    return await SupabaseHelper.share.getUserBuyOrders();
   }
 }

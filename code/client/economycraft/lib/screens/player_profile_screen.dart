@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:intl/intl.dart';
 
 class PlayerProfileScreen extends StatefulWidget {
@@ -420,14 +420,14 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
   }
 
   Future<Map<String, dynamic>> getUserData() async {
-    final response = await SupabaseHelper.getUserData();
+    final response = await SupabaseHelper.player.getUserData();
     address = response['delivery_address'];
     imageUrl = response['avatar_url'];
     return response;
   }
 
   Future<void> changeAddress(String newAddress) async {
-    SupabaseHelper.updateUserAddress(newAddress);
+    SupabaseHelper.player.updateUserAddress(newAddress);
     if (context.mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -441,7 +441,7 @@ class _PlayerProfileScreenState extends State<PlayerProfileScreen> {
   }
 
   Future<void> uploadImage() async {
-    final imageUrl = await SupabaseHelper.updateUserProfilePicture();
+    final imageUrl = await SupabaseHelper.storage.updateUserProfilePicture();
     if (mounted) {
       if (imageUrl != null) {
         setState(() {

@@ -2,7 +2,7 @@ import 'package:economycraft/classes/share.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/classes/product.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:economycraft/common_widgets/empty_cart_widget.dart';
@@ -854,7 +854,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
   }
 
   Future<void> _loadAddress() async {
-    final address = await SupabaseHelper.getUserDeliveryAddress();
+    final address = await SupabaseHelper.player.getUserDeliveryAddress();
     _addressController.text = address;
   }
 
@@ -884,7 +884,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
         try {
           final int id = int.parse(productId);
           productIds.add(id);
-          futures.add(SupabaseHelper.getProductById(id));
+          futures.add(SupabaseHelper.product.getProductById(id));
         } catch (e) {
           print('Invalid product ID in cart: $productId');
         }
@@ -932,7 +932,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
       for (String item in items) {
         try {
           final int id = int.parse(item);
-          Share? share = await SupabaseHelper.getShareById(id);
+          Share? share = await SupabaseHelper.share.getShareById(id);
           if (share != null) {
             shares.add(share);
           } else {
@@ -964,7 +964,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
 
     // Check if the user can afford the order
     double total = _calculateSubtotal();
-    double balance = await SupabaseHelper.getUserBalance();
+    double balance = await SupabaseHelper.player.getUserBalance();
     bool canAfford = total <= balance;
     if (!canAfford) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -992,7 +992,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
 
         // Check if the user is the owner of any product in the cart
         for (var productId in productCount.keys) {
-          bool isOwner = await SupabaseHelper.isProductOwner(productId);
+          bool isOwner = await SupabaseHelper.product.isProductOwner(productId);
           if (isOwner) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1004,7 +1004,10 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
           }
         }
 
-        bool success = await SupabaseHelper.createOrder(productCount, address);
+        bool success = await SupabaseHelper.order.createOrder(
+          productCount,
+          address,
+        );
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1023,7 +1026,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
       }
 
       if (shares.isNotEmpty) {
-        bool sharesSucess = await SupabaseHelper.purchaseShares(shares);
+        bool sharesSucess = await SupabaseHelper.share.purchaseShares(shares);
         if (sharesSucess) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

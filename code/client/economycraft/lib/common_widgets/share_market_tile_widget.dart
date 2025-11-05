@@ -1,6 +1,6 @@
 import 'package:economycraft/classes/share.dart';
 import 'package:flutter/material.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -440,7 +440,7 @@ class _ShareTileWidgetState extends State<ShareMarketTileWidget> {
   }
 
   Future<String> _getMinecraftUsername(int userId) async {
-    final response = await SupabaseHelper.getUserByRowId(userId);
+    final response = await SupabaseHelper.player.getUserByRowId(userId);
     return response.name;
   }
 

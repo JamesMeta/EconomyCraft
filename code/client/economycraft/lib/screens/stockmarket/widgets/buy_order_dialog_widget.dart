@@ -1,5 +1,5 @@
 import 'package:economycraft/classes/company_info.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
 import 'package:flutter/material.dart';
 
@@ -556,7 +556,7 @@ class _BuyOrderDialogWidgetState extends State<BuyOrderDialogWidget> {
     final expires,
     final companyShareId,
   ) async {
-    final response = await SupabaseHelper.newBuyOrder(
+    final response = await SupabaseHelper.share.newBuyOrder(
       maximumPrice,
       quantity,
       expires,

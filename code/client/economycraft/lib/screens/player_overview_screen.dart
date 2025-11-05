@@ -1,4 +1,4 @@
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/classes/player.dart';
@@ -542,14 +542,13 @@ class _PlayerOverviewScreenState extends State<PlayerOverviewScreen> {
   }
 
   Future<List<Player>> getAllPlayersNetworth() async {
-    final List<Player> players = await SupabaseHelper.getAllPlayers();
+    final List<Player> players = await SupabaseHelper.player.getAllPlayers();
 
     // Create a list of futures to evaluate assets
     final futures =
         players.map((player) async {
-          final assetValue = await SupabaseHelper.getPlayerAssetEvaluation(
-            player.id,
-          );
+          final assetValue = await SupabaseHelper.player
+              .getPlayerAssetEvaluation(player.id);
           player.money += assetValue;
         }).toList();
 
