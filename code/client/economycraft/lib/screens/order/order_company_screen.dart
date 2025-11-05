@@ -1,7 +1,7 @@
 import 'package:economycraft/classes/company.dart';
 import 'package:flutter/material.dart';
 import 'package:economycraft/classes/order.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:intl/intl.dart';
 
 class OrderCompanyScreen extends StatefulWidget {
@@ -586,22 +586,22 @@ class _OrderCompanyScreenState extends State<OrderCompanyScreen> {
   }
 
   Future<List<Order>> getOrders(int companyId) async {
-    return await SupabaseHelper.getOrdersMadeForCompany(companyId);
+    return await SupabaseHelper.order.getOrdersMadeForCompany(companyId);
   }
 
   Future<List<Company>> getCompanies() async {
-    return await SupabaseHelper.getCompaniesByUser();
+    return await SupabaseHelper.company.getCompaniesByUser();
   }
 
   Future<void> markOrderAsCompleted(Order order) async {
-    await SupabaseHelper.markOrderAsComplete(order);
+    await SupabaseHelper.order.markOrderAsComplete(order);
     setState(() {
       order.complete = true;
     });
   }
 
   Future<void> cancelOrder(Order order) async {
-    await SupabaseHelper.cancelOrderOwner(order, _selectedCompany!.id);
+    await SupabaseHelper.order.cancelOrderOwner(order, _selectedCompany!.id);
     setState(() {
       order.complete = true;
     });

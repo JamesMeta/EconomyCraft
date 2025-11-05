@@ -1,7 +1,7 @@
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/classes/share_changes.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/common_widgets/linegraph_1_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -56,17 +56,27 @@ class _MyHomePageState extends State<MyHomePage>
 
     // Load all data in parallel
     await Future.wait([
-      SupabaseHelper.getUserBalance().then((value) => _userBalance = value),
-      SupabaseHelper.getUserName().then((value) => _userName = value),
-      SupabaseHelper.getUserAvatar().then((value) => _userAvatarUrl = value),
-      SupabaseHelper.getNetworthvsTime().then((value) => _networthData = value),
-      SupabaseHelper.getSnP500PriceHistory().then((value) => _snpData = value),
-      SupabaseHelper.getOrdersForUsersCompanies().then((value) {
+      SupabaseHelper.player.getUserBalance().then(
+        (value) => _userBalance = value,
+      ),
+      SupabaseHelper.player.getUserName().then((value) => _userName = value),
+      SupabaseHelper.player.getUserAvatar().then(
+        (value) => _userAvatarUrl = value,
+      ),
+      SupabaseHelper.home.getNetworthvsTime().then(
+        (value) => _networthData = value,
+      ),
+      SupabaseHelper.home.getSnP500PriceHistory().then(
+        (value) => _snpData = value,
+      ),
+      SupabaseHelper.home.getOrdersForUsersCompanies().then((value) {
         // Filter out completed and received orders
         value.removeWhere((order) => order.complete && order.received);
         _orders = value;
       }),
-      SupabaseHelper.getShareChanges().then((value) => _shareChanges = value),
+      SupabaseHelper.home.getShareChanges().then(
+        (value) => _shareChanges = value,
+      ),
     ]);
 
     // Update UI if component is still mounted
@@ -1415,7 +1425,7 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   Future<bool> isAdmin() async {
-    final response = await SupabaseHelper.isAdmin();
+    final response = await SupabaseHelper.admin.isAdmin();
     print('Is admin: $response');
     return response;
   }

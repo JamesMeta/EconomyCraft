@@ -1,5 +1,5 @@
 import 'package:economycraft/classes/share.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -697,11 +697,11 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
   Future<List<PriceVsTime>> _getPriceVsTimeData() async {
     try {
       if (widget.share.isPublic) {
-        return await SupabaseHelper.getSharePriceHistory(
+        return await SupabaseHelper.share.getSharePriceHistory(
           widget.share!.companyId,
         );
       } else {
-        return await SupabaseHelper.getCompanyPriceHistory(
+        return await SupabaseHelper.share.getCompanyPriceHistory(
           widget.share.company!.id,
           widget.share.stake,
         );
@@ -862,7 +862,9 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
     try {
       widget.share.salePrice = salePrice;
       final List<Share> shareList = [widget.share];
-      final response = await SupabaseHelper.makeSharesPurchasable(shareList);
+      final response = await SupabaseHelper.share.makeSharesPurchasable(
+        shareList,
+      );
 
       if (mounted) {
         setState(() {

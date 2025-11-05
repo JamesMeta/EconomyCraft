@@ -5,7 +5,7 @@ import 'package:economycraft/classes/share.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/common_widgets/product_market_tile_widget.dart';
 import 'package:economycraft/common_widgets/share_market_tile_widget.dart';
 import 'package:economycraft/common_widgets/shopping_cart_widget.dart';
@@ -599,7 +599,9 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
     if (_products.isNotEmpty) return _products;
 
     final companyId = widget.company.id;
-    final response = await SupabaseHelper.getProductsByCompanyId(companyId);
+    final response = await SupabaseHelper.product.getProductsByCompanyId(
+      companyId,
+    );
     _products = response;
     return response;
   }
@@ -608,7 +610,7 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
     if (_shares.isNotEmpty) return _shares;
 
     final companyId = widget.company.id;
-    final response = await SupabaseHelper.getForSaleSharesByCompanyId(
+    final response = await SupabaseHelper.share.getForSaleSharesByCompanyId(
       companyId,
     );
     _shares = response;
@@ -666,14 +668,13 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
 
     try {
       // Fetch stake data
-      final double usersStake = await SupabaseHelper.getPlayersCompanyStake(
-        await SupabaseHelper.getPlayerId(),
-        widget.company.id,
-      );
-      final double ownerStake = await SupabaseHelper.getPlayersCompanyStake(
-        widget.company.userId,
-        widget.company.id,
-      );
+      final double usersStake = await SupabaseHelper.company
+          .getPlayersCompanyStake(
+            await SupabaseHelper.player.getPlayerId(),
+            widget.company.id,
+          );
+      final double ownerStake = await SupabaseHelper.company
+          .getPlayersCompanyStake(widget.company.userId, widget.company.id);
 
       // Close loading indicator
       if (context.mounted) Navigator.of(context).pop();
@@ -930,7 +931,9 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
     );
 
     try {
-      final response = await SupabaseHelper.takeOverCompany(widget.company.id);
+      final response = await SupabaseHelper.company.takeOverCompany(
+        widget.company.id,
+      );
 
       // Close loading dialog
       if (context.mounted) Navigator.of(context).pop();
@@ -990,7 +993,7 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
 
   Future<CompanyShare> _fetchCompanyStock() async {
     try {
-      final share = await SupabaseHelper.getCompanyShareByCompanyId(
+      final share = await SupabaseHelper.share.getCompanyShareByCompanyId(
         widget.company.id,
       );
       return share;
@@ -1006,9 +1009,9 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
 
       final share = await _fetchCompanyStock();
       if (share.isPublic) {
-        return await SupabaseHelper.getSharePriceHistory(share.companyId);
+        return await SupabaseHelper.share.getSharePriceHistory(share.companyId);
       } else {
-        return await SupabaseHelper.getCompanyPriceHistory(
+        return await SupabaseHelper.share.getCompanyPriceHistory(
           share.companyId,
           100 / share.numberOfShares,
         );

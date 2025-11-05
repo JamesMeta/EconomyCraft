@@ -1,6 +1,6 @@
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/share.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -1299,15 +1299,15 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
 
   // Keep existing methods for data fetching
   Future<double> getUsersValue() async {
-    return await SupabaseHelper.getUsersAssetEvaluation();
+    return await SupabaseHelper.player.getUsersAssetEvaluation();
   }
 
   Future<List<Share>?> getUsersShares() async {
-    return await SupabaseHelper.getSharesByUser();
+    return await SupabaseHelper.share.getSharesByUser();
   }
 
   Future<List<Company>> getUsersCompanies() async {
-    return await SupabaseHelper.getCompaniesByUser();
+    return await SupabaseHelper.company.getCompaniesByUser();
   }
 
   Future<void> quickSell() async {
@@ -1318,7 +1318,7 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
   }
 
   Future<void> makeSharesPurchasable() async {
-    final response = await SupabaseHelper.makeSharesPurchasable(
+    final response = await SupabaseHelper.share.makeSharesPurchasable(
       _selectedShares,
     );
 
@@ -1351,7 +1351,7 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
   }
 
   Future<void> makeSharesUnPurchasable() async {
-    final response = await SupabaseHelper.makeSharesUnpurchasable(
+    final response = await SupabaseHelper.share.makeSharesUnpurchasable(
       _selectedShares,
     );
 
@@ -1392,9 +1392,9 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
   Future<List<PriceVsTime>> _getPriceVsTimeData(share) async {
     try {
       if (share.isPublic) {
-        return await SupabaseHelper.getSharePriceHistory(share.companyId);
+        return await SupabaseHelper.share.getSharePriceHistory(share.companyId);
       } else {
-        return await SupabaseHelper.getCompanyPriceHistory(
+        return await SupabaseHelper.share.getCompanyPriceHistory(
           share.company!.id,
           share.stake,
         );
