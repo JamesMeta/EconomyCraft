@@ -1,4 +1,4 @@
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -509,7 +509,7 @@ class _MakeNewCompanyScreenState extends State<MakeNewCompanyScreen> {
       isLoading = true;
     });
 
-    final avatarUrl = await SupabaseHelper.addCompanyAvatar();
+    final avatarUrl = await SupabaseHelper.storage.addCompanyAvatar();
 
     if (!mounted) return;
 
@@ -548,17 +548,19 @@ class _MakeNewCompanyScreenState extends State<MakeNewCompanyScreen> {
       }
 
       // Check for existing lot number and company name
-      final validLot = await SupabaseHelper.checkForLotNumber(lotNumberInt);
+      final validLot = await SupabaseHelper.company.checkForLotNumber(
+        lotNumberInt,
+      );
       if (!mounted) return;
 
-      final validCompanyName = await SupabaseHelper.checkForCompanyName(
+      final validCompanyName = await SupabaseHelper.company.checkForCompanyName(
         companyName,
       );
       if (!mounted) return;
 
       if (validLot && validCompanyName) {
         // Create the company in the database
-        await SupabaseHelper.createCompany(
+        await SupabaseHelper.company.createCompany(
           companyName,
           slogan,
           companyAvatarUrl,

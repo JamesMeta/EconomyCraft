@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/common_widgets/company_tile_widget.dart';
 import 'package:economycraft/common_widgets/shopping_cart_widget.dart';
@@ -371,7 +371,7 @@ class _MarketScreenState extends State<MarketScreen> {
   }
 
   Future<List<Company>> getCompanies() async {
-    final companies = await SupabaseHelper.getCompanies();
+    final companies = await SupabaseHelper.company.getCompanies();
     return companies;
   }
 }
