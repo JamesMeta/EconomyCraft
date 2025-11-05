@@ -1,7 +1,7 @@
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/product.dart';
 import 'package:economycraft/classes/company.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -403,19 +403,19 @@ class _OrderUserScreenState extends State<OrderUserScreen> {
   }
 
   Future<List<Order>> getOrders() async {
-    final userRowId = await SupabaseHelper.getPlayerId();
-    return await SupabaseHelper.getOrdersMadeByUser(userRowId);
+    final userRowId = await SupabaseHelper.player.getPlayerId();
+    return await SupabaseHelper.order.getOrdersMadeByUser(userRowId);
   }
 
   Future<void> markOrderAsReceived(Order order) async {
-    await SupabaseHelper.markOrderAsReceived(order.id);
+    await SupabaseHelper.order.markOrderAsReceived(order.id);
     setState(() {
       order.received = true;
     });
   }
 
   Future<void> cancelOrder(Order order) async {
-    await SupabaseHelper.cancelOrderUser(order.id);
+    await SupabaseHelper.order.cancelOrderUser(order.id);
     setState(() {
       order.complete = true;
     });

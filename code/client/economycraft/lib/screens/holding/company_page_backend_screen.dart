@@ -4,7 +4,7 @@ import 'package:economycraft/classes/player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/classes/product.dart';
 import 'package:economycraft/common_widgets/product_tile_widget.dart';
 import 'package:economycraft/common_widgets/new_product_button_widget.dart';
@@ -52,7 +52,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
   Future<void> _updateShareDetails() async {
     if (widget.company == null) return;
 
-    final List<Share> share = await SupabaseHelper.getSharesByCompanyId(
+    final List<Share> share = await SupabaseHelper.share.getSharesByCompanyId(
       widget.company!.id,
     );
 
@@ -845,7 +845,10 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   Future<void> _updateCompanyName(String newName) async {
     if (widget.company != null) {
-      await SupabaseHelper.updateCompanyName(widget.company!.id, newName);
+      await SupabaseHelper.company.updateCompanyName(
+        widget.company!.id,
+        newName,
+      );
       setState(() {
         widget.company!.name = newName;
       });
@@ -860,7 +863,10 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   Future<void> _updateCompanySlogan(String newSlogan) async {
     if (widget.company != null) {
-      await SupabaseHelper.updateCompanySlogan(widget.company!.id, newSlogan);
+      await SupabaseHelper.company.updateCompanySlogan(
+        widget.company!.id,
+        newSlogan,
+      );
       setState(() {
         widget.company!.slogan = newSlogan;
       });
@@ -875,7 +881,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   Future<void> _updateCompanyAvatar() async {
     if (widget.company != null) {
-      final url = await SupabaseHelper.updateCompanyAvatar(widget.company!.id);
+      final url = await SupabaseHelper.storage.updateCompanyAvatar(
+        widget.company!.id,
+      );
       setState(() {
         widget.company!.avatarUrl = url ?? widget.company!.avatarUrl;
       });
@@ -890,7 +898,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   Future<void> _updateCompanyPublicStatus(bool isPublic) async {
     if (widget.company != null) {
-      await SupabaseHelper.updateCompanyPublicStatus(
+      await SupabaseHelper.company.updateCompanyPublicStatus(
         widget.company!.id,
         isPublic,
       );
@@ -909,9 +917,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
   }
 
   void showMakePublicStatusDialog() async {
-    final requiredShareBreakdown =
-        await SupabaseHelper.getMinecraftUsernamesForShareSplitRequirementByUser(
-          await SupabaseHelper.getShareSplitRequirementByUser(
+    final requiredShareBreakdown = await SupabaseHelper.company
+        .getMinecraftUsernamesForShareSplitRequirementByUser(
+          await SupabaseHelper.company.getShareSplitRequirementByUser(
             widget.company!.id,
           ),
         );
@@ -1142,9 +1150,8 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                               isloading = true;
                             });
 
-                            final bool isPublic = await SupabaseHelper.goPublic(
-                              widget.company!.id,
-                            );
+                            final bool isPublic = await SupabaseHelper.company
+                                .goPublic(widget.company!.id);
 
                             setStateDialog(() {
                               isloading = false;
@@ -1224,7 +1231,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  final bool isPrivate = await SupabaseHelper.goPrivate(
+                  final bool isPrivate = await SupabaseHelper.company.goPrivate(
                     widget.company!.id,
                   );
                   Navigator.of(context).pop();
@@ -1257,7 +1264,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   Future<List<Product>> _getProducts() async {
     if (widget.company != null) {
-      return await SupabaseHelper.getProductsByCompanyId(widget.company!.id);
+      return await SupabaseHelper.product.getProductsByCompanyId(
+        widget.company!.id,
+      );
     }
     return [];
   }
@@ -1390,9 +1399,8 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     );
 
     // Fetch current share data
-    final CompanyShare share = await SupabaseHelper.getCompanyShareByCompanyId(
-      widget.company!.id,
-    );
+    final CompanyShare share = await SupabaseHelper.share
+        .getCompanyShareByCompanyId(widget.company!.id);
 
     // Close loading indicator
     Navigator.of(context).pop();
@@ -1963,7 +1971,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
       return;
     }
 
-    final response = await SupabaseHelper.splitSharePublic(
+    final response = await SupabaseHelper.share.splitSharePublic(
       widget.company!.id,
       splitFactor,
     );
@@ -1980,7 +1988,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   Future<CompanyShare> _fetchCompanyStock() async {
     try {
-      final share = await SupabaseHelper.getCompanyShareByCompanyId(
+      final share = await SupabaseHelper.share.getCompanyShareByCompanyId(
         widget.company!.id,
       );
       return share;
@@ -1994,9 +2002,11 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     try {
       final share = await _fetchCompanyStock();
       if (share.isPublic) {
-        return await SupabaseHelper.getSharePriceHistory(share!.companyId);
+        return await SupabaseHelper.share.getSharePriceHistory(
+          share!.companyId,
+        );
       } else {
-        return await SupabaseHelper.getCompanyPriceHistory(
+        return await SupabaseHelper.share.getCompanyPriceHistory(
           share.companyId,
           1 / share.numberOfShares,
         );
@@ -2009,7 +2019,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
   Future<Map<Player, double>> _getInvestors() async {
     try {
-      final investors = await SupabaseHelper.getInvestorsForCompany(
+      final investors = await SupabaseHelper.share.getInvestorsForCompany(
         widget.company!.id,
       );
       return investors;
@@ -2229,7 +2239,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                                   });
 
                                                   final url =
-                                                      await SupabaseHelper.addProductAvatar();
+                                                      await SupabaseHelper
+                                                          .storage
+                                                          .addProductAvatar();
 
                                                   setDialogState(() {
                                                     _avatarUrl = url ?? '';
@@ -2568,7 +2580,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
         return;
       }
 
-      await SupabaseHelper.addProductToCompany(
+      await SupabaseHelper.product.addProductToCompany(
         widget.company!.id,
         _nameController.text,
         _descriptionController.text,

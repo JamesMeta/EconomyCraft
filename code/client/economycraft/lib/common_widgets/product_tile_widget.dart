@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:economycraft/classes/product.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:intl/intl.dart';
 
 class ProductTileWidget extends StatefulWidget {
@@ -675,7 +675,7 @@ class _ProductTileWidgetState extends State<ProductTileWidget> {
 
   Future<void> _updateProduct() async {
     try {
-      await SupabaseHelper.updateProduct(
+      await SupabaseHelper.product.updateProduct(
         widget.product.id,
         _nameController.text,
         _descriptionController.text,
@@ -711,7 +711,7 @@ class _ProductTileWidgetState extends State<ProductTileWidget> {
 
   Future<void> _deleteProduct() async {
     try {
-      await SupabaseHelper.deleteProduct(widget.product.id);
+      await SupabaseHelper.product.deleteProduct(widget.product.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

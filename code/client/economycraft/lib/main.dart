@@ -23,7 +23,7 @@ import 'package:economycraft/screens/holding/sell_holding_screen.dart';
 import 'package:economycraft/screens/server_info_screen.dart';
 import 'package:economycraft/screens/withdrawl_deposit_funds_screen.dart';
 import 'package:economycraft/screens/admin_screen.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/screens/out_of_date_screen.dart';
 
 const supabaseUrl = 'https://ylgfgklcypqtbqrkhsba.supabase.co';
@@ -86,7 +86,7 @@ final GoRouter _router = GoRouter(
           },
           redirect: (context, state) async {
             // Check if the user has admin privileges
-            final isAdmin = await SupabaseHelper.isAdmin();
+            final isAdmin = await SupabaseHelper.admin.isAdmin();
 
             // If the user is not an admin, redirect to home
             if (!isAdmin) {
@@ -179,7 +179,8 @@ final GoRouter _router = GoRouter(
         ),
       ],
       redirect: (context, state) async {
-        final String version = await SupabaseHelper.getCurrentVersion();
+        final String version =
+            await SupabaseHelper.versioning.getCurrentVersion();
         if (version != appVersion) {
           return '/out_of_date';
         }

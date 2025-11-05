@@ -2,7 +2,7 @@ import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/product.dart';
 import 'package:flutter/material.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:file_picker/file_picker.dart';
 
 class AdminScreen extends StatefulWidget {
@@ -119,7 +119,7 @@ class _AdminScreenState extends State<AdminScreen>
   Future<void> _pickCompanyAvatar() async {
     setState(() => _isLoading = true);
     try {
-      final url = await SupabaseHelper.addCompanyAvatar();
+      final url = await SupabaseHelper.storage.addCompanyAvatar();
       if (url.isNotEmpty) {
         setState(() => _companyAvatarUrl = url);
       } else {
@@ -160,7 +160,7 @@ class _AdminScreenState extends State<AdminScreen>
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await SupabaseHelper.makeNewUserRows();
+              await SupabaseHelper.admin.makeNewUserRows();
             },
             tooltip: 'Attempt to make new user rows',
           ),
@@ -537,7 +537,7 @@ class _AdminScreenState extends State<AdminScreen>
   Future<void> _pickProductImage() async {
     setState(() => _isLoading = true);
     try {
-      final url = await SupabaseHelper.addProductAvatar();
+      final url = await SupabaseHelper.storage.addProductAvatar();
       if (url != null && url.isNotEmpty) {
         setState(() => _productImageUrl = url);
       } else {
@@ -1834,7 +1834,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<List<Company>> getAllCompanies() async {
     try {
-      final companies = await SupabaseHelper.getAllCompanies();
+      final companies = await SupabaseHelper.admin.getAllCompanies();
       if (companies.isEmpty) {
         return [];
       }
@@ -1848,7 +1848,8 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<List<Order>> getAllOrdersForAiCompanies() async {
     try {
-      final aiCompanies = await SupabaseHelper.getAllOrdersForAiCompanies();
+      final aiCompanies =
+          await SupabaseHelper.admin.getAllOrdersForAiCompanies();
       if (aiCompanies.isEmpty) {
         return [];
       }
@@ -1862,7 +1863,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<List<Order>> getAllOrdersForAiUser() async {
     try {
-      final aiUsers = await SupabaseHelper.getAllOrdersForAiUsers();
+      final aiUsers = await SupabaseHelper.admin.getAllOrdersForAiUsers();
       if (aiUsers.isEmpty) {
         return [];
       }
@@ -1883,7 +1884,7 @@ class _AdminScreenState extends State<AdminScreen>
     int userId,
   ) async {
     try {
-      final success = await SupabaseHelper.createCompany(
+      final success = await SupabaseHelper.company.createCompany(
         name,
         slogan,
         companyAvatarUrl,
@@ -1964,7 +1965,7 @@ class _AdminScreenState extends State<AdminScreen>
     String avatarUrl,
   ) async {
     try {
-      await SupabaseHelper.addProductToCompany(
+      await SupabaseHelper.product.addProductToCompany(
         companyId,
         name,
         description,
@@ -1992,7 +1993,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> verifyCompany(int companyId, int visibilityFactor) async {
     try {
-      final success = await SupabaseHelper.verifyCompany(
+      final success = await SupabaseHelper.admin.verifyCompany(
         companyId,
         visibilityFactor,
       );
@@ -2027,7 +2028,7 @@ class _AdminScreenState extends State<AdminScreen>
     int visibilityFactor,
   ) async {
     try {
-      final success = await SupabaseHelper.setCompanyVisibilityFactor(
+      final success = await SupabaseHelper.admin.setCompanyVisibilityFactor(
         companyId,
         visibilityFactor,
       );
@@ -2061,7 +2062,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> markOrderDelivered(Order order) async {
     try {
-      await SupabaseHelper.markOrderAsComplete(order);
+      await SupabaseHelper.order.markOrderAsComplete(order);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Order ${order.id} marked as delivered successfully!'),
@@ -2081,7 +2082,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> markOrderReceived(Order order) async {
     try {
-      await SupabaseHelper.markOrderAsReceived(order.id);
+      await SupabaseHelper.order.markOrderAsReceived(order.id);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Order ${order.id} marked as received successfully!'),
@@ -2101,7 +2102,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> cancelOrder(Order order) async {
     try {
-      await SupabaseHelper.cancelOrderUser(order.id);
+      await SupabaseHelper.order.cancelOrderUser(order.id);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Order ${order.id} cancelled successfully!'),
@@ -2125,7 +2126,7 @@ class _AdminScreenState extends State<AdminScreen>
     bool isImportant,
   ) async {
     try {
-      final success = await SupabaseHelper.createAdminMessage(
+      final success = await SupabaseHelper.admin.createAdminMessage(
         title,
         content,
         isImportant,
@@ -2158,7 +2159,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<List<Product>> getAllNonVerifiedProducts() async {
     try {
-      final products = await SupabaseHelper.getAllNonVerifiedProducts();
+      final products = await SupabaseHelper.admin.getAllNonVerifiedProducts();
       if (products.isEmpty) {
         return [];
       }
@@ -2176,7 +2177,7 @@ class _AdminScreenState extends State<AdminScreen>
     double nicheCoefficient,
   ) async {
     try {
-      final success = await SupabaseHelper.verifyProduct(
+      final success = await SupabaseHelper.admin.verifyProduct(
         productId,
         value,
         nicheCoefficient,
@@ -2209,7 +2210,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> makeCompanyPublic(companyId) async {
     try {
-      final success = await SupabaseHelper.goPublic(companyId);
+      final success = await SupabaseHelper.company.goPublic(companyId);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2238,7 +2239,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> makeCompanyPrivate(companyId) async {
     try {
-      final success = await SupabaseHelper.goPrivate(companyId);
+      final success = await SupabaseHelper.company.goPrivate(companyId);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2267,7 +2268,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> makeCompanyAi(companyId) async {
     try {
-      final success = await SupabaseHelper.markCompanyAIOwned(companyId);
+      final success = await SupabaseHelper.admin.markCompanyAIOwned(companyId);
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2296,7 +2297,7 @@ class _AdminScreenState extends State<AdminScreen>
 
   Future<void> splitPublicShares(companyId, splitFactor) async {
     try {
-      final success = await SupabaseHelper.splitSharePublic(
+      final success = await SupabaseHelper.share.splitSharePublic(
         companyId,
         splitFactor,
       );

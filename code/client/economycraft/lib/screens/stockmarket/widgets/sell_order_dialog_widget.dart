@@ -1,7 +1,7 @@
 import 'package:economycraft/classes/company_info.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
 
 class SellOrderDialogWidget extends StatefulWidget {
@@ -875,7 +875,7 @@ class _SellOrderDialogWidgetState extends State<SellOrderDialogWidget> {
   }
 
   Future<void> createSellOrder(double Function(int x) f, int quantity) async {
-    if (!await SupabaseHelper.sellOrderPreCheck(
+    if (!await SupabaseHelper.share.sellOrderPreCheck(
       quantity,
       widget.companyInfo.share.companyShareId,
     )) {
@@ -892,7 +892,7 @@ class _SellOrderDialogWidgetState extends State<SellOrderDialogWidget> {
       return;
     }
 
-    final response = await SupabaseHelper.newSellOrder(
+    final response = await SupabaseHelper.share.newSellOrder(
       f,
       quantity,
       widget.companyInfo.share.companyShareId,

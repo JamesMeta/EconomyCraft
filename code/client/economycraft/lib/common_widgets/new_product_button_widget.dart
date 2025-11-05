@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:economycraft/services/supabase_helper.dart';
+import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/classes/product.dart';
 
 class NewProductButtonWidget extends StatefulWidget {
@@ -247,7 +247,9 @@ class _NewProductButtonWidgetState extends State<NewProductButtonWidget> {
                                                   });
 
                                                   final url =
-                                                      await SupabaseHelper.addProductAvatar();
+                                                      await SupabaseHelper
+                                                          .storage
+                                                          .addProductAvatar();
 
                                                   setDialogState(() {
                                                     _avatarUrl = url ?? '';
@@ -586,7 +588,7 @@ class _NewProductButtonWidgetState extends State<NewProductButtonWidget> {
         return;
       }
 
-      await SupabaseHelper.addProductToCompany(
+      await SupabaseHelper.product.addProductToCompany(
         widget.companyId,
         _nameController.text,
         _descriptionController.text,
