@@ -1,3 +1,4 @@
+from calendar import c
 from supabase import create_client, Client
 from classes.administration import Administration
 import schedule
@@ -6,8 +7,8 @@ import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 import os
 import random
-from rich import print
 import datetime
+from rich import print
 
 if (__name__ == "__main__"):
 
@@ -20,23 +21,18 @@ if (__name__ == "__main__"):
 
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-
-    
     def job():
         admin = Administration(supabase)
-        admin.__buy_order_init__()
-        admin.service_buy_orders()
+        admin.__stock_init__()
+        admin.make_ai_share_orders()
+        
+
     
     counter = 0
     
-    while True:
-        job()
-        time.sleep(60)
-        
-        if counter % 60 == 0:
-            print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Buy Order Manager ---------- [/bright_green]")
-        
-        counter += 1
+    job()
+
+
 
         
     
