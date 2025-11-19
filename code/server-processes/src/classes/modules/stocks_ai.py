@@ -1,3 +1,4 @@
+from calendar import c
 import datetime
 import random
 
@@ -61,7 +62,6 @@ class StocksAI:
         
         self.trade_helper = TradeHelper(supabase=supabase)
         
-        self.current_shares = self.get_current_available_shares()    
 
     def make_ai_share_orders(self):
 
@@ -74,7 +74,7 @@ class StocksAI:
             task = progress.add_task("[grey50]AI Share Trading Simulation...", total=len(user_copies))
 
             for user in user_copies:
-                try:
+                #try:
                     
                     self.logger.count_user(user)
                     
@@ -115,7 +115,7 @@ class StocksAI:
                     # Share's that the bot doesn't exceed their diversity constant for
                     #--------------------------------------------
                     
-                    shares = self.filter_current_shares(user, user_owned_shares, self.current_shares, portfolio["SHARE_ASSETS"])
+                    potential_company_shares_to_buy = self.filter_current_shares(user, user_owned_shares, self.company_shares, portfolio["SHARE_ASSETS"])
                 
                     #--------------------------------------------
                     # Score shares based on bot's constants
@@ -126,7 +126,7 @@ class StocksAI:
                     # Randomness
                     #--------------------------------------------  
                 
-                    scores = self.score_shares(user, shares, user_company_statistics_maps, **user.strategy_weights)     
+                    scores = self.score_shares(user, potential_company_shares_to_buy, user_company_statistics_maps, **user.strategy_weights)     
                     
                     self.logger.log_users_wins(scores, user)             
                 
@@ -134,15 +134,15 @@ class StocksAI:
                     # Buy shares based on sorted scores
                     #--------------------------------------------  
                     
-                    self.purchase_shares(user, scores, portfolio, shares)
+                    self.purchase_shares(user, scores, portfolio, potential_company_shares_to_buy)
                             
                     
                     progress.update(task, advance=1)
                         
-                except Exception as e:
-                    print(f"[bold red underline][{datetime.datetime.now().replace(second=0, microsecond=0)}] AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red underline]")
-                    progress.update(task, advance=1)
-                    continue
+                # except Exception as e:
+                #     print(f"[bold red underline][{datetime.datetime.now().replace(second=0, microsecond=0)}] AI {user.minecraft_username} encountered an error while making share orders: {e} [/bold red underline]")
+                #     progress.update(task, advance=1)
+                #     continue
             
             self.logger.calculate_averages()
     
@@ -328,7 +328,7 @@ class StocksAI:
         return networth_invested > user.percentage_of_networth_to_invest, portfolio
     
 
-    def filter_current_shares(self, user: T_user, user_owned_shares: list[Share], all_shares: list[Share], user_share_asset_total: float) -> dict[int, Share]:
+    def filter_current_shares(self, user: T_user, user_owned_shares: list[Share], company_shares: list[CompanyShare], user_share_asset_total: float) -> list[CompanyShare]:
         
         diversity_requirement = user.diversity_minimum
         
@@ -345,18 +345,18 @@ class StocksAI:
             if share_totals[share.company_share.id] / user_share_asset_total > diversity_requirement and share.company_share.id not in invalid_share_list:
                 invalid_share_list.append(share.company_share.id)
         
-        filtered_shares : dict[int, Share] = {}
+        filtered_shares : list[CompanyShare] = []
         
-        for share in all_shares:
-            if share.company_share.id in invalid_share_list or share.company_share.id in filtered_shares:
+        for company_share in company_shares:
+            if company_share.id in invalid_share_list or company_share.id in filtered_shares:
                 continue
             else:
-                filtered_shares[share.company_share.id] = share
+                filtered_shares.append(company_share)
         
         return filtered_shares
     
 
-    def score_shares(self,user: T_user, shares: dict[int, Share],
+    def score_shares(self,user: T_user, company_shares: list[CompanyShare],
                      user_companies_statistics_maps: dict[str, dict[int, Any]],
                      TREND_ANALYSIS: float,
                      REPUTATION: float,
@@ -387,9 +387,9 @@ class StocksAI:
         
         scores: dict[int, float] = {}
         
-        for company_share_id, share in shares.items():
+        for company_share in company_shares:
             
-            company_id = share.company.id
+            company_id = company_share.company_id
             
             trend_analysis_line: LineOfBestFit = user_companies_trend_analysis_map[company_id]
             performance_line: LineOfBestFit = user_companies_performance_map[company_id]
@@ -427,7 +427,7 @@ class StocksAI:
                 "TOTAL_SCORE" : trend_analysis_weight + performance_weight + reputation_weight + share_performance_weight + value_estimation_weight - volatility_weight
                 }
             
-            self.logger.log_users_scores(score_map, user, share.company.name)
+            self.logger.log_users_scores(score_map, user, self.company_map[company_id].name)
             
             score = trend_analysis_weight + performance_weight + reputation_weight + share_performance_weight + value_estimation_weight - volatility_weight
             
@@ -435,7 +435,7 @@ class StocksAI:
         
         return scores
             
-    def purchase_shares(self, user: T_user, scores: dict[int, float], portfolio: dict[str, float], shares: dict[int, Share]) -> None:
+    def purchase_shares(self, user: T_user, scores: dict[int, float], portfolio: dict[str, float], company_shares: list[CompanyShare]) -> None:
         
         items_sorted = sorted(scores.items(), key = lambda k: k[SECOND], reverse = True)
         
@@ -445,8 +445,8 @@ class StocksAI:
         
         share_to_buy = None
         
-        for share in shares.values():
-            if share.company.id == company_id_to_buy:
+        for share in company_shares:
+            if share.company_id == company_id_to_buy:
                 share_to_buy = share
                 break
         
@@ -464,46 +464,46 @@ class StocksAI:
         if max_amount_to_invest_into_one_stock < max_amount_to_invest_currently:
             max_amount_to_invest_currently = max_amount_to_invest_into_one_stock
         
-        quanitity_of_shares_to_buy = int(max_amount_to_invest_currently // (share_to_buy.company_share.value * 1.1) )
+        quanitity_of_shares_to_buy = int(max_amount_to_invest_currently // (share_to_buy.value * 1.1) )
         
         if quanitity_of_shares_to_buy <= 0:
-            print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they cannot afford to purchase a share for {share_to_buy.company.name}[/yellow]")
+            print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they cannot afford to purchase a share for {self.company_map[share_to_buy.company_id].name}[/yellow]")
             return
         
-        current_buy_orders = self.trade_helper.get_buy_orders_for_share(share_to_buy.company_share.id)
+        current_buy_orders = self.trade_helper.get_buy_orders_for_share(share_to_buy.id)
         
         current_user_buy_orders = list(filter(lambda x: x.user_id == user.id, current_buy_orders))
         
         if len(current_user_buy_orders) > 0:
-            print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they already have a buy order for {share_to_buy.company.name}[/yellow]")
+            print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they already have a buy order for {self.company_map[share_to_buy.company_id].name}[/yellow]")
             return 
         
         buy_order_price = self.decide_buy_order_max_price(share_to_buy, current_buy_orders)
         
         time_plus_one = datetime.datetime.now() + datetime.timedelta(hours=1)
         
-        buy_order = BuyOrder(id = 0, created_at = "", expires_at = time_plus_one.isoformat(), company_share_id = share_to_buy.company_share.id, user_id = user.id, order_maximum = buy_order_price, order_quantity = quanitity_of_shares_to_buy)
+        buy_order = BuyOrder(id = 0, created_at = "", expires_at = time_plus_one.isoformat(), company_share_id = share_to_buy.id, user_id = user.id, order_maximum = buy_order_price, order_quantity = quanitity_of_shares_to_buy)
         
         user.place_buy_order(buy_order=buy_order)
         
-        print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} placed a buy order for {share_to_buy.company.name} at ${buy_order.order_maximum} with {buy_order.order_quantity} quantity[/bright_green]")
+        print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} placed a buy order for {self.company_map[share_to_buy.company_id].name} at ${buy_order.order_maximum} with {buy_order.order_quantity} quantity[/bright_green]")
         
         
         
-    def decide_buy_order_max_price(self, share: Share, current_buy_orders: list[BuyOrder]) -> float:
+    def decide_buy_order_max_price(self, company_share: CompanyShare, current_buy_orders: list[BuyOrder]) -> float:
         
         if current_buy_orders:
         
             most_expensive_order = current_buy_orders[FIRST].order_maximum
             
-            if most_expensive_order / share.company_share.value > 1.1:
-                return share.company_share.value * 1.1
+            if most_expensive_order / company_share.value > 1.1:
+                return company_share.value * 1.1
             
             else:
                 return most_expensive_order * 1.01
         
         else:
-            return share.company_share.value 
+            return company_share.value 
 
     def get_current_available_shares(self) -> list[CompanyShare]:
         
