@@ -27,6 +27,7 @@ if (__name__ == "__main__"):
         admin.__product_init__()
         admin.make_ai_orders()
         admin.complete_all_ai_orders()
+        admin.modify_ai_companies_reputations()
  
     schedule.every(8).hours.do(job)
  
