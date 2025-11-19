@@ -3,8 +3,6 @@ from re import L
 
 from supabase import Client
 from classes.classes.buy_order import BuyOrder
-from classes.classes.company import Company
-from classes.classes.company_share import CompanyShare
 from classes.classes.share import Share
 from rich import print
 import datetime
@@ -61,7 +59,7 @@ class BuyOrderManager:
     def service_buy_orders(self) -> None:
         
         if not self.buy_orders:
-            return 
+            return
         
         current_time = datetime.datetime.now().isoformat()
         
@@ -80,22 +78,9 @@ class BuyOrderManager:
         
     
     def attempt_to_fulfill_order(self, order: BuyOrder) -> None:
-        shares_response = self.supabase.table("shares").select("*, company_share:share_id (id, value, company_id, is_public, number_of_shares)").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
-        share_data = shares_response.data
+        shares_response = self.supabase.table("shares").select("*, company_share:share_id (id, value, is_public, number_of_shares)").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
         
-        available_shares = [Share(id = share_data["id"],
-                                  stake = share_data["stake"],
-                                  purchased_price=share_data["purchased_price"],
-                                  company_share=CompanyShare(share_data['company_share']['id'],
-                                               share_data['company_share']['company_id'],
-                                               share_data['company_share']['value'],
-                                               share_data['company_share']['number_of_shares'],
-                                               share_data['company_share']['is_public'],),
-                                  purchasable=share_data["purchasable"],
-                                  user_id=share_data["user_id"],
-                                  sale_price=share_data["sale_price"],
-                                  company=Company(None, None, None, None, None, None, None, None, None)
-                                  ) for share_data in shares_response.data]
+        available_shares = [Share(share_data["id"], share_data["share_id"], share_data["stake"], share_data["purchased_price"], share_data['company_share']['value'], share_data["purchasable"], share_data["user_id"], share_data['company_share']['is_public'], share_data["sale_price"], share_data['company_share']['id']) for share_data in shares_response.data]
         
         filtered_available_shares = filter(lambda x: x.user_id != order.user_id, available_shares)
          

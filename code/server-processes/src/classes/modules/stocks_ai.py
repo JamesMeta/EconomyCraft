@@ -10,7 +10,6 @@ from supabase import Client
 from classes.classes import data_log
 from classes.classes.buy_order import BuyOrder
 from classes.classes.company import Company
-from classes.classes.company_share import CompanyShare
 from classes.classes.data_log import DataLog
 from classes.classes.line_of_best_fit import LineOfBestFit
 from classes.classes.share import Share
@@ -34,8 +33,6 @@ class StocksAI:
         self, 
         supabase: Client,
         users: list[T_user],
-        all_shares: list[Share],
-        company_shares: list[CompanyShare],
         company_map: dict[int, Company], 
         company_performance_maps: dict[int, dict[int, LineOfBestFit]] ,
         company_reputation_maps: dict[int, dict[int, LineOfBestFit]], 
@@ -48,8 +45,6 @@ class StocksAI:
 
         self.supabase = supabase
         self.users = users
-        self.all_shares = all_shares
-        self.company_shares = company_shares
         self.company_map = company_map
         self.company_performance_maps = company_performance_maps
         self.company_reputation_maps = company_reputation_maps
@@ -247,7 +242,7 @@ class StocksAI:
         
         def evalutate_position(share: Share, user: T_user, user_company_statistics_maps: dict[str, dict[int, LineOfBestFit]]) -> str:
             
-            value = share.company_share.value
+            value = share.value
             purchased_price = share.purchased_price
             purchasable = share.purchasable
             sale_price = share.sale_price
@@ -337,21 +332,21 @@ class StocksAI:
         
         for share in user_owned_shares:
             
-            if share.company_share.id in share_totals:
-                share_totals[share.company_share.id] = share.company_share.value + share_totals[share.company_share.id]
+            if share.company_share_id in share_totals:
+                share_totals[share.company_share_id] = share.value + share_totals[share.company_share_id]
             else:
-                share_totals[share.company_share.id] = share.company_share.value
+                share_totals[share.company_share_id] = share.value
             
-            if share_totals[share.company_share.id] / user_share_asset_total > diversity_requirement and share.company_share.id not in invalid_share_list:
-                invalid_share_list.append(share.company_share.id)
+            if share_totals[share.company_share_id] / user_share_asset_total > diversity_requirement and share.company_share_id not in invalid_share_list:
+                invalid_share_list.append(share.company_share_id)
         
         filtered_shares : dict[int, Share] = {}
         
         for share in all_shares:
-            if share.company_share.id in invalid_share_list or share.company_share.id in filtered_shares:
+            if share.company_share_id in invalid_share_list or share.company_share_id in filtered_shares:
                 continue
             else:
-                filtered_shares[share.company_share.id] = share
+                filtered_shares[share.company_share_id] = share
         
         return filtered_shares
     
@@ -464,13 +459,13 @@ class StocksAI:
         if max_amount_to_invest_into_one_stock < max_amount_to_invest_currently:
             max_amount_to_invest_currently = max_amount_to_invest_into_one_stock
         
-        quanitity_of_shares_to_buy = int(max_amount_to_invest_currently // (share_to_buy.company_share.value * 1.1) )
+        quanitity_of_shares_to_buy = int(max_amount_to_invest_currently // (share_to_buy.value * 1.1) )
         
         if quanitity_of_shares_to_buy <= 0:
             print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they cannot afford to purchase a share for {share_to_buy.company.name}[/yellow]")
             return
         
-        current_buy_orders = self.trade_helper.get_buy_orders_for_share(share_to_buy.company_share.id)
+        current_buy_orders = self.trade_helper.get_buy_orders_for_share(share_to_buy.company_share_id)
         
         current_user_buy_orders = list(filter(lambda x: x.user_id == user.id, current_buy_orders))
         
@@ -482,7 +477,7 @@ class StocksAI:
         
         time_plus_one = datetime.datetime.now() + datetime.timedelta(hours=1)
         
-        buy_order = BuyOrder(id = 0, created_at = "", expires_at = time_plus_one.isoformat(), company_share_id = share_to_buy.company_share.id, user_id = user.id, order_maximum = buy_order_price, order_quantity = quanitity_of_shares_to_buy)
+        buy_order = BuyOrder(id = 0, created_at = "", expires_at = time_plus_one.isoformat(), company_share_id = share_to_buy.company_share_id, user_id = user.id, order_maximum = buy_order_price, order_quantity = quanitity_of_shares_to_buy)
         
         user.place_buy_order(buy_order=buy_order)
         
@@ -496,33 +491,120 @@ class StocksAI:
         
             most_expensive_order = current_buy_orders[FIRST].order_maximum
             
-            if most_expensive_order / share.company_share.value > 1.1:
-                return share.company_share.value * 1.1
+            if most_expensive_order / share.value > 1.1:
+                return share.value * 1.1
             
             else:
                 return most_expensive_order * 1.01
         
         else:
-            return share.company_share.value 
+            return share.value
 
-    def get_current_available_shares(self) -> list[CompanyShare]:
+    def get_company_stock_for_sale(self, company_id: int) -> Optional[Share]:
+
+        response = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("company_id", company_id).eq("purchasable", True).execute()
+        shares = response.data
         
-        return self.company_shares
+        if not shares or len(shares) == 0:
+            return None
+            
+        # Find the lowest priced share
+        lowest_price_share = min(shares, key=lambda x: x['sale_price'])
+
+        company_share = lowest_price_share['company_share']
+        
+        return Share(
+            id = lowest_price_share['id'],
+            company = self.company_map[company_id],
+            stake = lowest_price_share['stake'],
+            purchased_price = lowest_price_share['purchased_price'],
+            value = company_share['value'],
+            purchasable = lowest_price_share['purchasable'],
+            user_id = lowest_price_share['user_id'],
+            is_public = company_share['is_public'],
+            sale_price = lowest_price_share['sale_price'],
+            company_share_id=company_share['id']
+        )    
+
+    def get_shares_by_company_share_id(self, share_id: int, company_share) -> Optional[Share]:
+
+        response = self.supabase.table("shares").select("*").eq("share_id", share_id).limit(1).single().execute()
+
+        share_data = response.data
     
-    def get_user_owned_shares(self, user_id) -> list[Share]:
+        try:
+            share = Share(
+                id=share_data['id'],
+                company=self.company_map[company_share['company_id']],
+                stake=share_data['stake'],
+                purchased_price=share_data['purchased_price'],
+                value= company_share['value'],
+                purchasable=share_data['purchasable'],
+                user_id=share_data['user_id'],
+                is_public= company_share['is_public'],
+                sale_price=share_data['sale_price'],
+                company_share_id=company_share['id']
+                
+            )
+            
+            return share
+        except:
+            return None
 
-        user_shares = list(filter(lambda x: x.user_id == user_id, self.all_shares))
+    def get_current_available_shares(self) -> list[Share]:
+
+        response = self.supabase.table("company_share").select("*").eq("is_public", True).execute()
+        shares = response.data
+
+        share_list: list[Share] = []
+        for share in shares:
+
+            # Get the share details
+            share_object = self.get_shares_by_company_share_id(share['id'], share)
+            
+            if share_object == None:
+                continue
+            
+            share_list.append(share_object)
         
+        return share_list
+    
+    def get_user_owned_shares(self, user_id) -> list:
+
+        response = self.supabase.table("shares").select("*, company_share:share_id (id, value, is_public, number_of_shares)").eq("user_id", user_id).execute()
+        shares = response.data
+        user_shares = []
+        for share in shares:
+            company_share = share['company_share']
+            company = self.company_map[share['company_id']]
+            if not company or company_share['is_public'] is False:
+                continue
+            
+            share_object = Share(
+                id=share['id'],
+                company=company,
+                stake=share['stake'],
+                purchased_price=share['purchased_price'],
+                value= company_share['value'],
+                purchasable=share['purchasable'],
+                user_id=share['user_id'],
+                is_public = company_share['is_public'],
+                sale_price=share['sale_price'],
+                company_share_id=company_share['id']
+            )
+            user_shares.append(share_object)
         return user_shares
 
     def get_user_networth_breakdown(self, user: T_user) -> dict[str, float]:
 
-        shares = self.get_user_owned_shares(user.id)
+        response_shares = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("user_id", user.id).execute()
+        shares = response_shares.data
 
         liquid_assets = user.money
         share_assets = 0.0
         for share in shares:
-            share_assets += share.company_share.value
+            company_share = share['company_share'] 
+            share_assets += company_share['value'] 
             
         
         networth = liquid_assets + share_assets
