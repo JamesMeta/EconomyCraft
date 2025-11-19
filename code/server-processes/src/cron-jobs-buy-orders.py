@@ -30,13 +30,16 @@ if (__name__ == "__main__"):
     counter = 0
     
     while True:
-        job()
-        time.sleep(1)
-        
-        if counter % 60 == 0:
-            print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Buy Order Manager ---------- [/bright_green]")
-        
-        counter += 1
+        try:
+            job()
+            time.sleep(60)
+            
+            if counter % 60 == 0:
+                print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Buy Order Manager ---------- [/bright_green]")
+            
+            counter += 1
+        except Exception as e:
+            print(f"[bold red underline]Error in Buy Order Manager cron job: {e}[/bold red underline]")
 
         
     
