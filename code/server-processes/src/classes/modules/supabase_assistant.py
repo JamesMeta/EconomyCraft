@@ -3,6 +3,8 @@ import random
 from typing import Any
 
 from supabase import Client
+from classes.classes.company_share import CompanyShare
+from classes.classes.share import Share
 from classes.subAi.james import James
 from classes.subAi.emily import Emily
 from classes.subAi.spencer import Spencer
@@ -21,6 +23,7 @@ class SupabaseAssistant:
         self.supabase = supabase
         self.users: list[T_user] = self.get_all_users()
         self.company_map = self.build_company_map()
+        self.all_shares, self.company_shares = self.get_all_stocks()
 
 
     def make_new_company_shares_purchaseable(self, company_id, proportion_of_shares) -> None:
@@ -251,3 +254,53 @@ class SupabaseAssistant:
                 progress.advance(task, advance=1)
         
         return company_map
+    
+    # returns a list of all shares and a list of one share for each company representing a company share
+    def get_all_stocks(self) -> tuple[list[Share], list[CompanyShare]]:
+        response = (
+            self.supabase
+                .from_("shares")
+                .select(
+                    "*, company_share:share_id (id, value, is_public, number_of_shares), users!inner(ai)"
+                )
+                .eq("users.ai", True)
+                .execute()
+        )
+        
+        
+        shares = response.data
+        total_shares = []
+        company_shares = []
+        for share in shares:
+            company_share = share['company_share']
+            company = self.company_map[share['company_id']]
+            if not company or company_share['is_public'] is False:
+                continue
+            company_share_object = CompanyShare(
+                id = company_share["id"],
+                value = company_share["value"],
+                number_of_shares = company_share["number_of_shares"],
+                company_id= company.id,
+                is_public=company_share["is_public"]
+            )
+            
+            share_object = Share(
+                id=share['id'],
+                company=company,
+                stake=share['stake'],
+                purchased_price=share['purchased_price'],
+                purchasable=share['purchasable'],
+                user_id=share['user_id'],
+                sale_price=share['sale_price'],
+                company_share=company_share_object,
+            )
+            
+            if company_share_object not in company_shares:
+                company_shares.append(company_share_object)
+            
+            total_shares.append(share_object)
+        
+        return total_shares, company_shares
+            
+            
+        
