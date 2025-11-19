@@ -26,8 +26,6 @@ class Administration:
         self.stocks_ai = StocksAI(
                 self.supabase, 
                 self.supabase_assistant.users, 
-                self.supabase_assistant.all_shares,
-                self.supabase_assistant.company_shares,
                 self.supabase_assistant.company_map, 
                 self.performance.company_performance_maps, 
                 self.performance.company_reputation_maps, 
