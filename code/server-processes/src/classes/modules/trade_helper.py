@@ -42,7 +42,7 @@ class TradeHelper:
             return buy_orders
     
     def get_share_last_sold_for_value(self, share: Share):
-        response = self.supabase.table("company_share").select("value").eq("id", share.company_share.id).execute()
+        response = self.supabase.table("company_share").select("value").eq("id", share.company_share_id).execute()
         data = response.data
         return data[0]["value"]
     
@@ -53,7 +53,7 @@ class TradeHelper:
         
         # If no shares on market, use the share's intrinsic value
         if not shares or len(shares) == 0:
-            return share.company_share.value
+            return share.value
             
         # Find the lowest priced share and undercut it
         lowest_price_share = min(shares, key=lambda x: x['sale_price'])
@@ -78,7 +78,7 @@ class TradeHelper:
     # If none are found it will price near the last sold price for slightly less
     def sell_now(self, user: AI, share: Share) -> None:
         
-        buy_orders = self.get_buy_orders_for_share(share_id=share.company_share.id)
+        buy_orders = self.get_buy_orders_for_share(share_id=share.company_share_id)
         
         if self.is_valid_buy_orders(share=share, buy_orders=buy_orders, last_sale_price_margin=0.9):
             
@@ -96,7 +96,7 @@ class TradeHelper:
     # If none are found it will price near the last sold price for slightly more
     def sell_gain(self, user: AI, share: Share) -> None:
     
-        buy_orders = self.get_buy_orders_for_share(share_id=share.company_share.id)
+        buy_orders = self.get_buy_orders_for_share(share_id=share.company_share_id)
         
         if self.is_valid_buy_orders(share=share, buy_orders=buy_orders, last_sale_price_margin=0.985):
             
