@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
-import 'package:flutter/widgets.dart';
 
 const appVersion = '1.4';
 
@@ -61,6 +60,7 @@ class _OutOfDateScreenState extends State<OutOfDateScreen> {
   void isOutOfDate() async {
     final String version = await SupabaseHelper.versioning.getCurrentVersion();
     if (version == appVersion) {
+      if (!mounted) return;
       context.go('/home');
     }
   }

@@ -672,13 +672,6 @@ class _MakeNewCompanyScreenState extends State<MakeNewCompanyScreen> {
           ),
           actions: <Widget>[
             ElevatedButton(
-              child: const Text(
-                'Return to My Holdings',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromARGB(255, 23, 221, 97),
                 shape: RoundedRectangleBorder(
@@ -692,6 +685,13 @@ class _MakeNewCompanyScreenState extends State<MakeNewCompanyScreen> {
               onPressed: () {
                 context.go('/home/holdings');
               },
+              child: const Text(
+                'Return to My Holdings',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );

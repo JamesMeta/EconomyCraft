@@ -289,13 +289,13 @@ class SupabaseAdmin {
 
   Future<List<Order>> getAllOrdersForAiUsers() async {
     try {
-      final AiUsers = await _client.from('users').select().eq('ai', true);
-      if (AiUsers.isEmpty) {
+      final aiUsers = await _client.from('users').select().eq('ai', true);
+      if (aiUsers.isEmpty) {
         developer.log('No AI users found');
         return [];
       }
       final List<Future<List<Order>>> futures =
-          AiUsers.map((user) {
+          aiUsers.map((user) {
             return getOrdersMadeByUserAdmin(user['id']);
           }).toList();
       final List<List<Order>> nestedOrders = await Future.wait(futures);

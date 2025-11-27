@@ -37,18 +37,18 @@ class SupabaseStorage {
           final url = _client.storage
               .from(bucket)
               .getPublicUrl('public/$uniqueFileName');
-          print('Image uploaded: $url');
+          developer.log('Image uploaded: $url');
           return url;
         } else {
-          print('Upload failed');
+          developer.log('Upload failed');
           return null;
         }
       } else {
-        print('No file selected or file data is null');
+        developer.log('No file selected or file data is null');
         return null;
       }
     } catch (e) {
-      print('Error picking or uploading file: $e');
+      developer.log('Error picking or uploading file: $e');
       return null;
     }
   }

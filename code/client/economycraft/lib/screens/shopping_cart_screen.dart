@@ -6,6 +6,7 @@ import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:economycraft/common_widgets/empty_cart_widget.dart';
+import 'dart:developer' as developer;
 
 class ShoppingCartScreen extends StatefulWidget {
   const ShoppingCartScreen({super.key});
@@ -239,6 +240,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                                               currencyFormat: currencyFormat,
                                             );
                                           }
+                                          return null;
                                         },
                                       ),
                                     ),
@@ -886,7 +888,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
           productIds.add(id);
           futures.add(SupabaseHelper.product.getProductById(id));
         } catch (e) {
-          print('Invalid product ID in cart: $productId');
+          developer.log('Invalid product ID in cart: $productId');
         }
       }
 
@@ -911,7 +913,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
 
       return loadedProducts;
     } catch (e, stackTrace) {
-      print('Error fetching products: $e\n$stackTrace');
+      developer.log('Error fetching products: $e\n$stackTrace');
       // Return whatever we have - empty list or previously loaded products
       return products;
     }
@@ -933,20 +935,16 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
         try {
           final int id = int.parse(item);
           Share? share = await SupabaseHelper.share.getShareById(id);
-          if (share != null) {
-            shares.add(share);
-          } else {
-            print('Share not found for ID: $id');
-          }
+          shares.add(share);
         } catch (e) {
-          print('Invalid share ID in cart: $item');
+          developer.log('Invalid share ID in cart: $item');
         }
       }
       // Update the shares list
       this.shares = shares;
       return shares;
     } catch (e, stackTrace) {
-      print('Error fetching products: $e\n$stackTrace');
+      developer.log('Error fetching products: $e\n$stackTrace');
       // Return whatever we have - empty list or previously loaded products
       return [];
     }
@@ -967,6 +965,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
     double balance = await SupabaseHelper.player.getUserBalance();
     bool canAfford = total <= balance;
     if (!canAfford) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Insufficient balance to place the order'),
@@ -994,6 +993,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
         for (var productId in productCount.keys) {
           bool isOwner = await SupabaseHelper.product.isProductOwner(productId);
           if (isOwner) {
+            if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('You cannot order your own product'),
@@ -1009,6 +1009,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
           address,
         );
         if (success) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Order placed successfully'),
@@ -1016,6 +1017,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
             ),
           );
         } else {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Failed to place order'),
@@ -1028,6 +1030,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
       if (shares.isNotEmpty) {
         bool sharesSucess = await SupabaseHelper.share.purchaseShares(shares);
         if (sharesSucess) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Shares purchased successfully'),
@@ -1035,6 +1038,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
             ),
           );
         } else {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Failed to purchase shares'),

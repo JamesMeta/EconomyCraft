@@ -162,7 +162,9 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                       borderRadius: BorderRadius.circular(12.0),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           blurRadius: 10,
                                           offset: const Offset(0, 5),
                                         ),
@@ -312,7 +314,9 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                       borderRadius: BorderRadius.circular(12.0),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           blurRadius: 10,
                                           offset: const Offset(0, 5),
                                         ),
@@ -433,7 +437,9 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                       borderRadius: BorderRadius.circular(12.0),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           blurRadius: 10,
                                           offset: const Offset(0, 5),
                                         ),
@@ -842,7 +848,10 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     return Container(
       decoration: BoxDecoration(
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Material(

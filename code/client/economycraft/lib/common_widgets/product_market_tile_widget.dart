@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:economycraft/classes/product.dart';
-import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -224,7 +223,7 @@ class _ProductTileWidgetState extends State<ProductMarketTileWidget> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: const Color.fromARGB(25, 0, 0, 0),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),

@@ -184,6 +184,7 @@ final GoRouter _router = GoRouter(
         if (version != appVersion) {
           return '/out_of_date';
         }
+        return null;
       },
     ),
     GoRoute(

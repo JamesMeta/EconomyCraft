@@ -682,13 +682,13 @@ class SupabaseCompany {
     }
 
     try {
-      final user_table_id = await SupabaseHelper.player.getPlayerId();
+      final userTableId = await SupabaseHelper.player.getPlayerId();
 
       final response =
           await _client
               .from('companies')
               .select('id')
-              .eq('user_id', user_table_id)
+              .eq('user_id', userTableId)
               .eq('id', companyId)
               .limit(1)
               .single();

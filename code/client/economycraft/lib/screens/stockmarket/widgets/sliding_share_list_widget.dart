@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/classes/share_changes.dart';
 import 'package:intl/intl.dart';
 
@@ -17,7 +16,6 @@ class _SlidingShareListWidgetState extends State<SlidingShareListWidget> {
   int startIndex = 0;
   Timer? _timer;
   final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
-  List<ShareChanges> _shareChanges = List.empty(growable: true);
   late final List<List<ShareChanges>> _chunks;
 
   @override
@@ -75,7 +73,7 @@ class _SlidingShareListWidgetState extends State<SlidingShareListWidget> {
                         borderRadius: BorderRadius.circular(12.0),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
+                            color: Colors.black.withValues(alpha: 0.15),
                             blurRadius: 10,
                             //offset: const Offset(5, 10),
                           ),

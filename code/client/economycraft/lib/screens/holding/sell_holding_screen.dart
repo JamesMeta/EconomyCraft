@@ -2,7 +2,6 @@ import 'package:economycraft/classes/share.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:economycraft/common_widgets/linegraph_1_widget.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:intl/intl.dart';
@@ -662,12 +661,7 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
             backgroundColor: const Color.fromARGB(255, 23, 221, 97),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            disabledBackgroundColor: const Color.fromARGB(
-              255,
-              23,
-              221,
-              97,
-            ).withOpacity(0.5),
+            disabledBackgroundColor: const Color.fromARGB(128, 23, 221, 97),
           ),
         ),
       ],
@@ -691,14 +685,14 @@ class _SellHoldingScreenState extends State<SellHoldingScreen> {
     double profitPercentage = (profit / widget.share.purchasePrice) * 100;
 
     String sign = profit >= 0 ? '+' : '';
-    return '$sign${currencyFormat.format(profit)} (${sign}${profitPercentage.toStringAsFixed(2)}%)';
+    return '$sign${currencyFormat.format(profit)} ($sign${profitPercentage.toStringAsFixed(2)}%)';
   }
 
   Future<List<PriceVsTime>> _getPriceVsTimeData() async {
     try {
       if (widget.share.isPublic) {
         return await SupabaseHelper.share.getSharePriceHistory(
-          widget.share!.companyId,
+          widget.share.companyId,
         );
       } else {
         return await SupabaseHelper.share.getCompanyPriceHistory(
