@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:economycraft/classes/buy_order.dart';
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/company_info.dart';
@@ -15,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 import 'package:economycraft/screens/stockmarket/widgets/sliding_share_list_widget.dart';
+import 'package:economycraft/screens/stockmarket/widgets/view_buy_order_dialog_widget.dart';
 
 class StockMarketScreen extends StatefulWidget {
   const StockMarketScreen({super.key, shareChanges});
@@ -32,7 +31,6 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
   final List<List<ShareChanges>> chunks = [];
   late final List<List<PriceVsTime>> _data = [];
   late final Map<String, CompanyInfo> _companyInfoMap = {};
-  late List<BuyOrder> _userBuyOrders = [];
 
   int _buttonState = 0;
   late Company? _selectedCompany;
@@ -51,7 +49,6 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
         (value) => _shareChanges = value,
       ),
       getAllPublicCompanies().then((value) => _companies = value),
-      getUserBuyOrders().then((value) => _userBuyOrders = value),
     ]);
 
     _selectedCompanyInfo = (await getCompanyInfo(_companies.first))!;
@@ -669,7 +666,29 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                                               BuildContext
                                                               context,
                                                             ) {
-                                                              return _viewbuyOrderDialog();
+                                                              return FutureBuilder(
+                                                                future:
+                                                                    getUserBuyOrders(),
+                                                                builder: (
+                                                                  context,
+                                                                  snapshot,
+                                                                ) {
+                                                                  if (snapshot
+                                                                      .hasData) {
+                                                                    final orders =
+                                                                        snapshot
+                                                                            .data!;
+                                                                    return ViewBuyOrderDialogWidget(
+                                                                      companyInfoMap:
+                                                                          _companyInfoMap,
+                                                                      userBuyOrders:
+                                                                          orders,
+                                                                    );
+                                                                  } else {
+                                                                    return _loadingDialog();
+                                                                  }
+                                                                },
+                                                              );
                                                             },
                                                           );
                                                         },
@@ -946,98 +965,16 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     );
   }
 
-  Widget _buyOrderListItem(
-    BuyOrder buyOrder,
-    void Function(void Function()) setDialogState,
-  ) {
-    CompanyInfo? companyInfo;
+  Widget _loadingDialog() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    _companyInfoMap.forEach((key, value) {
-      if (value.share.companyShareId == buyOrder.companyShareId) {
-        companyInfo = value;
-      }
-    });
-
-    if (companyInfo == null) {
-      return ListTile();
-    } else {
-      return ListTile(
-        leading: Image(
-          height: 40,
-          width: 40,
-          image: NetworkImage(companyInfo!.company.avatarUrl),
-        ),
-        title: Text(companyInfo!.company.name),
-        subtitle: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text("Target Price: \$${buyOrder.maximumSharePrice.toString()}"),
-            SizedBox(width: 16),
-            Text("Remaining Quantity: ${buyOrder.orderQuality.toString()}"),
-          ],
-        ),
-        trailing: IconButton(
-          onPressed: () {
-            SupabaseHelper.share.deleteBuyOrder(buyOrder.id);
-            setDialogState(() {
-              _userBuyOrders.remove(buyOrder);
-            });
-          },
-          icon: Icon(Icons.delete),
-        ),
-      );
-    }
-  }
-
-  Widget _viewbuyOrderDialog() {
-    return StatefulBuilder(
-      builder: (context, viewBuyDialogSetState) {
-        final screenHeight = MediaQuery.of(context).size.height;
-        final screenWidth = MediaQuery.of(context).size.width;
-
-        return AlertDialog(
-          content: SizedBox(
-            width: screenWidth * (1 / 3),
-            height: screenHeight * (3 / 4),
-            child: Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Currently Active Buy Orders",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Divider(),
-                      SizedBox(height: 8),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: _userBuyOrders.length,
-                          itemBuilder: (context, index) {
-                            return _buyOrderListItem(
-                              _userBuyOrders[index],
-                              viewBuyDialogSetState,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+    return AlertDialog(
+      content: SizedBox(
+        width: screenWidth * (1 / 3),
+        height: screenHeight * (3 / 4),
+        child: Center(child: CircularProgressIndicator()),
+      ),
     );
   }
 
