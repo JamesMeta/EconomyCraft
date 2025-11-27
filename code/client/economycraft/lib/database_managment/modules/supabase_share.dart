@@ -5,7 +5,7 @@ import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/classes/share.dart';
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/buy_order.dart';
-import 'package:economycraft/classes/companyShare.dart';
+import 'package:economycraft/classes/company_share.dart';
 import 'package:economycraft/classes/player.dart';
 
 class SupabaseShare {
@@ -436,10 +436,6 @@ class SupabaseShare {
               price: (price['evaluation']?.toDouble()) * stake ?? 0.0,
             );
           }).toList();
-
-      // Add the current price to the history
-      final currentEvaluation =
-          companyResponse[0]['evaluation']?.toDouble() ?? 0.0;
       return priceHistory;
     } catch (e) {
       developer.log('Error fetching company price history: $e');
@@ -549,16 +545,11 @@ class SupabaseShare {
       // Convert user IDs to Player objects
       final Map<Player, double> playerInvestors = {};
       for (var entry in investors.entries) {
-        final userId = entry.key;
         final stake = entry.value;
 
         // Fetch player details
         final player = await SupabaseHelper.player.getUserByRowId(entry.key);
-        if (player != null) {
-          playerInvestors[player] = stake; // Map Player to stake
-        } else {
-          developer.log('Error: Player not found for user ID: $userId');
-        }
+        playerInvestors[player] = stake; // Map Player to stake
       }
       return playerInvestors;
     } catch (e) {

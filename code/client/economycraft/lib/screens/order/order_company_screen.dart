@@ -613,24 +613,22 @@ class CompanyOrderCard extends StatelessWidget {
   final Order order;
   final VoidCallback onTap;
   final VoidCallback onMarkComplete;
-  late bool isComplete;
   final bool isReceived;
   final bool isDelivered;
 
-  CompanyOrderCard({
-    Key? key,
+  const CompanyOrderCard({
+    super.key,
     required this.order,
     required this.onTap,
     required this.onMarkComplete,
     required this.isReceived,
     required this.isDelivered,
-  }) : super(key: key) {
-    isComplete = isReceived && isDelivered;
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM d, yyyy');
+    final isComplete = isReceived && isDelivered;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -809,11 +807,11 @@ class CompanyOrderDetailsDialog extends StatelessWidget {
   final VoidCallback? onCancelOrder;
 
   const CompanyOrderDetailsDialog({
-    Key? key,
+    super.key,
     required this.order,
     required this.onMarkComplete,
     this.onCancelOrder,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -2,6 +2,7 @@ import 'package:economycraft/classes/company_info.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 
 class BuyOrderDialogWidget extends StatefulWidget {
   final CompanyInfo companyInfo;
@@ -109,7 +110,7 @@ class _BuyOrderDialogWidgetState extends State<BuyOrderDialogWidget> {
                                       MainAxisAlignment.spaceAround,
                                   children: [
                                     Text(
-                                      "$companyName",
+                                      companyName,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
@@ -206,7 +207,7 @@ class _BuyOrderDialogWidgetState extends State<BuyOrderDialogWidget> {
                                         double.parse(value) *
                                         double.parse(amountController.text);
 
-                                    print(total);
+                                    developer.log(total as String);
 
                                     setState(() {
                                       totalController.text = total
@@ -271,7 +272,7 @@ class _BuyOrderDialogWidgetState extends State<BuyOrderDialogWidget> {
                                         double.parse(value) *
                                         double.parse(priceController.text);
 
-                                    print(total);
+                                    developer.log(total as String);
 
                                     setState(() {
                                       totalController.text = total
@@ -336,6 +337,7 @@ class _BuyOrderDialogWidgetState extends State<BuyOrderDialogWidget> {
 
                                   if (pickedDate == null) return;
                                   // Then pick the time
+                                  if (!context.mounted) return;
                                   final TimeOfDay? pickedTime =
                                       await showTimePicker(
                                         context: context,
@@ -521,6 +523,7 @@ class _BuyOrderDialogWidgetState extends State<BuyOrderDialogWidget> {
                                 setState(() {
                                   isLoading = false;
                                 });
+                                if (!context.mounted) return;
                                 Navigator.pop(context);
                               },
                               child:

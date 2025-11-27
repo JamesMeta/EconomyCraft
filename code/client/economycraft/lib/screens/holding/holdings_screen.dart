@@ -1011,8 +1011,6 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
             : 0.0;
     final isProfit = share.value >= share.purchasePrice;
 
-    final TextEditingController splitController = TextEditingController();
-
     showDialog(
       context: context,
       builder: (context) {
@@ -1030,7 +1028,7 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          content: Container(
+          content: SizedBox(
             width: 500,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1323,6 +1321,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
     );
 
     if (response) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Shares placed on the market!'),
@@ -1341,6 +1341,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
         _selectedShares = [];
       });
     } else {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to place shares on the market.'),
@@ -1356,6 +1358,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
     );
 
     if (response) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Shares removed from the market!'),
@@ -1374,6 +1378,8 @@ class _HoldingsScreenState extends State<HoldingsScreen> {
         _selectedShares = [];
       });
     } else {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to remove shares from the market.'),

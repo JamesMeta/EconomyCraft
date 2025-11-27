@@ -1,5 +1,5 @@
 import 'package:economycraft/classes/company.dart';
-import 'package:economycraft/classes/companyShare.dart';
+import 'package:economycraft/classes/company_share.dart';
 import 'package:economycraft/classes/product.dart';
 import 'package:economycraft/classes/share.dart';
 import 'package:flutter/material.dart';
@@ -533,7 +533,7 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
                           _isbuilt = true;
                           return Linegraph2Widget(
                             title: 'Share Price History',
-                            subtitle: '${widget.company!.name}',
+                            subtitle: widget.company.name,
                             data: snapshot.data!,
                             xAxisLabel: 'Time',
                             yAxisLabel: 'Price',
@@ -543,7 +543,7 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
                     )
                     : Linegraph2Widget(
                       title: 'Share Price History',
-                      subtitle: '${widget.company!.name} ',
+                      subtitle: '${widget.company.name} ',
                       data: _priceVsTimeData,
                       xAxisLabel: 'Time',
                       yAxisLabel: 'Price',
@@ -575,23 +575,6 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
           );
         }
       },
-    );
-  }
-
-  Widget _manageCompanyButton() {
-    return ElevatedButton(
-      onPressed: () {
-        // Navigate to company management screen
-        context.go('/home/market/company_page/backend', extra: widget.company);
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromARGB(255, 23, 221, 97),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-      ),
-      child: const Text(
-        'Manage Company',
-        style: TextStyle(color: Colors.white),
-      ),
     );
   }
 
@@ -677,9 +660,9 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
           .getPlayersCompanyStake(widget.company.userId, widget.company.id);
 
       // Close loading indicator
-      if (context.mounted) Navigator.of(context).pop();
+      if (!mounted) return;
 
-      if (!context.mounted) return;
+      Navigator.of(context).pop();
 
       final currencyFormat = NumberFormat.percentPattern();
 
@@ -704,7 +687,7 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
             ),
-            content: Container(
+            content: SizedBox(
               width: 400,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -936,14 +919,16 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
       );
 
       // Close loading dialog
-      if (context.mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+
+      Navigator.of(context).pop();
 
       if (response) {
         setState(() {
           isOwner = true;
         });
 
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Row(

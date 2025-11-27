@@ -67,11 +67,6 @@ class SupabaseHome {
           )
           .eq('share_id', companyShareId)
           .limit(1);
-      if (response == null) {
-        throw Exception(
-          'Share not found for company share ID: $companyShareId',
-        );
-      }
       final responseData = response[0];
 
       final companyShareData = responseData['company_share'];
@@ -168,7 +163,7 @@ class SupabaseHome {
           shareChanges.add(
             ShareChanges(
               share: share,
-              latestValue: latestPrice ?? 0.0,
+              latestValue: latestPrice,
               previousValue: previousPrice ?? 0.0,
               change: change,
             ),

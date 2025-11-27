@@ -3,7 +3,7 @@ import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/classes/product.dart';
 import 'package:flutter/material.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
-import 'package:file_picker/file_picker.dart';
+import 'dart:developer' as developer;
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -538,7 +538,7 @@ class _AdminScreenState extends State<AdminScreen>
     setState(() => _isLoading = true);
     try {
       final url = await SupabaseHelper.storage.addProductAvatar();
-      if (url != null && url.isNotEmpty) {
+      if (url.isNotEmpty) {
         setState(() => _productImageUrl = url);
       } else {
         _showErrorSnackbar('Failed to upload product image');
@@ -726,7 +726,7 @@ class _AdminScreenState extends State<AdminScreen>
                             return;
                           }
 
-                          CreateCompanyForUser(
+                          createCompanyForUser(
                             _companyNameController.text,
                             _companyDescriptionController.text,
                             _companyAvatarUrl,
@@ -1838,7 +1838,7 @@ class _AdminScreenState extends State<AdminScreen>
       if (companies.isEmpty) {
         return [];
       }
-      print('Fetched ${companies.length} companies');
+      developer.log('Fetched ${companies.length} companies');
       return companies;
     } catch (e) {
       debugPrint('Error fetching companies: $e');
@@ -1853,7 +1853,7 @@ class _AdminScreenState extends State<AdminScreen>
       if (aiCompanies.isEmpty) {
         return [];
       }
-      print('Fetched ${aiCompanies.length} AI company orders');
+      developer.log('Fetched ${aiCompanies.length} AI company orders');
       return aiCompanies;
     } catch (e) {
       debugPrint('Error fetching AI companies: $e');
@@ -1867,7 +1867,7 @@ class _AdminScreenState extends State<AdminScreen>
       if (aiUsers.isEmpty) {
         return [];
       }
-      print('Fetched ${aiUsers.length} AI user orders');
+      developer.log('Fetched ${aiUsers.length} AI user orders');
       return aiUsers;
     } catch (e) {
       debugPrint('Error fetching AI users: $e');
@@ -1875,7 +1875,7 @@ class _AdminScreenState extends State<AdminScreen>
     }
   }
 
-  Future<void> CreateCompanyForUser(
+  Future<void> createCompanyForUser(
     String name,
     String slogan,
     String companyAvatarUrl,
@@ -1894,29 +1894,35 @@ class _AdminScreenState extends State<AdminScreen>
       );
       if (success) {
         //snackBar to show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Company $name created successfully!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Company $name created successfully!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       } else {
         //snackBar to show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to create company. Please try again.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to create company. Please try again.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error creating company: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating company: $e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating company: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -1941,13 +1947,15 @@ class _AdminScreenState extends State<AdminScreen>
         _unverifiedProducts = results[3] as List<Product>;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('All data refreshed successfully'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All data refreshed successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       _showErrorSnackbar('Error refreshing data: $e');
     } finally {
@@ -1974,20 +1982,24 @@ class _AdminScreenState extends State<AdminScreen>
         minecraftTag,
         avatarUrl,
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Product $name created successfully!'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Product $name created successfully!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error creating product: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating product: $e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating product: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -1998,28 +2010,34 @@ class _AdminScreenState extends State<AdminScreen>
         visibilityFactor,
       );
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Company $companyId verified successfully!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Company $companyId verified successfully!'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to verify company. Please try again.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to verify company. Please try again.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error verifying company: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error verifying company: $e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error verifying company: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -2033,84 +2051,105 @@ class _AdminScreenState extends State<AdminScreen>
         visibilityFactor,
       );
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Company visibility updated successfully!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Failed to update company visibility. Please try again.',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Company visibility updated successfully!'),
+              duration: const Duration(seconds: 2),
             ),
-            duration: Duration(seconds: 2),
-          ),
-        );
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Failed to update company visibility. Please try again.',
+              ),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error updating company visibility: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error updating company visibility: $e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating company visibility: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
   Future<void> markOrderDelivered(Order order) async {
     try {
       await SupabaseHelper.order.markOrderAsComplete(order);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Order ${order.id} marked as delivered successfully!'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Order ${order.id} marked as delivered successfully!',
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error marking order as delivered: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error marking order as delivered: $e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error marking order as delivered: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
   Future<void> markOrderReceived(Order order) async {
     try {
       await SupabaseHelper.order.markOrderAsReceived(order.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Order ${order.id} marked as received successfully!'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order ${order.id} marked as received successfully!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error marking order as received: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error marking order as received: $e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error marking order as received: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
   Future<void> cancelOrder(Order order) async {
     try {
       await SupabaseHelper.order.cancelOrderUser(order.id);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Order ${order.id} cancelled successfully!'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order ${order.id} cancelled successfully!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error cancelling order: $e');
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error cancelling order: $e'),
@@ -2132,6 +2171,8 @@ class _AdminScreenState extends State<AdminScreen>
         isImportant,
       );
       if (success) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Admin message "$title" created successfully!'),
@@ -2139,6 +2180,8 @@ class _AdminScreenState extends State<AdminScreen>
           ),
         );
       } else {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to create admin message. Please try again.'),
@@ -2163,7 +2206,7 @@ class _AdminScreenState extends State<AdminScreen>
       if (products.isEmpty) {
         return [];
       }
-      print('Fetched ${products.length} non-verified products');
+      developer.log('Fetched ${products.length} non-verified products');
       return products;
     } catch (e) {
       debugPrint('Error fetching non-verified products: $e');
@@ -2183,6 +2226,8 @@ class _AdminScreenState extends State<AdminScreen>
         nicheCoefficient,
       );
       if (success) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Product $productId verified successfully!'),
@@ -2190,6 +2235,8 @@ class _AdminScreenState extends State<AdminScreen>
           ),
         );
       } else {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to verify product. Please try again.'),
@@ -2212,6 +2259,8 @@ class _AdminScreenState extends State<AdminScreen>
     try {
       final success = await SupabaseHelper.company.goPublic(companyId);
       if (success) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Company $companyId made public successfully!'),
@@ -2219,6 +2268,8 @@ class _AdminScreenState extends State<AdminScreen>
           ),
         );
       } else {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to make company public. Please try again.'),
@@ -2241,6 +2292,8 @@ class _AdminScreenState extends State<AdminScreen>
     try {
       final success = await SupabaseHelper.company.goPrivate(companyId);
       if (success) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Company $companyId made private successfully!'),
@@ -2248,6 +2301,8 @@ class _AdminScreenState extends State<AdminScreen>
           ),
         );
       } else {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to make company private. Please try again.'),
@@ -2270,6 +2325,8 @@ class _AdminScreenState extends State<AdminScreen>
     try {
       final success = await SupabaseHelper.admin.markCompanyAIOwned(companyId);
       if (success) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Company $companyId set as AI company successfully!'),
@@ -2277,6 +2334,8 @@ class _AdminScreenState extends State<AdminScreen>
           ),
         );
       } else {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to set company as AI. Please try again.'),
@@ -2302,6 +2361,8 @@ class _AdminScreenState extends State<AdminScreen>
         splitFactor,
       );
       if (success) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Company $companyId shares split successfully!'),
@@ -2309,6 +2370,8 @@ class _AdminScreenState extends State<AdminScreen>
           ),
         );
       } else {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to split company shares. Please try again.'),

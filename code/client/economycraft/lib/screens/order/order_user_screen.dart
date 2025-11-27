@@ -1,6 +1,4 @@
 import 'package:economycraft/classes/order.dart';
-import 'package:economycraft/classes/product.dart';
-import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -430,12 +428,12 @@ class OrderCard extends StatelessWidget {
   final bool isReceived;
 
   const OrderCard({
-    Key? key,
+    super.key,
     required this.order,
     required this.onTap,
     required this.onMarkReceived,
     required this.isReceived,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -593,11 +591,11 @@ class OrderDetailsDialog extends StatelessWidget {
   final VoidCallback? onCancelOrder;
 
   const OrderDetailsDialog({
-    Key? key,
+    super.key,
     required this.order,
     required this.onMarkReceived,
     this.onCancelOrder,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

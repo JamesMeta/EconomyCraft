@@ -119,7 +119,7 @@ class _SellOrderDialogWidgetState extends State<SellOrderDialogWidget> {
                                       MainAxisAlignment.spaceAround,
                                   children: [
                                     Text(
-                                      "$companyName",
+                                      companyName,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
@@ -705,6 +705,7 @@ class _SellOrderDialogWidgetState extends State<SellOrderDialogWidget> {
                                 setState(() {
                                   isLoading = false;
                                 });
+                                if (!context.mounted) return;
                                 Navigator.pop(context);
                               },
                               child:
@@ -879,6 +880,7 @@ class _SellOrderDialogWidgetState extends State<SellOrderDialogWidget> {
       quantity,
       widget.companyInfo.share.companyShareId,
     )) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Color.fromARGB(255, 247, 121, 121),

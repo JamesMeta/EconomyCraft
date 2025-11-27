@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
-import 'package:economycraft/classes/product.dart';
 
 class NewProductButtonWidget extends StatefulWidget {
   final int companyId;
@@ -103,7 +102,7 @@ class _NewProductButtonWidgetState extends State<NewProductButtonWidget> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: const Color.fromARGB(25, 0, 0, 0),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -252,7 +251,7 @@ class _NewProductButtonWidgetState extends State<NewProductButtonWidget> {
                                                           .addProductAvatar();
 
                                                   setDialogState(() {
-                                                    _avatarUrl = url ?? '';
+                                                    _avatarUrl = url;
                                                     _imageUploading = false;
                                                   });
                                                 },
@@ -610,9 +609,11 @@ class _NewProductButtonWidgetState extends State<NewProductButtonWidget> {
         setState(() {});
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error adding product: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error adding product: $e')));
+      }
     }
   }
 }

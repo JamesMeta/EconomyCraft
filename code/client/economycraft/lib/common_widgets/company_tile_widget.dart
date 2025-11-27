@@ -159,7 +159,7 @@ class CompanyTileWidget extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Founded ${DateFormat('MMM yyyy').format(company.createdAt ?? DateTime.now())}',
+                          'Founded ${DateFormat('MMM yyyy').format(company.createdAt)}',
                           style: const TextStyle(
                             fontSize: 14,
                             color: Colors.grey,
@@ -182,7 +182,8 @@ class CompanyTileWidget extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: _getReputationColor(
                         reputationScore,
-                      ).withOpacity(0.2),
+                        opacity: (255 * 0.2) ~/ 1,
+                      ),
                       border: Border.all(
                         color: _getReputationColor(reputationScore),
                         width: 2,
@@ -223,11 +224,11 @@ class CompanyTileWidget extends StatelessWidget {
     );
   }
 
-  Color _getReputationColor(int score) {
-    if (score >= 8) return Colors.green;
-    if (score >= 6) return Colors.lightGreen;
-    if (score >= 4) return Colors.amber;
-    if (score >= 2) return Colors.orange;
+  Color _getReputationColor(int score, {int opacity = 255}) {
+    if (score >= 8) return Color.fromARGB(opacity, 76, 175, 79);
+    if (score >= 6) return Color.fromARGB(opacity, 139, 195, 74);
+    if (score >= 4) return Color.fromARGB(opacity, 255, 193, 7);
+    if (score >= 2) return Color.fromARGB(opacity, 255, 153, 0);
     return Colors.red;
   }
 }

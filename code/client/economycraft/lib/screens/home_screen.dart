@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:economycraft/common_widgets/shopping_cart_widget.dart';
 import 'package:intl/intl.dart';
+import 'dart:developer' as developer;
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -20,7 +21,6 @@ class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   final currencyFormat = NumberFormat.currency(symbol: '\$', decimalDigits: 2);
   late TabController _tabController;
-  int _selectedIndex = 0;
   bool _isNavExpanded = false;
 
   // Cached data to prevent unnecessary database calls
@@ -39,9 +39,7 @@ class _MyHomePageState extends State<MyHomePage>
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
-        setState(() {
-          _selectedIndex = _tabController.index;
-        });
+        setState(() {});
       }
     });
 
@@ -130,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage>
                       child: Card(
                         margin: const EdgeInsets.all(12),
                         elevation: 4,
-                        shadowColor: Colors.black.withOpacity(0.2),
+                        shadowColor: const Color.fromARGB(51, 70, 51, 51),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -166,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage>
         color: const Color.fromARGB(255, 229, 255, 252),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: const Color.fromARGB(13, 0, 0, 0),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -185,7 +183,7 @@ class _MyHomePageState extends State<MyHomePage>
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: const Color.fromARGB(25, 0, 0, 0),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -290,7 +288,7 @@ class _MyHomePageState extends State<MyHomePage>
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: const Color.fromARGB(13, 0, 0, 0),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -348,7 +346,7 @@ class _MyHomePageState extends State<MyHomePage>
                   color: Colors.grey[200],
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: const Color.fromARGB(13, 0, 0, 0),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -529,7 +527,7 @@ class _MyHomePageState extends State<MyHomePage>
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: Colors.red.withOpacity(0.1),
+              color: const Color.fromARGB(25, 244, 67, 54),
             ),
             child: InkWell(
               onTap: () {
@@ -573,7 +571,7 @@ class _MyHomePageState extends State<MyHomePage>
     return Card(
       elevation: 4,
       margin: EdgeInsets.zero,
-      shadowColor: Colors.black.withOpacity(0.2),
+      shadowColor: const Color.fromARGB(51, 112, 16, 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1114,7 +1112,7 @@ class _MyHomePageState extends State<MyHomePage>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: const Color.fromARGB(13, 0, 0, 0),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1169,9 +1167,9 @@ class _MyHomePageState extends State<MyHomePage>
         height: 90, // Fixed height
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1269,7 +1267,7 @@ class _MyHomePageState extends State<MyHomePage>
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: statusColor.withOpacity(0.1),
+          color: statusColor..withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: statusColor),
         ),
@@ -1426,7 +1424,7 @@ class _MyHomePageState extends State<MyHomePage>
 
   Future<bool> isAdmin() async {
     final response = await SupabaseHelper.admin.isAdmin();
-    print('Is admin: $response');
+    developer.log('Is admin: $response');
     return response;
   }
 

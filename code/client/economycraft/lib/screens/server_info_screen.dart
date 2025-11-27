@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/classes/admin_message.dart';
+import 'dart:developer' as developer;
 
 class ServerInfoScreen extends StatefulWidget {
   const ServerInfoScreen({super.key});
@@ -105,7 +106,7 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -133,7 +134,7 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 5,
                                   offset: const Offset(0, 2),
                                 ),
@@ -322,7 +323,12 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
             borderRadius: BorderRadius.circular(8),
           ),
           todayDecoration: BoxDecoration(
-            color: const Color.fromARGB(255, 74, 237, 217).withOpacity(0.5),
+            color: const Color.fromARGB(
+              255,
+              74,
+              237,
+              217,
+            ).withValues(alpha: 0.5),
             shape: BoxShape.rectangle,
             borderRadius: BorderRadius.circular(8),
           ),
@@ -407,7 +413,7 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
     bool isSelected = false,
   }) {
     final isServerOn = _isServerOnDay(day);
-    final serverStatus = _getServerStatusText(day);
+    _getServerStatusText(day);
 
     Color backgroundColor;
     Color textColor;
@@ -423,17 +429,22 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
         74,
         237,
         217,
-      ).withOpacity(0.3);
+      ).withValues(alpha: 0.3);
       textColor = Colors.black;
       fontWeight = FontWeight.bold;
     } else if (day.isBefore(_serverStartDate)) {
       backgroundColor = Colors.grey[200]!;
       textColor = Colors.grey[500]!;
     } else if (isServerOn) {
-      backgroundColor = const Color.fromARGB(255, 23, 221, 97).withOpacity(0.2);
+      backgroundColor = const Color.fromARGB(
+        255,
+        23,
+        221,
+        97,
+      ).withValues(alpha: 0.2);
       textColor = const Color.fromARGB(255, 23, 221, 97);
     } else {
-      backgroundColor = Colors.redAccent.withOpacity(0.1);
+      backgroundColor = Colors.redAccent.withValues(alpha: 0.1);
       textColor = Colors.redAccent;
     }
 
@@ -518,7 +529,7 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
               border: Border.all(color: Colors.grey[200]!),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 5,
                   offset: const Offset(0, 2),
                 ),
@@ -583,16 +594,16 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: statusColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withOpacity(0.3)),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.2),
+              color: statusColor.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(statusIcon, color: statusColor, size: 24),
@@ -706,7 +717,7 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
@@ -810,10 +821,10 @@ class _ServerInfoScreenState extends State<ServerInfoScreen> {
       setState(() {
         _adminMessages = messages;
       });
-      print('Fetched ${messages.length} admin messages');
+      developer.log('Fetched ${messages.length} admin messages');
       return messages;
     } catch (e) {
-      print('Error fetching admin messages: $e');
+      developer.log('Error fetching admin messages: $e');
       return [];
     }
   }

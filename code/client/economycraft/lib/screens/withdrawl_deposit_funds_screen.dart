@@ -154,7 +154,7 @@ class _WithdrawlDepositFundsScreenState
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
                   ),
@@ -174,7 +174,7 @@ class _WithdrawlDepositFundsScreenState
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 5,
                               offset: const Offset(0, 2),
                             ),
@@ -381,7 +381,12 @@ class _WithdrawlDepositFundsScreenState
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 229, 255, 252).withOpacity(0.5),
+              color: const Color.fromARGB(
+                255,
+                229,
+                255,
+                252,
+              ).withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: const Color.fromARGB(255, 74, 237, 217),
@@ -575,8 +580,8 @@ class _WithdrawlDepositFundsScreenState
       decoration: BoxDecoration(
         color:
             player.ai
-                ? Colors.amber.withOpacity(0.2)
-                : Colors.green.withOpacity(0.2),
+                ? Colors.amber.withValues(alpha: 0.2)
+                : Colors.green.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -729,6 +734,7 @@ class _WithdrawlDepositFundsScreenState
         _isLoading = false;
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: ${e.toString()}'),
@@ -749,6 +755,7 @@ class _WithdrawlDepositFundsScreenState
       amount,
     );
     if (response) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Transfer successful'),
@@ -756,6 +763,7 @@ class _WithdrawlDepositFundsScreenState
         ),
       );
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Transfer failed'),

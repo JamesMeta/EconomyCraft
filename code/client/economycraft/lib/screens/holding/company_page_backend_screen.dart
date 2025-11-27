@@ -1,13 +1,11 @@
 import 'package:economycraft/classes/company.dart';
-import 'package:economycraft/classes/companyShare.dart';
+import 'package:economycraft/classes/company_share.dart';
 import 'package:economycraft/classes/player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/classes/product.dart';
 import 'package:economycraft/common_widgets/product_tile_widget.dart';
-import 'package:economycraft/common_widgets/new_product_button_widget.dart';
 import 'package:intl/intl.dart';
 import 'package:economycraft/common_widgets/build_stat_card_widget.dart';
 import 'package:economycraft/common_widgets/build_edit_dialog_widget.dart';
@@ -579,8 +577,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                               _isbuilt = true;
                                               return Linegraph2Widget(
                                                 title: 'Share Price History',
-                                                subtitle:
-                                                    '${widget.company!.name}',
+                                                subtitle: widget.company!.name,
                                                 data: snapshot.data!,
                                                 xAxisLabel: 'Time',
                                                 yAxisLabel: 'Price',
@@ -623,7 +620,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                 Expanded(
                                   child: _buildStockInfoCardWidget(
                                     title: 'Total Shares',
-                                    value: '${_availableShares.toString()}',
+                                    value: _availableShares.toString(),
                                     icon: Icons.pie_chart,
                                     color: const Color.fromARGB(
                                       255,
@@ -896,26 +893,6 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     }
   }
 
-  Future<void> _updateCompanyPublicStatus(bool isPublic) async {
-    if (widget.company != null) {
-      await SupabaseHelper.company.updateCompanyPublicStatus(
-        widget.company!.id,
-        isPublic,
-      );
-      setState(() {
-        widget.company!.isPublic = isPublic;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Company is now ${isPublic ? 'public' : 'private'}'),
-          ),
-        );
-      }
-    }
-  }
-
   void showMakePublicStatusDialog() async {
     final requiredShareBreakdown = await SupabaseHelper.company
         .getMinecraftUsernamesForShareSplitRequirementByUser(
@@ -925,6 +902,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
         );
 
     // Show loading indicator while fetching data
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1156,6 +1136,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                             setStateDialog(() {
                               isloading = false;
                             });
+
+                            if (!context.mounted) return;
+
                             Navigator.of(context).pop();
 
                             if (isPublic) {
@@ -1234,6 +1217,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                   final bool isPrivate = await SupabaseHelper.company.goPrivate(
                     widget.company!.id,
                   );
+
+                  if (!context.mounted) return;
+
                   Navigator.of(context).pop();
 
                   if (isPrivate) {
@@ -1325,59 +1311,6 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
   }
 
   // Method to handle stock configuration
-  void _configureStockSettings() {
-    final priceController = TextEditingController(text: (10.0).toString());
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Configure Stock Settings'),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Set Initial Stock Price',
-                    border: OutlineInputBorder(),
-                    prefixText: '\$',
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Configure your company\'s initial stock price. This will determine the starting value of shares available for investors.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  // Save stock price
-                  _updateStockPrice(
-                    double.tryParse(priceController.text) ?? 10.0,
-                  );
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 74, 237, 217),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Save'),
-              ),
-            ],
-          ),
-    );
-  }
 
   // Method to issue new shares
   Future<void> _issueNewShares() async {
@@ -1403,6 +1336,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
         .getCompanyShareByCompanyId(widget.company!.id);
 
     // Close loading indicator
+    if (!mounted) return;
     Navigator.of(context).pop();
 
     if (!mounted) return;
@@ -1468,20 +1402,10 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(
-                          255,
-                          229,
-                          255,
-                          252,
-                        ).withOpacity(0.5),
+                        color: const Color.fromARGB(128, 229, 255, 252),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: const Color.fromARGB(
-                            255,
-                            74,
-                            237,
-                            217,
-                          ).withOpacity(0.5),
+                          color: const Color.fromARGB(128, 74, 237, 217),
                         ),
                       ),
                       child: Column(
@@ -1643,12 +1567,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                         color: const Color.fromARGB(255, 245, 255, 250),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: const Color.fromARGB(
-                            255,
-                            23,
-                            221,
-                            97,
-                          ).withOpacity(0.5),
+                          color: const Color.fromARGB(128, 23, 221, 97),
                         ),
                       ),
                       child: Column(
@@ -1705,12 +1624,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                         color: const Color.fromARGB(255, 255, 245, 230),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: const Color.fromARGB(
-                            255,
-                            255,
-                            193,
-                            7,
-                          ).withOpacity(0.5),
+                          color: const Color.fromARGB(128, 255, 193, 7),
                         ),
                       ),
                       child: Row(
@@ -1782,7 +1696,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
 
                                     await _processNewShares(splitFactor);
 
-                                    if (mounted) {
+                                    if (context.mounted) {
                                       Navigator.of(context).pop();
                                     }
                                   },
@@ -1904,7 +1818,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                       itemCount: investors.length,
                       itemBuilder: (context, index) {
                         final player = investors[index];
-                        final stake = investor![player]! * 100 ?? 0.0;
+                        final stake = investor![player]! * 100;
 
                         return ListTile(
                           leading: Container(
@@ -1941,23 +1855,6 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
   }
 
   // Methods to interact with backend services
-  Future<void> _updateStockPrice(double price) async {
-    // if (widget.company != null) {
-    //   // Call your helper service to update stock price
-    //   await SupabaseHelper.updateCompanyStockPrice(widget.company!.id, price);
-
-    //   setState(() {
-    //     // Update the local object
-    //     widget.company!.stockPrice = price;
-    //   });
-
-    //   if (mounted) {
-    //     ScaffoldMessenger.of(context).showSnackBar(
-    //       const SnackBar(content: Text('Stock price updated successfully')),
-    //     );
-    //   }
-    // }
-  }
 
   Future<void> _processNewShares(int splitFactor) async {
     if (splitFactor < 2) {
@@ -1975,6 +1872,9 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
       widget.company!.id,
       splitFactor,
     );
+
+    if (!mounted) return;
+
     if (response) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Shares issued successfully')),
@@ -2002,9 +1902,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
     try {
       final share = await _fetchCompanyStock();
       if (share.isPublic) {
-        return await SupabaseHelper.share.getSharePriceHistory(
-          share!.companyId,
-        );
+        return await SupabaseHelper.share.getSharePriceHistory(share.companyId);
       } else {
         return await SupabaseHelper.share.getCompanyPriceHistory(
           share.companyId,
@@ -2095,7 +1993,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: const Color.fromARGB(25, 0, 0, 0),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -2244,7 +2142,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
                                                           .addProductAvatar();
 
                                                   setDialogState(() {
-                                                    _avatarUrl = url ?? '';
+                                                    _avatarUrl = url;
                                                     _imageUploading = false;
                                                   });
                                                 },
@@ -2602,6 +2500,7 @@ class _CompanyPageBackendScreenState extends State<CompanyPageBackendScreen> {
         setState(() {});
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error adding product: $e')));
