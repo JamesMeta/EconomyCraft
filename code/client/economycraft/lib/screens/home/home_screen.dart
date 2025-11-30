@@ -39,22 +39,7 @@ class _MyHomePageState extends State<MyHomePage>
         setState(() {});
       }
     });
-
-    // Initial data load
-    _fetchAllData();
-  }
-
-  Future<void> _fetchAllData() async {
-    setState(() {
-      _lastDataRefresh = DateTime.now();
-    });
-
-    // Load all data in parallel
-
-    // Update UI if component is still mounted
-    if (mounted) {
-      setState(() {});
-    }
+    updateUserData();
   }
 
   @override
@@ -244,7 +229,7 @@ class _MyHomePageState extends State<MyHomePage>
           // Refresh button
           IconButton(
             tooltip: 'Refresh data',
-            onPressed: _fetchAllData,
+            onPressed: updateUserData,
             icon: const Icon(
               Icons.refresh,
               color: Color.fromARGB(255, 74, 237, 217),
@@ -771,5 +756,15 @@ class _MyHomePageState extends State<MyHomePage>
     if (mounted) {
       context.go('/login');
     }
+  }
+
+  Future<void> updateUserData() async {
+    final data = await SupabaseHelper.player.getUserData();
+
+    setState(() {
+      _userBalance = data["money"];
+      _userName = data["minecraft_username"];
+      _userAvatarUrl = data["avatar_url"];
+    });
   }
 }
