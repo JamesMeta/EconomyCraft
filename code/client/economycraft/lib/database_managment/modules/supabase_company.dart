@@ -453,6 +453,7 @@ class SupabaseCompany {
             .from('company_history')
             .select("*")
             .eq("company_id", company.id)
+            .order("created_at", ascending: false)
             .limit(120)
             .then((value) => companyHistoryResponse = value),
         _client
