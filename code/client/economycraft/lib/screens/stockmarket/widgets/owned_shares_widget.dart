@@ -93,6 +93,7 @@ class OwnedSharesWidget extends StatelessWidget {
                           "No Shares Owned for ${selectedCompanyInfo.company.name}",
                         ),
                       ),
+                  SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
