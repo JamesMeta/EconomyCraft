@@ -161,7 +161,305 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                               ),
                             ),
                           );
-                        } else if (snapshot.hasError) {
+                        } else if (products.isEmpty && shares.isEmpty) {
+                          return const EmptyCartWidget();
+                        } else if (snapshot.hasData) {
+                          // Cart has items - show split view with items and summary
+                          List<dynamic> items = [];
+                          items.addAll(products);
+                          items.addAll(shares);
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Items list
+                              Expanded(
+                                flex: 3,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Cart Items',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color.fromARGB(
+                                            255,
+                                            74,
+                                            237,
+                                            217,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Expanded(
+                                        child: ListView.builder(
+                                          itemCount: items.length,
+                                          itemBuilder: (context, index) {
+                                            final item = items[index];
+                                            if (item is Share) {
+                                              return _buildCartShareCard(
+                                                share: item,
+                                                currencyFormat: currencyFormat,
+                                              );
+                                            }
+                                            if (item is Product) {
+                                              return _buildCartItemCard(
+                                                product: item,
+                                                quantity:
+                                                    productQuantities[item
+                                                        .id] ??
+                                                    1,
+                                                currencyFormat: currencyFormat,
+                                              );
+                                            }
+                                            return null;
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              // Order summary and checkout
+                              Expanded(
+                                flex: 2,
+                                child: Container(
+                                  margin: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: const Color.fromARGB(
+                                        255,
+                                        201,
+                                        201,
+                                        201,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Order Summary',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color.fromARGB(
+                                                  255,
+                                                  74,
+                                                  237,
+                                                  217,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 24),
+
+                                            // Order details
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                const Text('Subtotal:'),
+                                                Text(
+                                                  currencyFormat.format(
+                                                    _calculateSubtotal(),
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            const Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text('Shipping:'),
+                                                Text(
+                                                  'Free',
+                                                  style: TextStyle(
+                                                    color: Color.fromARGB(
+                                                      255,
+                                                      23,
+                                                      221,
+                                                      97,
+                                                    ),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const Padding(
+                                              padding: EdgeInsets.symmetric(
+                                                vertical: 12,
+                                              ),
+                                              child: Divider(),
+                                            ),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                const Text(
+                                                  'Total:',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  currencyFormat.format(
+                                                    _calculateSubtotal(),
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 18,
+                                                    color: Color.fromARGB(
+                                                      255,
+                                                      23,
+                                                      221,
+                                                      97,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      const Divider(height: 1),
+
+                                      // Delivery address
+                                      Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Delivery Address',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            TextField(
+                                              controller: _addressController,
+                                              decoration: const InputDecoration(
+                                                border: OutlineInputBorder(),
+                                                hintText:
+                                                    'Enter your delivery address',
+                                                contentPadding:
+                                                    EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 12,
+                                                    ),
+                                              ),
+                                              maxLines: 2,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      const Spacer(),
+
+                                      // Checkout button
+                                      Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
+                                          children: [
+                                            ElevatedButton(
+                                              onPressed:
+                                                  _isLoading
+                                                      ? null
+                                                      : () => _placeOrder(),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    const Color.fromARGB(
+                                                      255,
+                                                      23,
+                                                      221,
+                                                      97,
+                                                    ),
+                                                foregroundColor: Colors.white,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 16,
+                                                    ),
+                                                disabledBackgroundColor:
+                                                    Colors.grey[300],
+                                              ),
+                                              child:
+                                                  _isLoading
+                                                      ? const SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          valueColor:
+                                                              AlwaysStoppedAnimation<
+                                                                Color
+                                                              >(Colors.white),
+                                                        ),
+                                                      )
+                                                      : const Text(
+                                                        'Place Order',
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            OutlinedButton(
+                                              onPressed: () {
+                                                context.go('/home/market');
+                                              },
+                                              style: OutlinedButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 16,
+                                                    ),
+                                                foregroundColor:
+                                                    Colors.grey[700],
+                                                side: BorderSide(
+                                                  color: Colors.grey[400]!,
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'Continue Shopping',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
                           return Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -187,298 +485,7 @@ class _ShoppingCartScreenState extends State<ShoppingCartScreen> {
                               ],
                             ),
                           );
-                        } else if (products.isEmpty && shares.isEmpty) {
-                          return const EmptyCartWidget();
                         }
-
-                        // Cart has items - show split view with items and summary
-                        List<dynamic> items = [];
-                        items.addAll(products);
-                        items.addAll(shares);
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Items list
-                            Expanded(
-                              flex: 3,
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Cart Items',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color.fromARGB(
-                                          255,
-                                          74,
-                                          237,
-                                          217,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Expanded(
-                                      child: ListView.builder(
-                                        itemCount: items.length,
-                                        itemBuilder: (context, index) {
-                                          final item = items[index];
-                                          if (item is Share) {
-                                            return _buildCartShareCard(
-                                              share: item,
-                                              currencyFormat: currencyFormat,
-                                            );
-                                          }
-                                          if (item is Product) {
-                                            return _buildCartItemCard(
-                                              product: item,
-                                              quantity:
-                                                  productQuantities[item.id] ??
-                                                  1,
-                                              currencyFormat: currencyFormat,
-                                            );
-                                          }
-                                          return null;
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            // Order summary and checkout
-                            Expanded(
-                              flex: 2,
-                              child: Container(
-                                margin: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: const Color.fromARGB(
-                                      255,
-                                      201,
-                                      201,
-                                      201,
-                                    ),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'Order Summary',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color.fromARGB(
-                                                255,
-                                                74,
-                                                237,
-                                                217,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 24),
-
-                                          // Order details
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const Text('Subtotal:'),
-                                              Text(
-                                                currencyFormat.format(
-                                                  _calculateSubtotal(),
-                                                ),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          const Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text('Shipping:'),
-                                              Text(
-                                                'Free',
-                                                style: TextStyle(
-                                                  color: Color.fromARGB(
-                                                    255,
-                                                    23,
-                                                    221,
-                                                    97,
-                                                  ),
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const Padding(
-                                            padding: EdgeInsets.symmetric(
-                                              vertical: 12,
-                                            ),
-                                            child: Divider(),
-                                          ),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const Text(
-                                                'Total:',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
-                                                ),
-                                              ),
-                                              Text(
-                                                currencyFormat.format(
-                                                  _calculateSubtotal(),
-                                                ),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 18,
-                                                  color: Color.fromARGB(
-                                                    255,
-                                                    23,
-                                                    221,
-                                                    97,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    const Divider(height: 1),
-
-                                    // Delivery address
-                                    Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Text(
-                                            'Delivery Address',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 12),
-                                          TextField(
-                                            controller: _addressController,
-                                            decoration: const InputDecoration(
-                                              border: OutlineInputBorder(),
-                                              hintText:
-                                                  'Enter your delivery address',
-                                              contentPadding:
-                                                  EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 12,
-                                                  ),
-                                            ),
-                                            maxLines: 2,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    const Spacer(),
-
-                                    // Checkout button
-                                    Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          ElevatedButton(
-                                            onPressed:
-                                                _isLoading
-                                                    ? null
-                                                    : () => _placeOrder(),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  const Color.fromARGB(
-                                                    255,
-                                                    23,
-                                                    221,
-                                                    97,
-                                                  ),
-                                              foregroundColor: Colors.white,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 16,
-                                                  ),
-                                              disabledBackgroundColor:
-                                                  Colors.grey[300],
-                                            ),
-                                            child:
-                                                _isLoading
-                                                    ? const SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        valueColor:
-                                                            AlwaysStoppedAnimation<
-                                                              Color
-                                                            >(Colors.white),
-                                                      ),
-                                                    )
-                                                    : const Text(
-                                                      'Place Order',
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                          ),
-                                          const SizedBox(height: 12),
-                                          OutlinedButton(
-                                            onPressed: () {
-                                              context.go('/home/market');
-                                            },
-                                            style: OutlinedButton.styleFrom(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 16,
-                                                  ),
-                                              foregroundColor: Colors.grey[700],
-                                              side: BorderSide(
-                                                color: Colors.grey[400]!,
-                                              ),
-                                            ),
-                                            child: const Text(
-                                              'Continue Shopping',
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
                       },
                     ),
                   ),

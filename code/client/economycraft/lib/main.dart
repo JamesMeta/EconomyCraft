@@ -1,6 +1,6 @@
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/share.dart';
-import 'package:economycraft/screens/stockmarket/stock_market_screen.dart';
+import 'package:economycraft/screens/stock_market/stock_market_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:economycraft/screens/home/home_screen.dart';
@@ -16,7 +16,7 @@ import 'package:economycraft/screens/order/order_user_screen.dart';
 import 'package:economycraft/screens/market_screen.dart';
 import 'package:economycraft/screens/player_profile_screen.dart';
 import 'package:economycraft/screens/company/company_page_screen.dart';
-import 'package:economycraft/screens/shopping_cart_screen.dart';
+import 'package:economycraft/screens/shopping_cart/shopping_cart_screen.dart';
 import 'package:economycraft/screens/holding/company_page_backend_screen.dart';
 import 'package:economycraft/screens/holding/make_new_company_screen.dart';
 import 'package:economycraft/screens/holding/sell_holding_screen.dart';

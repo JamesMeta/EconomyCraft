@@ -1,6 +1,6 @@
 import 'package:economycraft/classes/company_info.dart';
 import 'package:economycraft/classes/share.dart';
-import 'package:economycraft/screens/stockmarket/widgets/sell_order_dialog_widget.dart';
+import 'package:economycraft/screens/stock_market/widgets/sell_order_dialog_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
