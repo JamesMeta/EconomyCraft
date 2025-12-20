@@ -14,7 +14,7 @@ class CompanyTileWidget extends StatelessWidget {
       symbol: '\$',
       decimalDigits: 0,
     );
-    final reputationScore = company.reputation ~/ 100;
+    final reputationScore = (company.reputation / 100).round();
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -229,6 +229,6 @@ class CompanyTileWidget extends StatelessWidget {
     if (score >= 6) return Color.fromARGB(opacity, 139, 195, 74);
     if (score >= 4) return Color.fromARGB(opacity, 255, 193, 7);
     if (score >= 2) return Color.fromARGB(opacity, 255, 153, 0);
-    return Colors.red;
+    return Color.fromARGB(opacity, 244, 67, 54);
   }
 }

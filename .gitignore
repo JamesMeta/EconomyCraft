@@ -135,6 +135,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.db
 
 # Spyder project settings
 .spyderproject
@@ -176,3 +177,4 @@ front-end/economycraft/build_web.bat
 front-end/economycraft/debug.bat
 front-end/economycraft/build.bat
 code/server-processes/src/charts/*
+code/server-processes/src/local.db-journal

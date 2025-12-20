@@ -3,8 +3,8 @@ import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/company_info.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
-import 'package:economycraft/screens/stockmarket/widgets/buy_order_dialog_widget.dart';
-import 'package:economycraft/screens/stockmarket/widgets/view_buy_order_dialog_widget.dart';
+import 'package:economycraft/screens/stock_market/widgets/buy_order_dialog_widget.dart';
+import 'package:economycraft/screens/stock_market/widgets/view_buy_order_dialog_widget.dart';
 import 'package:flutter/material.dart';
 
 class CompanyInformationWidget extends StatefulWidget {

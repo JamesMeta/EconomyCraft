@@ -23,10 +23,9 @@ if (__name__ == "__main__"):
 
     def job():
         admin = Administration(supabase)
-        admin.__stock_init__()
-        admin.make_ai_share_orders()
+        admin.debug_local_shares()
         
-
+ 
     
     counter = 0
     

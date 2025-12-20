@@ -1,15 +1,15 @@
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/company_info.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
-import 'package:economycraft/screens/stockmarket/widgets/company_data_analytics_widget.dart';
-import 'package:economycraft/screens/stockmarket/widgets/company_information_widget.dart';
-import 'package:economycraft/screens/stockmarket/widgets/owned_shares_widget.dart';
+import 'package:economycraft/screens/stock_market/widgets/company_data_analytics_widget.dart';
+import 'package:economycraft/screens/stock_market/widgets/company_information_widget.dart';
+import 'package:economycraft/screens/stock_market/widgets/owned_shares_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/classes/share_changes.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
-import 'package:economycraft/screens/stockmarket/widgets/sliding_share_list_widget.dart';
+import 'package:economycraft/screens/stock_market/widgets/sliding_share_list_widget.dart';
 
 class StockMarketScreen extends StatefulWidget {
   const StockMarketScreen({super.key, shareChanges});

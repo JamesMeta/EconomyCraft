@@ -2,8 +2,8 @@ from classes.AI import AI
 from classes.subAi.level_constants import *
 import random
 class T_user(AI):
-    def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
-        super().__init__(supabase, id, minecraft_username, money, delivery_address, daily_income, ai_type)
+    def __init__(self, supabase, sqlite_assistant, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
+        super().__init__(supabase, sqlite_assistant, id, minecraft_username, money, delivery_address, daily_income, ai_type)
         self.name = "Null User"
         self.description = """Blank User for type checking"""
         self.investor_type = ""

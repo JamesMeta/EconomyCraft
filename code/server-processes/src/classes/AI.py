@@ -2,11 +2,14 @@ from supabase import Client
 
 from classes.classes.buy_order import BuyOrder
 from classes.classes.share import Share
+from classes.modules.sqlite_assistant import SqliteAssistant
+
 
 
 class AI:
-    def __init__(self, supabase: Client, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
+    def __init__(self, supabase: Client, sqlite_assistant: SqliteAssistant, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):
         self.supabase = supabase
+        self.sqlite_assistant = sqlite_assistant
         self.id = id
         self.minecraft_username = minecraft_username
         self.money = money
@@ -28,9 +31,20 @@ class AI:
                                                              }).execute()
     
     def place_share_sell_order(self, share_id: int, sale_price: float):
-        response = self.supabase.table("shares").update({"sale_price": sale_price, "purchasable": True}).eq("id", share_id).execute()
+        response_supabase = self.supabase.table("shares").update({"sale_price": sale_price, "purchasable": True}).eq("id", share_id).execute()
+        response_sqlite = self.sqlite_assistant.update_local_share_purchasable_status(share_id=share_id, purchasable=True) and self.sqlite_assistant.update_local_share_sale_price(share_id=share_id, new_sale_price=sale_price)
+        
+        if (not (response_sqlite and response_supabase)):
+            print("Something went wrong when placing sell order")
+        
         
     def remove_share_for_sale(self, share_id: int):
-        response =  self.supabase.table("shares").update({"purchasable": True}).eq("id", share_id).execute()
+        response_supabase = self.supabase.table("shares").update({"purchasable": True}).eq("id", share_id).execute()
+        response_sqlite = self.sqlite_assistant.update_local_share_purchasable_status(share_id=share_id, purchasable=False)
+        
+        if (not (response_sqlite and response_supabase)):
+            print("Something went wrong when removing share for sale")
+        
+        
         
     
