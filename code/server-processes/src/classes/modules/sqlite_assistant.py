@@ -17,8 +17,10 @@ class SqliteAssistant:
         
         self.supabase = supabase
         
-        self.conn = sqlite3.connect("local.db")
+        self.conn = sqlite3.connect("local.db", timeout=10)
         self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA journal_mode=WAL;")
+        self.conn.execute("PRAGMA busy_timeout = 10000;")
         self.cursor = self.conn.cursor()
         
         self.__init_tables__()

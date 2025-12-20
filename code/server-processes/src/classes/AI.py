@@ -31,16 +31,18 @@ class AI:
                                                              }).execute()
     
     def place_share_sell_order(self, share_id: int, sale_price: float):
-        response_supabase = self.supabase.table("shares").update({"sale_price": sale_price, "purchasable": True}).eq("id", share_id).execute()
         response_sqlite = self.sqlite_assistant.update_local_share_purchasable_status(share_id=share_id, purchasable=True) and self.sqlite_assistant.update_local_share_sale_price(share_id=share_id, new_sale_price=sale_price)
+        response_supabase = self.supabase.table("shares").update({"sale_price": sale_price, "purchasable": True}).eq("id", share_id).execute()
+        
         
         if (not (response_sqlite and response_supabase)):
             print("Something went wrong when placing sell order")
         
         
     def remove_share_for_sale(self, share_id: int):
-        response_supabase = self.supabase.table("shares").update({"purchasable": True}).eq("id", share_id).execute()
         response_sqlite = self.sqlite_assistant.update_local_share_purchasable_status(share_id=share_id, purchasable=False)
+        response_supabase = self.supabase.table("shares").update({"purchasable": True}).eq("id", share_id).execute()
+        
         
         if (not (response_sqlite and response_supabase)):
             print("Something went wrong when removing share for sale")

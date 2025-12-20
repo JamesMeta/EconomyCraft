@@ -114,10 +114,10 @@ class BuyOrderManager:
     
     def place_share_order(self, buy_order: BuyOrder, share_id: int) -> None:
         try:
-            self.supabase.rpc("purchase_share", {"buyer_id": buy_order.user_id, "input_share_id": share_id}).execute()
-            self.update_buy_order(buy_order)
             assert self.sqlite_assistant.update_local_share_owner(share_id, buy_order.user_id)
             self.sqlite_assistant.update_local_share_purchased_price_post_transaction(share_id)
+            self.supabase.rpc("purchase_share", {"buyer_id": buy_order.user_id, "input_share_id": share_id}).execute()
+            self.update_buy_order(buy_order)
         except Exception as e:
             print(f"[bold red underline]{e}[/bold red underline]") 
             
