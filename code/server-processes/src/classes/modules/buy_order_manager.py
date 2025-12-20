@@ -5,15 +5,19 @@ from supabase import Client
 from classes.classes.buy_order import BuyOrder
 from classes.classes.company import Company
 from classes.classes.company_share import CompanyShare
+from classes.classes.local_share import LocalShare
 from classes.classes.share import Share
 from rich import print
 import datetime
 
+from classes.modules.sqlite_assistant import SqliteAssistant
+
 
 class BuyOrderManager:
     
-    def __init__(self, supabase: Client):
+    def __init__(self, supabase: Client, sqlite_assistant: SqliteAssistant):
         self.supabase = supabase
+        self.sqlite_assistant = sqlite_assistant
         self.buy_orders = self.get_buy_orders()
     
     def get_buy_orders(self) -> list[BuyOrder]:
@@ -80,21 +84,17 @@ class BuyOrderManager:
         
     
     def attempt_to_fulfill_order(self, order: BuyOrder) -> None:
-        shares_response = self.supabase.table("shares").select("*, company_share:share_id (id, value, company_id, is_public, number_of_shares)").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
+        shares_response = self.supabase.table("shares").select("*").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
         share_data = shares_response.data
         
-        available_shares = [Share(id = share_data["id"],
+        available_shares = [LocalShare(id = share_data["id"],
                                   stake = share_data["stake"],
                                   purchased_price=share_data["purchased_price"],
-                                  company_share=CompanyShare(share_data['company_share']['id'],
-                                               share_data['company_share']['company_id'],
-                                               share_data['company_share']['value'],
-                                               share_data['company_share']['number_of_shares'],
-                                               share_data['company_share']['is_public'],),
+                                  company_share_id=share_data["share_id"],
                                   purchasable=share_data["purchasable"],
                                   user_id=share_data["user_id"],
                                   sale_price=share_data["sale_price"],
-                                  company=Company(None, None, None, None, None, None, None, None, None)
+                                  company_id=share_data["company_id"]
                                   ) for share_data in shares_response.data]
         
         filtered_available_shares = filter(lambda x: x.user_id != order.user_id, available_shares)
@@ -112,10 +112,12 @@ class BuyOrderManager:
                     print(f"[bold red underline] Order {order.id} already removed from list.[/bold red underline]")
         
     
-    def place_share_order(self, buy_order, share_id: int) -> None:
+    def place_share_order(self, buy_order: BuyOrder, share_id: int) -> None:
         try:
             self.supabase.rpc("purchase_share", {"buyer_id": buy_order.user_id, "input_share_id": share_id}).execute()
             self.update_buy_order(buy_order)
+            assert self.sqlite_assistant.update_local_share_owner(share_id, buy_order.user_id)
+            self.sqlite_assistant.update_local_share_purchased_price_post_transaction(share_id)
         except Exception as e:
             print(f"[bold red underline]{e}[/bold red underline]") 
             

@@ -20,6 +20,7 @@ from classes.modules import trade_helper
 from classes.modules.constants import SHARE_UNDERCUT_PERCENTAGE
 from rich.progress import Progress
 
+from classes.modules.sqlite_assistant import SqliteAssistant
 from classes.modules.trade_helper import TradeHelper
 from classes.subAi.level_constants import FIRST, SECOND
 from classes.subAi.t_user import T_user
@@ -33,8 +34,8 @@ class StocksAI:
     def __init__(
         self, 
         supabase: Client,
+        sqlite_assistant: SqliteAssistant,
         users: list[T_user],
-        all_shares: list[Share],
         company_shares: list[CompanyShare],
         company_map: dict[int, Company], 
         company_performance_maps: dict[int, dict[int, LineOfBestFit]] ,
@@ -47,8 +48,8 @@ class StocksAI:
         ):
 
         self.supabase = supabase
+        self.sqlite_assistant = sqlite_assistant
         self.users = users
-        self.all_shares = all_shares
         self.company_shares = company_shares
         self.company_map = company_map
         self.company_performance_maps = company_performance_maps
@@ -176,7 +177,7 @@ class StocksAI:
     def evaluate_positions(self, user: T_user, current_shares: list[Share], user_company_statistics_maps: dict[str, dict[int, LineOfBestFit]]) -> None:
         
         def evaluate_purchasable_position_for_profit_loss_goals(value, sale_price) -> tuple[bool,str]:
-            percent_difference = abs(1 - (sale_price / value))
+            percent_difference = abs(1 - (sale_price / max(value, 0.1)))
             
             if percent_difference > 0.05:
                 return True, "N/A"
@@ -185,7 +186,7 @@ class StocksAI:
         
         def evaluate_position_for_profit_loss_goals(value, purchased_price, profit_goals, loss_limits) -> tuple[bool,str]:
             
-            change = (value - purchased_price) / purchased_price
+            change = (value - purchased_price) / max(purchased_price, 1)
             
             if change >= profit_goals:
                 return True, "SELL_GAIN"
@@ -510,7 +511,12 @@ class StocksAI:
     
     def get_user_owned_shares(self, user_id) -> list[Share]:
 
-        user_shares = list(filter(lambda x: x.user_id == user_id, self.all_shares))
+        user_local_shares = self.sqlite_assistant.get_local_shares_by_user_id(user_id)
+        
+        user_shares = list(map(
+            lambda share:Share(id=share.id, company=self.company_map[share.company_id], stake=share.stake, purchased_price=share.purchased_price, company_share=list(filter(
+                lambda company_share: company_share.id == share.company_share_id, self.company_shares))[FIRST],
+                               purchasable=share.purchasable, user_id=share.user_id, sale_price=share.sale_price), user_local_shares))
         
         return user_shares
 

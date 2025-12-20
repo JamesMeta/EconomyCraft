@@ -4,6 +4,7 @@ from classes.modules import performance
 from classes.modules.performance import Performance
 from classes.modules.products_ai import ProductsAI
 from classes.modules.services import Services
+from classes.modules.sqlite_assistant import SqliteAssistant
 from classes.modules.stocks_ai import StocksAI
 from classes.modules.buy_order_manager import BuyOrderManager
 from classes.modules.supabase_assistant import SupabaseAssistant
@@ -11,22 +12,23 @@ from classes.modules.utility import Utility
 
 class Administration:
     def __init__(self, supabase: Client):
-        self.supabase = supabase  
+        self.supabase = supabase 
+        self.sqlite_assistant = SqliteAssistant(supabase=supabase)
         self.services = Services()
         
                       
     def __product_init__(self):
-        self.supabase_assistant = SupabaseAssistant(self.supabase)
+        self.supabase_assistant = SupabaseAssistant(self.supabase, self.sqlite_assistant)
         self.products_ai = ProductsAI(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
     
     def __stock_init__(self):
-        self.supabase_assistant = SupabaseAssistant(self.supabase)
+        self.supabase_assistant = SupabaseAssistant(self.supabase, self.sqlite_assistant)
         self.performance = Performance(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
         self.logger = DataLog()
         self.stocks_ai = StocksAI(
-                self.supabase, 
+                self.supabase,
+                self.sqlite_assistant,
                 self.supabase_assistant.users, 
-                self.supabase_assistant.all_shares,
                 self.supabase_assistant.company_shares,
                 self.supabase_assistant.company_map, 
                 self.performance.company_performance_maps, 
@@ -41,10 +43,10 @@ class Administration:
         
     
     def __buy_order_init__(self):
-        self.buy_order_manager = BuyOrderManager(self.supabase)
+        self.buy_order_manager = BuyOrderManager(self.supabase, self.sqlite_assistant)
     
     def __utility_init__(self):
-        self.supabase_assistant = SupabaseAssistant(self.supabase)
+        self.supabase_assistant = SupabaseAssistant(self.supabase, self.sqlite_assistant)
         self.utility = Utility(self.supabase_assistant.users)
         
     def make_ai_orders(self):
@@ -77,4 +79,16 @@ class Administration:
     def print_user_history_scope_spread(self):
         self.utility.print_user_history_scope_spread()
         self.utility.print_user_type_spread()
+    
+    def replicate_supabase_database(self):
+        self.sqlite_assistant.replicate_current_share_table()
+        
+    def print_local_shares(self):
+        result = self.sqlite_assistant.get_all_local_shares()
+        print(result)
+        
+    def debug_local_shares(self):
+        result = self.sqlite_assistant.get_local_shares_by_user_id(153)
+        
+        print(result)
         
