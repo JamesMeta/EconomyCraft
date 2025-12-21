@@ -81,7 +81,7 @@ class Administration:
         self.utility.print_user_type_spread()
     
     def replicate_supabase_database(self):
-        self.sqlite_assistant.replicate_current_share_table()
+        self.sqlite_assistant.replicate_shares()
         
     def print_local_shares(self):
         result = self.sqlite_assistant.get_all_local_shares()

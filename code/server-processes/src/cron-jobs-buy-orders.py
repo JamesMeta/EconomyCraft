@@ -35,7 +35,7 @@ if (__name__ == "__main__"):
             time.sleep(60)
             
             if counter % 60 == 0:
-                print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Buy Order Manager ---------- [/bright_green]")
+                print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Stocks Manager ---------- [/bright_green]")
             
             counter += 1
         except Exception as e:
