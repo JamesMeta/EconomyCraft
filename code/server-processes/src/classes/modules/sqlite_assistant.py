@@ -21,32 +21,52 @@ class SqliteAssistant:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL;")
         self.conn.execute("PRAGMA busy_timeout = 10000;")
-        self.cursor = self.conn.cursor()
+        
         
         self.__init_tables__()
     
     
     def __init_tables__(self):
         
-        self.cursor.execute("""
-        CREATE TABLE IF NOT EXISTS shares (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            company_id INTEGER,
-            stake REAL NOT NULL DEFAULT 0,
-            purchased_price REAL NOT NULL DEFAULT 1,
-            purchasable INTEGER NOT NULL DEFAULT 0,
-            user_id INTEGER,
-            sale_price REAL DEFAULT 0,
-            share_id INTEGER
-        ) STRICT;
-         """)
+        with self.conn:
+            
+            cursor = self.conn.cursor()
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS shares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                company_id INTEGER,
+                stake REAL NOT NULL DEFAULT 0,
+                purchased_price REAL NOT NULL DEFAULT 1,
+                purchasable INTEGER NOT NULL DEFAULT 0,
+                user_id INTEGER,
+                sale_price REAL DEFAULT 0,
+                share_id INTEGER
+            ) STRICT;
+            """)
+            
+            cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_shares_share_id
+            ON shares(share_id);
+            """)
+
+            cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_shares_user_id
+            ON shares(user_id);
+            """)
+            cursor.close()
+        
+        
         
     def get_local_share_by_local_share_id(self, share_id: int) -> LocalShare:
         
-        self.cursor.execute("SELECT * FROM shares WHERE id = ?", (share_id,))
+        cursor = self.conn.cursor()
         
-        local_share_results = self.cursor.fetchmany()
+        cursor.execute("SELECT * FROM shares WHERE id = ?", (share_id,))
+        
+        local_share_results = cursor.fetchmany()
+        
+        cursor.close()
         
         assert len(local_share_results) >= 1, f"No share by share id {share_id}"
         
@@ -63,13 +83,19 @@ class SqliteAssistant:
             company_share_id = local_share_raw ["share_id"]
         )
         
+        
+        
         return local_share
     
     def try_get_local_share_by_local_share_id(self, share_id: int) -> Optional[LocalShare]:
         
-        self.cursor.execute("SELECT * FROM shares WHERE id = ?", (share_id,))
+        cursor = self.conn.cursor()
         
-        local_share_results = self.cursor.fetchone()
+        cursor.execute("SELECT * FROM shares WHERE id = ?", (share_id,))
+        
+        local_share_results = cursor.fetchone()
+        
+        cursor.close()
         
         if local_share_results is None:
             return None
@@ -87,13 +113,18 @@ class SqliteAssistant:
             company_share_id = local_share_raw ["share_id"]
         )
         
+        
         return local_share
     
     def get_local_shares_by_company_share_id(self, company_share_id: int) -> list[LocalShare]:
         
-        self.cursor.execute("SELECT * FROM shares WHERE share_id = ?", (company_share_id,))
+        cursor = self.conn.cursor()
         
-        local_share_results = self.cursor.fetchall()
+        cursor.execute("SELECT * FROM shares WHERE share_id = ?", (company_share_id,))
+        
+        local_share_results = cursor.fetchall()
+        
+        cursor.close()
         
         assert len(local_share_results) >= 1, f"No share by company share id {company_share_id}"
         
@@ -118,11 +149,13 @@ class SqliteAssistant:
     
     def get_local_shares_by_user_id(self, user_id: int) -> list[LocalShare]:
         
-        self.cursor.execute("SELECT * FROM shares WHERE user_id = ?", (user_id,))
+        cursor = self.conn.cursor()
         
-        local_share_results = self.cursor.fetchall()
+        cursor.execute("SELECT * FROM shares WHERE user_id = ?", (user_id,))
         
-        assert len(local_share_results) >= 1, f"No share by company share id {user_id}"
+        local_share_results = cursor.fetchall()
+        
+        cursor.close()
         
         local_share_list = []
         
@@ -145,9 +178,13 @@ class SqliteAssistant:
  
     def get_all_local_shares(self) -> list[LocalShare]:
         
-        self.cursor.execute("SELECT * FROM shares")
+        cursor = self.conn.cursor()
         
-        local_share_results = self.cursor.fetchall()
+        cursor.execute("SELECT * FROM shares")
+        
+        local_share_results = cursor.fetchall()
+        
+        cursor.close()
         
         assert len(local_share_results) >= 1, f"No shares found"
         
@@ -172,11 +209,11 @@ class SqliteAssistant:
     
     def update_local_share_purchasable_status(self, share_id : int, purchasable : bool) -> bool:
         
-        local_share = self.try_get_local_share_by_local_share_id(share_id)
-        
-        if local_share is not None:
+        with self.conn:
             
-            self.cursor.execute(
+            cursor = self.conn.cursor()
+            
+            cur = cursor.execute(
                 """
                 UPDATE shares
                 SET purchasable = ?
@@ -185,17 +222,20 @@ class SqliteAssistant:
                 (purchasable, share_id)
             )
             
-            return True
-        
-        return False
+            cursor.close()
+            
+        return cur.rowcount > 0
+            
+            
+
     
     def update_local_share_sale_price(self, share_id : int, new_sale_price : float) -> bool:
-        
-        local_share = self.try_get_local_share_by_local_share_id(share_id)
-        
-        if local_share is not None:
             
-            self.cursor.execute(
+        with self.conn:
+            
+            cursor = self.conn.cursor()
+            
+            cur = cursor.execute(
                 """
                 UPDATE shares
                 SET sale_price = ?
@@ -204,17 +244,19 @@ class SqliteAssistant:
                 (new_sale_price, share_id)
             )
             
-            return True
-        
-        return False
+            cursor.close()
+            
+        return cur.rowcount > 0
+            
+
     
     def update_local_share_owner(self, share_id : int, new_owner_id : int) -> bool:
+         
+        with self.conn:
         
-        local_share = self.try_get_local_share_by_local_share_id(share_id)
-        
-        if local_share is not None:
+            cursor = self.conn.cursor()
             
-            self.cursor.execute(
+            cur = cursor.execute(
                 """
                 UPDATE shares
                 SET user_id = ?, purchasable = ?
@@ -223,27 +265,30 @@ class SqliteAssistant:
                 (new_owner_id, False, share_id)
             )
             
-            return True
-        
-        return False
+            cursor.close()
+            
+        return cur.rowcount > 0
+                
+
     
     def update_local_share_purchased_price_post_transaction(self, share_id: int,):
-        local_share = self.try_get_local_share_by_local_share_id(share_id)
         
-        if local_share is not None:
+        with self.conn:
+            cursor = self.conn.cursor()
             
-            self.cursor.execute(
+            cur = cursor.execute(
                 """
                 UPDATE shares
-                SET purchased_price = ?
+                SET purchased_price = sale_price
                 WHERE id = ?
                 """,
-                (local_share.sale_price, share_id)
+                (share_id,)
             )
             
-            return True
+            cursor.close()
         
-        return False
+        return cur.rowcount > 0
+
     
     def insert_local_share(self, id: int, created_at: str, company_id : int, stake: float, purchased_price: float, purchasable: bool, user_id: int, sale_price: float, share_id: int):
         
@@ -256,34 +301,66 @@ class SqliteAssistant:
         # assert type(sale_price) is float
         # assert type(share_id) is int
         
-        self.cursor.execute(
-            """
-            INSERT INTO shares (
-                id, created_at, company_id, stake, purchased_price, purchasable, user_id, sale_price, share_id
+        with self.conn:
+        
+            cursor = self.conn.cursor()
+            
+            cursor.execute(
+                """
+                INSERT INTO shares (
+                    id, created_at, company_id, stake, purchased_price, purchasable, user_id, sale_price, share_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (id,created_at,company_id,stake,purchased_price, purchasable, user_id, sale_price, share_id)
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (id,created_at,company_id,stake,purchased_price, purchasable, user_id, sale_price, share_id)
-        )
-        
-        self.conn.commit()
+            cursor.close()
            
-    def replicate_current_share_table(self) :
+    def replicate_shares(self):
         
-        shares_table_result = self.supabase.table("shares").select("*").execute()
-        shares_raw = shares_table_result.data
+        print("Share Replication Process Beginning")
         
+        print("Connection Achieved")
+    
+        shares_raw = self.supabase.table("shares").select("*").execute().data
         assert shares_raw
-        assert len(shares_raw) > 0
         
+        print("Data Recieved From Servers")
+
+        rows = [
+            (
+                s["id"],
+                s["created_at"],
+                s["company_id"],
+                s["stake"],
+                s["purchased_price"],
+                s["purchasable"],
+                s["user_id"],
+                s["sale_price"],
+                s["share_id"],
+            )
+            for s in shares_raw
+        ]
         
-        with Progress() as progress:
-            task = progress.add_task("[green]Replicating shares...", total=len(shares_raw))
-            for share_raw in shares_raw:
-                self.insert_local_share(**share_raw)
-                progress.update(task, advance=1)
-        print("Replication of shares table complete.")
-        
+        print("Data Parsed Successfully")
+
+        with self.conn:
+            
+            print("Starting Share Replication")
+            
+            self.conn.execute("DELETE FROM shares")
+            self.conn.executemany("""
+                INSERT INTO shares (
+                    id, created_at, company_id, stake,
+                    purchased_price, purchasable,
+                    user_id, sale_price, share_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, rows)
+
+        self.conn.close()
+        print("All Shares Replicated")
+            
 
     
         
