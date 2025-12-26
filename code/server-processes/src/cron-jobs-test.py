@@ -23,8 +23,7 @@ if (__name__ == "__main__"):
 
     def job():
         admin = Administration(supabase)
-        #admin.replicate_supabase_database()
-        admin.sqlite_assistant.get_local_shares_by_user_id()
+        admin.replicate_supabase_database()
         
  
     

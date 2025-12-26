@@ -13,21 +13,19 @@ from classes.modules.utility import Utility
 class Administration:
     def __init__(self, supabase: Client):
         self.supabase = supabase 
-        self.sqlite_assistant = SqliteAssistant(supabase=supabase)
         self.services = Services()
         
                       
     def __product_init__(self):
-        self.supabase_assistant = SupabaseAssistant(self.supabase, self.sqlite_assistant)
+        self.supabase_assistant = SupabaseAssistant(self.supabase)
         self.products_ai = ProductsAI(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
     
     def __stock_init__(self):
-        self.supabase_assistant = SupabaseAssistant(self.supabase, self.sqlite_assistant)
+        self.supabase_assistant = SupabaseAssistant(self.supabase)
         self.performance = Performance(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
         self.logger = DataLog()
         self.stocks_ai = StocksAI(
                 self.supabase,
-                self.sqlite_assistant,
                 self.supabase_assistant.users, 
                 self.supabase_assistant.company_shares,
                 self.supabase_assistant.company_map, 
@@ -43,10 +41,10 @@ class Administration:
         
     
     def __buy_order_init__(self):
-        self.buy_order_manager = BuyOrderManager(self.supabase, self.sqlite_assistant)
+        self.buy_order_manager = BuyOrderManager(self.supabase)
     
     def __utility_init__(self):
-        self.supabase_assistant = SupabaseAssistant(self.supabase, self.sqlite_assistant)
+        self.supabase_assistant = SupabaseAssistant(self.supabase)
         self.utility = Utility(self.supabase_assistant.users)
         
     def make_ai_orders(self):
