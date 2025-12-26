@@ -34,7 +34,6 @@ class StocksAI:
     def __init__(
         self, 
         supabase: Client,
-        sqlite_assistant: SqliteAssistant,
         users: list[T_user],
         company_shares: list[CompanyShare],
         company_map: dict[int, Company], 
@@ -48,7 +47,6 @@ class StocksAI:
         ):
 
         self.supabase = supabase
-        self.sqlite_assistant = sqlite_assistant
         self.users = users
         self.company_shares = company_shares
         self.company_map = company_map
@@ -511,7 +509,9 @@ class StocksAI:
     
     def get_user_owned_shares(self, user_id) -> list[Share]:
 
-        user_local_shares = self.sqlite_assistant.get_local_shares_by_user_id(user_id)
+        user_local_shares = [] 
+        with SqliteAssistant(self.supabase) as sq:
+            user_local_shares = sq.get_local_shares_by_user_id(user_id)
         
         user_shares = list(map(
             lambda share:Share(id=share.id, company=self.company_map[share.company_id], stake=share.stake, purchased_price=share.purchased_price, company_share=list(filter(

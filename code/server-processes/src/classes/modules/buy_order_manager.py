@@ -15,9 +15,8 @@ from classes.modules.sqlite_assistant import SqliteAssistant
 
 class BuyOrderManager:
     
-    def __init__(self, supabase: Client, sqlite_assistant: SqliteAssistant):
+    def __init__(self, supabase: Client):
         self.supabase = supabase
-        self.sqlite_assistant = sqlite_assistant
         self.buy_orders = self.get_buy_orders()
     
     def get_buy_orders(self) -> list[BuyOrder]:
@@ -55,12 +54,17 @@ class BuyOrderManager:
     def cancel_buy_order(self, order_id) -> None:
         self.supabase.table("buy_orders").delete().eq("id", order_id).execute()
     
-    def update_buy_order(self, buy_order) -> None:
-        buy_order.order_quantity -= 1
-        self.supabase.table("buy_orders").update({
-            "order_quantity": buy_order.order_quantity
-        }).eq("id", buy_order.id).execute()
-        self.cancel_buy_order(buy_order.id)
+    def update_buy_order(self, buy_order: BuyOrder, quantity_purchased: int) -> None:
+        buy_order.order_quantity -= quantity_purchased
+        
+        if buy_order.order_quantity > 0:
+        
+            self.supabase.table("buy_orders").update({
+                "order_quantity": buy_order.order_quantity
+            }).eq("id", buy_order.id).execute()
+        
+        else:
+            self.cancel_buy_order(buy_order.id)
     
     def service_buy_orders(self) -> None:
         
@@ -72,53 +76,64 @@ class BuyOrderManager:
         try:
             # Remove expired orders
             self.supabase.table("buy_orders").delete().lt("expires_at", current_time).execute()
+            self.supabase.table("buy_orders").delete().lt("order_quantity", 1).execute()
             
             for order in self.buy_orders:
                 if order.expires_at < current_time:
                     self.buy_orders.remove(order)
+                elif order.order_quantity <= 0:
+                    self.buy_orders.remove(order)
                 else:
                     self.attempt_to_fulfill_order(order)
         except Exception as e:
-            print(f"[bold red underline]{e}[/bold red underline]")
+            print(f"[bold red underline]Error servicing buy orders{e}[/bold red underline]")
         
         
     
     def attempt_to_fulfill_order(self, order: BuyOrder) -> None:
-        shares_response = self.supabase.table("shares").select("*").eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).execute()
-        share_data = shares_response.data
+        shares_response = self.supabase.table("shares").select("*").neq('user_id', order.user_id).eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).limit(order.order_quantity).execute()
+        share_data: list[dict] = shares_response.data if shares_response.data is not None else []
         
-        available_shares = [LocalShare(id = share_data["id"],
-                                  stake = share_data["stake"],
-                                  purchased_price=share_data["purchased_price"],
-                                  company_share_id=share_data["share_id"],
-                                  purchasable=share_data["purchasable"],
-                                  user_id=share_data["user_id"],
-                                  sale_price=share_data["sale_price"],
-                                  company_id=share_data["company_id"]
-                                  ) for share_data in shares_response.data]
+        available_share_ids = list(map(lambda x: x["id"], share_data))
         
-        filtered_available_shares = filter(lambda x: x.user_id != order.user_id, available_shares)
-         
-        for share in filtered_available_shares:
-            if order.order_quantity > 0:
-                self.place_share_order(order, share.id)
-                print(f"[blue][{datetime.datetime.now().replace(second=0, microsecond=0)}] Completing buy order for user: {order.user_id} and company share id: {order.company_share_id}[/blue]")
-            else:
-                self.cancel_buy_order(order.id)
-                try:
-                    self.buy_orders.remove(order)
-                    break
-                except ValueError:
-                    print(f"[bold red underline] Order {order.id} already removed from list.[/bold red underline]")
+        # # filtered_available_shares = filter(lambda x: x.user_id != order.user_id, available_shares)
+        # filtered_available_shares = available_shares
+        
+        num_available_shares = len(available_share_ids)
+        
+        if num_available_shares == 0: return
+        
+        self.place_share_order(order, available_share_ids)
+        
+        # for share in filtered_available_shares:
+        #     if order.order_quantity > 0:
+        #         self.place_share_order(order, share.id)
+        #         print(f"[blue][{datetime.datetime.now().replace(second=0, microsecond=0)}] Completing buy order for user: {order.user_id} and company share id: {order.company_share_id}[/blue]")
+        #     else:
+        #         self.cancel_buy_order(order.id)
+        #         try:
+        #             self.buy_orders.remove(order)
+        #             break
+        #         except ValueError:
+        #             print(f"[bold red underline] Order {order.id} already removed from list.[/bold red underline]")
         
     
-    def place_share_order(self, buy_order: BuyOrder, share_id: int) -> None:
+    def place_share_order(self, buy_order: BuyOrder, share_ids: list[int]) -> None:
         try:
-            assert self.sqlite_assistant.update_local_share_owner(share_id, buy_order.user_id)
-            self.sqlite_assistant.update_local_share_purchased_price_post_transaction(share_id)
-            self.supabase.rpc("purchase_share", {"buyer_id": buy_order.user_id, "input_share_id": share_id}).execute()
-            self.update_buy_order(buy_order)
+            with SqliteAssistant(self.supabase) as sq: 
+                assert sq.update_local_shares_owner(share_ids, buy_order.user_id)
+                assert sq.update_local_shares_purchased_price_post_transaction(share_ids)
+                
+            self.supabase.rpc(
+                "purchase_list_of_shares",
+                {
+                    "buyer_id": buy_order.user_id,
+                    "input_shares": share_ids
+                }
+            ).execute()
+            self.update_buy_order(buy_order, len(share_ids))
+            print(f"[blue][{datetime.datetime.now().replace(second=0, microsecond=0)}] Completing buy order for user: {buy_order.user_id} and company share id: {buy_order.company_share_id} by purchasing shares with Ids {share_ids}[/blue]")
         except Exception as e:
-            print(f"[bold red underline]{e}[/bold red underline]") 
+            print(f"[bold red underline]Something went wrong when when placing a share order{e}[/bold red underline]") 
             
         

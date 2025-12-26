@@ -20,9 +20,8 @@ from classes.subAi.t_user import T_user
 
 class SupabaseAssistant:
 
-    def __init__(self, supabase: Client, sqlite_assistant: SqliteAssistant):
+    def __init__(self, supabase: Client):
         self.supabase = supabase
-        self.sqlite_assistant = sqlite_assistant
         self.users: list[T_user] = self.get_all_users()
         self.company_map = self.build_company_map()
         self.company_shares = self.get_all_stocks()
@@ -213,17 +212,17 @@ class SupabaseAssistant:
             for user in data:
                 try:
                     if user['ai_type'] == 3:
-                        ai = James(self.supabase, self.sqlite_assistant, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        ai = James(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
                     elif user['ai_type'] == 1:
-                        ai = Emily(self.supabase, self.sqlite_assistant, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        ai = Emily(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
                     elif user['ai_type'] == 2:
-                        ai = Spencer(self.supabase, self.sqlite_assistant, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        ai = Spencer(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
                     elif user['ai_type'] == 4:
-                        ai = Jehan(self.supabase, self.sqlite_assistant, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        ai = Jehan(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
                     elif user['ai_type'] == 5:
-                        ai = Harsh(self.supabase, self.sqlite_assistant, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        ai = Harsh(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
                     elif user['ai_type'] == 6:
-                        ai = Marcelino(self.supabase, self.sqlite_assistant, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        ai = Marcelino(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
                     else:
                         print(f"[yellow]Unknown AI type for {user} - skipping.[/yellow]")
                         continue

@@ -55,8 +55,12 @@ class SqliteAssistant:
             ON shares(user_id);
             """)
             cursor.close()
-        
-        
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc, traceback):
+        self.conn.close()
         
     def get_local_share_by_local_share_id(self, share_id: int) -> LocalShare:
         
@@ -82,8 +86,6 @@ class SqliteAssistant:
             sale_price = local_share_raw ["sale_price"],
             company_share_id = local_share_raw ["share_id"]
         )
-        
-        
         
         return local_share
     
@@ -250,44 +252,65 @@ class SqliteAssistant:
             
 
     
-    def update_local_share_owner(self, share_id : int, new_owner_id : int) -> bool:
-         
-        with self.conn:
+    def update_local_shares_owner(self, share_ids : list[int], new_owner_id : int) -> bool:
         
-            cursor = self.conn.cursor()
+        try: 
+            with self.conn:
             
-            cur = cursor.execute(
-                """
-                UPDATE shares
-                SET user_id = ?, purchasable = ?
-                WHERE id = ?
-                """,
-                (new_owner_id, False, share_id)
-            )
+                cursor = self.conn.cursor()
+                
+                for share_id in share_ids:
+                
+                    cur = cursor.execute(
+                        """
+                        UPDATE shares
+                        SET user_id = ?, purchasable = ?
+                        WHERE id = ?
+                        """,
+                        (new_owner_id, False, share_id)
+                    )
+                
+                cursor.close()
+            return True
+
+        except sqlite3.Error as e:
+            print("Transaction Failed for updating local shares owners --> Rolling back")
+            return False
+   
             
-            cursor.close()
-            
-        return cur.rowcount > 0
+        
                 
 
     
-    def update_local_share_purchased_price_post_transaction(self, share_id: int,):
+    def update_local_shares_purchased_price_post_transaction(self, share_ids: list[int],) -> bool:
         
-        with self.conn:
-            cursor = self.conn.cursor()
+        try:
+            with self.conn:
+                cursor = self.conn.cursor()
+                
+                for share_id in share_ids:
+                
+                    cur = cursor.execute(
+                        """
+                        UPDATE shares
+                        SET purchased_price = sale_price
+                        WHERE id = ?
+                        """,
+                        (share_id,)
+                    )
+                
+                cursor.close()
+                return True
             
-            cur = cursor.execute(
-                """
-                UPDATE shares
-                SET purchased_price = sale_price
-                WHERE id = ?
-                """,
-                (share_id,)
-            )
-            
-            cursor.close()
+        except sqlite3.Error as e:
+            print("Transaction Failed for updating purchased price post transaction --> Rolling back")
+            return False
+
+
         
-        return cur.rowcount > 0
+        
+        
+
 
     
     def insert_local_share(self, id: int, created_at: str, company_id : int, stake: float, purchased_price: float, purchasable: bool, user_id: int, sale_price: float, share_id: int):
@@ -358,7 +381,6 @@ class SqliteAssistant:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, rows)
 
-        self.conn.close()
         print("All Shares Replicated")
             
 

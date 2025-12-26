@@ -36,7 +36,7 @@ if (__name__ == "__main__"):
         time.sleep(1)  # Sleep for 1 second to avoid overwhelming the server
         
         if counter % 60 == 0:
-            print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Buy Order Manager ---------- [/bright_green]")
+            print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Stock Manager ---------- [/bright_green]")
         
         counter += 1
 
