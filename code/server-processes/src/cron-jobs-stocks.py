@@ -26,7 +26,7 @@ if (__name__ == "__main__"):
         admin.__stock_init__()
         admin.make_ai_share_orders()
         
-    schedule.every(1).hours.do(job)
+    schedule.every(4).hours.do(job)
     
     counter = 0
     
