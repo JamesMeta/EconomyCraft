@@ -79,14 +79,13 @@ class Administration:
         self.utility.print_user_type_spread()
     
     def replicate_supabase_database(self):
-        self.sqlite_assistant.replicate_shares()
+        with SqliteAssistant(self.supabase) as sq:
+            sq.replicate_shares()
         
     def print_local_shares(self):
-        result = self.sqlite_assistant.get_all_local_shares()
-        print(result)
+        with SqliteAssistant(self.supabase) as sq:
+            shares = sq.get_all_local_shares()
+            print(shares)
         
-    def debug_local_shares(self):
-        result = self.sqlite_assistant.get_local_shares_by_user_id(153)
-        
-        print(result)
+    
         
