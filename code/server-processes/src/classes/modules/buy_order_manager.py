@@ -134,6 +134,6 @@ class BuyOrderManager:
             self.update_buy_order(buy_order, len(share_ids))
             print(f"[blue][{datetime.datetime.now().replace(second=0, microsecond=0)}] Completing buy order for user: {buy_order.user_id} and company share id: {buy_order.company_share_id} by purchasing shares with Ids {share_ids}[/blue]")
         except Exception as e:
-            print(f"[bold red underline]Something went wrong when when placing a share order{e}[/bold red underline]") 
+            print(f"[bold red underline]Something went wrong when when placing the share order with id: {buy_order.id} error: {e}[/bold red underline]") 
             
         
