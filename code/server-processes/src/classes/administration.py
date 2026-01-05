@@ -1,6 +1,7 @@
 from supabase import Client
 from classes.classes.data_log import DataLog
 from classes.modules import performance
+from classes.modules.local_cache_manager import LocalCacheManager
 from classes.modules.performance import Performance
 from classes.modules.products_ai import ProductsAI
 from classes.modules.services import Services
@@ -24,6 +25,7 @@ class Administration:
         self.supabase_assistant = SupabaseAssistant(self.supabase)
         self.performance = Performance(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
         self.logger = DataLog()
+        self.local_cache_manager = LocalCacheManager()
         self.stocks_ai = StocksAI(
                 self.supabase,
                 self.supabase_assistant.users, 
@@ -35,7 +37,8 @@ class Administration:
                 self.performance.company_estimated_value_map, 
                 self.performance.company_listed_value_map,
                 self.performance.company_volatility_maps,
-                self.logger
+                self.logger,
+                self.local_cache_manager
                 )
         
         

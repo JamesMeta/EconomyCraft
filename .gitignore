@@ -178,3 +178,4 @@ front-end/economycraft/debug.bat
 front-end/economycraft/build.bat
 code/server-processes/src/charts/*
 code/server-processes/src/local.db-journal
+code/server-processes/src/local.db
