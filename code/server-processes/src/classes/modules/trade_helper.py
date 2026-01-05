@@ -28,7 +28,7 @@ class TradeHelper:
         if type(buy_orders) is list:
             return buy_orders
         
-        print(f"[red][GET_BUY_ORDERS_FOR_SHARE]Cache Missed for company_share_id: {share_id}[/red]")
+        print(f"[yellow][GET_BUY_ORDERS_FOR_SHARE]Cache Missed for company_share_id: {share_id}[/yellow]")
         response = self.supabase.table("buy_orders").select("*").eq("company_share_id", share_id).execute()
         buy_orders_raw = response.data
         
@@ -63,7 +63,7 @@ class TradeHelper:
         if (type(price) is float):
             return price
         
-        print(f"[red][GET_SHARE_LAST_SOLD_FOR_VALUE]Cache Missed for company_share_id: {share.company_share.id}[/red]")
+        print(f"[yellow][GET_SHARE_LAST_SOLD_FOR_VALUE]Cache Missed for company_share_id: {share.company_share.id}[/yellow]")
         response = self.supabase.table("company_share").select("value").eq("id", share.company_share.id).execute()
         data = response.data
         
@@ -83,7 +83,7 @@ class TradeHelper:
         if (type(price) is float):
             return price
 
-        print(f"[red][GET_LOWEST_FOR_SALE_SHARE]Cache Missed for share by company_id: {share.company.id}[/red]")
+        print(f"[yellow][GET_LOWEST_FOR_SALE_SHARE]Cache Missed for share by company_id: {share.company.id}[/yellow]")
         response = self.supabase.table("shares").select("*, company_share:share_id (value, is_public, number_of_shares)").eq("company_id", share.company.id).eq("purchasable", True).execute()
         shares = response.data
         
