@@ -20,6 +20,7 @@ from classes.modules import trade_helper
 from classes.modules.constants import SHARE_UNDERCUT_PERCENTAGE
 from rich.progress import Progress
 
+from classes.modules.local_cache_manager import LocalCacheManager
 from classes.modules.sqlite_assistant import SqliteAssistant
 from classes.modules.trade_helper import TradeHelper
 from classes.subAi.level_constants import FIRST, SECOND
@@ -44,6 +45,7 @@ class StocksAI:
         company_listed_value_map: dict[int, float],
         company_volatility_map: dict[int, dict[int, LineOfBestFit]],
         logger: DataLog,
+        local_cache_manager: LocalCacheManager
         ):
 
         self.supabase = supabase
@@ -57,8 +59,9 @@ class StocksAI:
         self.company_listed_value_map = company_listed_value_map
         self.company_volatility_map = company_volatility_map
         self.logger = logger
+        self.local_cache_manager = local_cache_manager
         
-        self.trade_helper = TradeHelper(supabase=supabase)
+        self.trade_helper = TradeHelper(supabase=supabase, local_cache_manager = local_cache_manager)
           
 
     def make_ai_share_orders(self):
