@@ -8,6 +8,8 @@ from supabase import Client
 from classes.classes.local_share import LocalShare
 from rich.progress import Progress
 
+from classes.classes.share_group import ShareGroup
+
 FIRST = 0
 
 class SqliteAssistant:
@@ -227,8 +229,27 @@ class SqliteAssistant:
             cursor.close()
             
         return cur.rowcount > 0
+    
+    def update_share_group_purchasable_status(self, share_group: ShareGroup, purchasable: bool) -> bool:
+        
+        with self.conn:
             
+            cursor = self.conn.cursor()
             
+            for share in share_group.shares:
+                cur = cursor.execute(
+                """
+                UPDATE shares
+                SET purchasable = ?
+                WHERE id = ?
+                """,
+                (purchasable, share.id)
+            )
+            
+            cursor.close()
+        
+        return cur.rowcount > 0
+          
 
     
     def update_local_share_sale_price(self, share_id : int, new_sale_price : float) -> bool:
@@ -250,7 +271,25 @@ class SqliteAssistant:
             
         return cur.rowcount > 0
             
-
+    def update_share_group_sale_price(self, share_group : ShareGroup, new_sale_price : float) -> bool:
+       
+        with self.conn:
+            
+            cursor = self.conn.cursor()
+            
+            for share in share_group.shares:
+                cur = cursor.execute(
+                """
+                UPDATE shares
+                SET sale_price = ?
+                WHERE id = ?
+                """,
+                (new_sale_price, share.id)
+                )
+            
+            cursor.close()
+        
+        return cur.rowcount > 0
     
     def update_local_shares_owner(self, share_ids : list[int], new_owner_id : int) -> bool:
         

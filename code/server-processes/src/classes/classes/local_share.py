@@ -9,3 +9,8 @@ class LocalShare:
         self.user_id = user_id
         self.sale_price = sale_price
         self.company_share_id = company_share_id
+        
+    def __eq__(self, other):
+        if not isinstance(other, LocalShare):
+            return NotImplemented
+        return self.id == other.id and self.company_id == other.company_id and self.stake == other.stake and self.purchased_price == other.purchased_price and self.purchasable == other.purchasable and self.user_id == other.user_id and self.sale_price == other.sale_price and self.company_share_id == other.company_share_id
