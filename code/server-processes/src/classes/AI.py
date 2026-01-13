@@ -1,6 +1,7 @@
 from supabase import Client
 from classes.classes.buy_order import BuyOrder
 from classes.classes.share import Share
+from classes.classes.share_group import ShareGroup
 from classes.modules.sqlite_assistant import SqliteAssistant
 
 
@@ -39,6 +40,22 @@ class AI:
                 raise Exception("Supabase update failed")
         except Exception as e:
             print(f"[bold red underline]Error placing share sell order: {e}[/bold red underline]")
+    
+
+    def place_share_group_sell_order(self, share_group: ShareGroup, sale_price: float):
+        try:
+            with SqliteAssistant(self.supabase) as sq:
+                assert (sq.update_share_group_purchasable_status(share_group, True) and sq.update_share_group_sale_price(share_group, sale_price)), "SQLite update failed"
+            
+            updates = list(map(lambda x: {"id": x.id, "sale_price": sale_price, "purchasable": True}, share_group.shares))
+            
+            response_supabase = self.supabase.rpc("bulk_update_shares", {"updates": updates}).execute()
+            
+            if (not (response_supabase)):
+                raise Exception("Supabase update failed")
+            
+        except Exception as e:
+            print(f"[bold red underline]Error placing share group sell order: {e}[/bold red underline]")
         
         
     def remove_share_for_sale(self, share_id: int):
@@ -55,6 +72,21 @@ class AI:
         except Exception as e:
             print(f"[bold red underline]Error removing share from sale: {e}[/bold red underline]")
         
+    def remove_share_group_for_sale(self, share_group: ShareGroup):
         
+        try:
+            with SqliteAssistant(self.supabase) as sq:
+                assert (sq.update_share_group_purchasable_status(share_group, False)), "SQLite update failed"
+            
+            updates = list(map(lambda x: {"id": x.id, "sale_price": x.sale_price, "purchasable": False}, share_group.shares))
+            
+            response_supabase = self.supabase.rpc("bulk_update_shares", {"updates": updates}).execute()
+            
+            if (not (response_supabase)):
+                raise Exception("Supabase update failed")
+            
+        except Exception as e:
+            print(f"[bold red underline]Error Removing share group for sale: {e}[/bold red underline]")
+            
         
     

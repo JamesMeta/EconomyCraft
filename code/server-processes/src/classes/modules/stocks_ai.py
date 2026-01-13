@@ -2,6 +2,7 @@ import datetime
 import random
 
 from typing import Any, Optional
+from collections import defaultdict
 
 from supabase import Client
 
@@ -14,6 +15,7 @@ from classes.classes.company_share import CompanyShare
 from classes.classes.data_log import DataLog
 from classes.classes.line_of_best_fit import LineOfBestFit
 from classes.classes.share import Share
+from classes.classes.share_group import ShareGroup
 from classes.classes.volatility import Volatility
 from classes.modules import supabase_assistant
 from classes.modules import trade_helper
@@ -148,7 +150,7 @@ class StocksAI:
             self.logger.calculate_averages()
     
 
-    def get_bot_state(self, user: T_user) -> tuple[dict[str, dict[int, LineOfBestFit]], list[Share]]:
+    def get_bot_state(self, user: T_user) -> tuple[dict[str, dict[int, LineOfBestFit]], list[ShareGroup]]:
         
         def company_value_bot_estimate(estimated_value_map: dict, random_range: tuple) -> dict:
             
@@ -161,6 +163,7 @@ class StocksAI:
                 
         
         user_owned_shares = self.get_user_owned_shares(user.id)
+        user_owned_share_groups = self.group_user_owned_shares(user_owned_shares)
         user_company_statistics_maps = {
             "TREND_ANALYSIS" : self.company_stock_trend_maps[TIME_PERIOD_TREND_ANALYSIS],
             "SALES" : self.company_performance_maps[user.history_scope],
@@ -171,11 +174,11 @@ class StocksAI:
             "VOLATILITY_TOLERANCE": self.company_volatility_map[user.history_scope]
             }
         
-        return user_company_statistics_maps,  user_owned_shares
+        return user_company_statistics_maps,  user_owned_share_groups
         
         
 
-    def evaluate_positions(self, user: T_user, current_shares: list[Share], user_company_statistics_maps: dict[str, dict[int, LineOfBestFit]]) -> None:
+    def evaluate_positions(self, user: T_user, current_share_groups: list[ShareGroup], user_company_statistics_maps: dict[str, dict[int, LineOfBestFit]]) -> None:
         
         def evaluate_purchasable_position_for_profit_loss_goals(value, sale_price) -> tuple[bool,str]:
             percent_difference = abs(1 - (sale_price / max(value, 0.1)))
@@ -246,7 +249,9 @@ class StocksAI:
             else:
                 return False, "N/A"
         
-        def evalutate_position(share: Share, user: T_user, user_company_statistics_maps: dict[str, dict[int, LineOfBestFit]]) -> str:
+        def evalutate_position(share_group: ShareGroup, user: T_user, user_company_statistics_maps: dict[str, dict[int, LineOfBestFit]]) -> str:
+            
+            share = share_group.head_share
             
             value = share.company_share.value
             purchased_price = share.purchased_price
@@ -276,7 +281,7 @@ class StocksAI:
                     return decision
                 
                 else:
-                    user.remove_share_for_sale(share.id)
+                    user.remove_share_group_for_sale(share_group)
              
             premature_sell = random.randint(user.range_of_premature_sell[FIRST], user.range_of_premature_sell[SECOND]) == 1   
                  
@@ -307,19 +312,19 @@ class StocksAI:
             
             return "NO_ACTION"
         
-        for share in current_shares:
-            decision = evalutate_position(share, user, user_company_statistics_maps)
+        for share_group in current_share_groups:
+            decision = evalutate_position(share_group, user, user_company_statistics_maps)
             
             if decision == "NO_ACTION":
                 continue
             
             if decision == "SELL_GAIN":
-                self.trade_helper.sell_gain(user=user, share=share)
-                print(f"[green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is selling one of their shares in {share.company.name} for some profit[/green]")
+                self.trade_helper.sell_gain(user=user, share_group=share_group)
+                print(f"[green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is selling {len(share_group.shares)} of their shares in {share_group.head_share.company.name} for some profit[/green]")
             
             if decision == "SELL_NOW":
-                self.trade_helper.sell_now(user=user, share=share)
-                print(f"[bright_magenta][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is dumping one of their shares in {share.company.name} to prevent further loss[/bright_magenta]")
+                self.trade_helper.sell_now(user=user, share_group=share_group)
+                print(f"[bright_magenta][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is dumping {len(share_group.shares)} of their shares in {share_group.head_share.company.name} to prevent further loss[/bright_magenta]")
     
 
     def evaluate_liquidity(self, user: T_user) -> tuple[bool, dict]:
@@ -522,6 +527,24 @@ class StocksAI:
                                purchasable=share.purchasable, user_id=share.user_id, sale_price=share.sale_price), user_local_shares))
         
         return user_shares
+    
+    def group_user_owned_shares(self, shares: list[Share]) -> list[ShareGroup]:
+        groups: dict[int, dict[int, ShareGroup]] = defaultdict(dict)
+
+        for share in shares:
+            company_id = share.company_share.id
+            bucket = round(share.purchased_price / (share.purchased_price * 0.01))
+
+            if bucket not in groups[company_id]:
+                groups[company_id][bucket] = ShareGroup(share)
+            else:
+                groups[company_id][bucket].add_share_to_group(share)
+
+        return [
+            group
+            for company_groups in groups.values()
+            for group in company_groups.values()
+        ]  
 
     def get_user_networth_breakdown(self, user: T_user) -> dict[str, float]:
 
