@@ -84,10 +84,10 @@ class StocksAI:
                     #--------------------------------------------
                     # Get Bot State
                     # Bot's data from performance maps 
-                    # Bot's current shares, 
+                    # Bot's current share groups, 
                     #--------------------------------------------
                     
-                    user_company_statistics_maps, user_owned_shares, = self.get_bot_state(user)
+                    user_company_statistics_maps, user_owned_share_groups, = self.get_bot_state(user)
 
                     #--------------------------------------------
                     # Evaluate and potentially sell existing shares
@@ -98,7 +98,7 @@ class StocksAI:
                     # Check if company's growth decline exceeds the bot's growth confortability constant
                     #--------------------------------------------
                     
-                    self.evaluate_positions(user, user_owned_shares, user_company_statistics_maps)
+                    self.evaluate_positions(user, user_owned_share_groups, user_company_statistics_maps)
                     
                     #--------------------------------------------
                     # Evaluate whether to buy new shares
@@ -118,7 +118,7 @@ class StocksAI:
                     # Share's that the bot doesn't exceed their diversity constant for
                     #--------------------------------------------
                     
-                    potential_company_shares_to_buy = self.filter_current_shares(user, user_owned_shares, self.company_shares, portfolio["SHARE_ASSETS"])
+                    potential_company_shares_to_buy = self.filter_current_shares(user, user_owned_share_groups, self.company_shares, portfolio["SHARE_ASSETS"])
                 
                     #--------------------------------------------
                     # Score shares based on bot's constants
@@ -334,22 +334,22 @@ class StocksAI:
         return networth_invested > user.percentage_of_networth_to_invest, portfolio
     
 
-    def filter_current_shares(self, user: T_user, user_owned_shares: list[Share], company_shares: list[CompanyShare], user_share_asset_total: float) -> list[CompanyShare]:
+    def filter_current_shares(self, user: T_user, user_owned_share_groups: list[ShareGroup], company_shares: list[CompanyShare], user_share_asset_total: float) -> list[CompanyShare]:
         
         diversity_requirement = user.diversity_minimum
         
         invalid_share_list: list[int] = []
         share_totals: dict[int, float] = {}
         
-        for share in user_owned_shares:
+        for share_group in user_owned_share_groups:
             
-            if share.company_share.id in share_totals:
-                share_totals[share.company_share.id] = share.company_share.value + share_totals[share.company_share.id]
+            if share_group.head_share.company_share.id in share_totals:
+                share_totals[share_group.head_share.company_share.id] = (share_group.head_share.company_share.value * len(share_group.shares)) + share_totals[share_group.head_share.company_share.id]
             else:
-                share_totals[share.company_share.id] = share.company_share.value
+                share_totals[share_group.head_share.company_share.id] = (share_group.head_share.company_share.value * len(share_group.shares))
             
-            if share_totals[share.company_share.id] / user_share_asset_total > diversity_requirement and share.company_share.id not in invalid_share_list:
-                invalid_share_list.append(share.company_share.id)
+            if share_totals[share_group.head_share.company_share.id] / user_share_asset_total > diversity_requirement and share_group.head_share.company_share.id not in invalid_share_list:
+                invalid_share_list.append(share_group.head_share.company_share.id)
         
         filtered_shares : list[CompanyShare] = []
         
@@ -447,7 +447,15 @@ class StocksAI:
         
         top_three_companies = items_sorted[0:3]
         
-        company_id_to_buy = int(random.choices(top_three_companies, weights=[0.6, 0.3, 0.1])[FIRST][FIRST])
+        if len(top_three_companies) == 3:
+            company_id_to_buy = int(random.choices(top_three_companies, weights=[0.6, 0.3, 0.1])[FIRST][FIRST])
+        if len(top_three_companies) == 2:
+            company_id_to_buy = int(random.choices(top_three_companies, weights=[2/3, 1/3])[FIRST][FIRST])
+        if len(top_three_companies) == 1:
+            company_id_to_buy = int(top_three_companies[FIRST][FIRST])
+        if len(top_three_companies) == 0:
+            print(f"[orange][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because none of the companies satisfied their diversity requirements or something.[/orange]")
+            return
         
         share_to_buy = None
         

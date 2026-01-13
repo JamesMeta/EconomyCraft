@@ -21,20 +21,20 @@ class TradeHelper:
         
     
     
-    def get_buy_orders_for_share(self, share_id: int, desc = True) -> List[BuyOrder]:
+    def get_buy_orders_for_share(self, company_share_id: int, desc = True) -> List[BuyOrder]:
         
-        buy_orders = self.local_cache_manager.get(f"buy_order:by_company_share:{share_id}")
+        buy_orders = self.local_cache_manager.get(f"buy_order:by_company_share:{company_share_id}")
         
         # If there is a cache hit return early
         if type(buy_orders) is list:
             return buy_orders
         
-        print(f"[yellow][GET_BUY_ORDERS_FOR_SHARE]Cache Missed for company_share_id: {share_id}[/yellow]")
-        response = self.supabase.table("buy_orders").select("*").eq("company_share_id", share_id).execute()
+        print(f"[yellow][GET_BUY_ORDERS_FOR_SHARE]Cache Missed for company_share_id: {company_share_id}[/yellow]")
+        response = self.supabase.table("buy_orders").select("*").eq("company_share_id", company_share_id).execute()
         buy_orders_raw = response.data
         
         if not buy_orders_raw or len(buy_orders_raw) == 0:
-            self.local_cache_manager.set(f"buy_order:by_company_share:{share_id}", [], ttl=60)
+            self.local_cache_manager.set(f"buy_order:by_company_share:{company_share_id}", [], ttl=60)
             return []
         
         else:
@@ -53,7 +53,7 @@ class TradeHelper:
             
             buy_orders.sort(key=lambda o: o.order_maximum, reverse=desc)
             
-            self.local_cache_manager.set(f"buy_order:by_company_share:{share_id}", buy_orders)
+            self.local_cache_manager.set(f"buy_order:by_company_share:{company_share_id}", buy_orders)
             
             return buy_orders
     
@@ -120,7 +120,7 @@ class TradeHelper:
     # If none are found it will price near the last sold price for slightly less
     def sell_now(self, user: AI, share_group: ShareGroup) -> None:
         
-        buy_orders = self.get_buy_orders_for_share(share_id = share_group.head_share.company_share.id)
+        buy_orders = self.get_buy_orders_for_share(company_share_id = share_group.head_share.company_share.id)
         
         #TODO 
         #Migrate to place_share_group_sell_order
@@ -146,7 +146,7 @@ class TradeHelper:
     # If none are found it will price near the last sold price for slightly more
     def sell_gain(self, user: AI, share_group: ShareGroup) -> None:
     
-        buy_orders = self.get_buy_orders_for_share(share_id=share_group.head_share.id)
+        buy_orders = self.get_buy_orders_for_share(company_share_id=share_group.head_share.company_share.id)
         
         if self.is_valid_buy_orders(share=share_group.head_share, buy_orders=buy_orders, last_sale_price_margin=0.985):
             
