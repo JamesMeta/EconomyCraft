@@ -91,7 +91,8 @@ class BuyOrderManager:
         
     
     def attempt_to_fulfill_order(self, order: BuyOrder) -> None:
-        shares_response = self.supabase.table("shares").select("*").neq('user_id', order.user_id).eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).limit(order.order_quantity).execute()
+        max_quantity = min(order.order_quantity, 5000)
+        shares_response = self.supabase.table("shares").select("*").neq('user_id', order.user_id).eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).limit(max_quantity).execute()
         share_data: list[dict] = shares_response.data if shares_response.data is not None else []
         
         available_share_ids = list(map(lambda x: x["id"], share_data))

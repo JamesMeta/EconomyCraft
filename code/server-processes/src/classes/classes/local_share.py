@@ -1,3 +1,4 @@
+import numpy as np
 
 class LocalShare:
     def __init__(self, id: int, company_id: int, stake: float, purchased_price: float, company_share_id: int, purchasable: bool, user_id: int, sale_price: float,):
@@ -13,4 +14,4 @@ class LocalShare:
     def __eq__(self, other):
         if not isinstance(other, LocalShare):
             return NotImplemented
-        return self.id == other.id and self.company_id == other.company_id and self.stake == other.stake and self.purchased_price == other.purchased_price and self.purchasable == other.purchasable and self.user_id == other.user_id and self.sale_price == other.sale_price and self.company_share_id == other.company_share_id
+        return self.id == other.id and self.company_id == other.company_id and self.stake == other.stake and np.floor(self.purchased_price) == np.floor(other.purchased_price) and self.purchasable == other.purchasable and self.user_id == other.user_id and np.floor(self.sale_price) == np.floor(other.sale_price) and self.company_share_id == other.company_share_id
