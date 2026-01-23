@@ -21,7 +21,7 @@ class TradeHelper:
         
     
     
-    def get_buy_orders_for_share(self, company_share_id: int, desc = True) -> List[BuyOrder]:
+    def get_buy_orders_for_share(self, company_share_id: int) -> List[BuyOrder]:
         
         buy_orders = self.local_cache_manager.get(f"buy_order:by_company_share:{company_share_id}")
         
@@ -50,8 +50,6 @@ class TradeHelper:
                 )
                 for x in buy_orders_raw
             ]
-            
-            buy_orders.sort(key=lambda o: o.order_maximum, reverse=desc)
             
             self.local_cache_manager.set(f"buy_order:by_company_share:{company_share_id}", buy_orders)
             
@@ -97,6 +95,20 @@ class TradeHelper:
         lowest_price_share = min(shares, key=lambda x: x['sale_price'])
         self.local_cache_manager.set(f"price:for_cheapest_share_by_company_id:{share.company.id}", float(lowest_price_share['sale_price']), ttl=60)
         return lowest_price_share['sale_price']
+    
+    def update_buy_orders_for_share(self, buy_order: BuyOrder):
+        
+        buy_orders : Optional[list[BuyOrder]] = self.local_cache_manager.get(f"buy_order:by_company_share:{buy_order.company_share_id}")
+        
+        # If there is a cache miss return early
+        if type(buy_orders) is not list:
+            print(f"[yellow][UPDATE_BUY_ORDERS_FOR_SHARE]Cache Missed for company_share_id: {buy_order.company_share_id}[/yellow]")
+            return
+        
+        buy_orders.append(buy_order)
+            
+        self.local_cache_manager.set(f"buy_order:by_company_share:{buy_order.company_share_id}", buy_orders)
+            
 
     def is_valid_buy_orders(self, share: Share, buy_orders: list[BuyOrder], last_sale_price_margin: float) -> bool:
             
@@ -122,8 +134,6 @@ class TradeHelper:
         
         buy_orders = self.get_buy_orders_for_share(company_share_id = share_group.head_share.company_share.id)
         
-        #TODO 
-        #Migrate to place_share_group_sell_order
         if self.is_valid_buy_orders(share = share_group.head_share, buy_orders=buy_orders, last_sale_price_margin=0.9):
             
             highest_value_buy_order = buy_orders[FIRST]

@@ -478,9 +478,9 @@ class StocksAI:
         if max_amount_to_invest_into_one_stock < max_amount_to_invest_currently:
             max_amount_to_invest_currently = max_amount_to_invest_into_one_stock
         
-        quanitity_of_shares_to_buy = int(max_amount_to_invest_currently // (share_to_buy.value * 1.1) )
+        quantity_of_shares_to_buy = int(max_amount_to_invest_currently // (share_to_buy.value * 1.1) )
         
-        if quanitity_of_shares_to_buy <= 0:
+        if quantity_of_shares_to_buy <= 0:
             print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they cannot afford to purchase a share for {self.company_map[share_to_buy.company_id].name}[/yellow]")
             return
         
@@ -492,29 +492,32 @@ class StocksAI:
             print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they already have a buy order for {self.company_map[share_to_buy.company_id].name}[/yellow]")
             return 
         
-        buy_order_price = self.decide_buy_order_max_price(share_to_buy, current_buy_orders)
+        buy_order_price = self.decide_buy_order_max_price(share_to_buy, current_buy_orders, quantity_of_shares_to_buy)
         
         time_plus_one = datetime.datetime.now() + datetime.timedelta(hours=1)
         
-        buy_order = BuyOrder(id = 0, created_at = "", expires_at = time_plus_one.isoformat(), company_share_id = share_to_buy.id, user_id = user.id, order_maximum = buy_order_price, order_quantity = quanitity_of_shares_to_buy)
+        buy_order = BuyOrder(id = 0, created_at = "", expires_at = time_plus_one.isoformat(), company_share_id = share_to_buy.id, user_id = user.id, order_maximum = buy_order_price, order_quantity = quantity_of_shares_to_buy)
         
-        user.place_buy_order(buy_order=buy_order)
+        # Update local cache since many users will use it right after placing this order
+        self.trade_helper.update_buy_orders_for_share(buy_order = buy_order)
+        
+        user.place_buy_order(buy_order = buy_order)
         
         print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} placed a buy order for {self.company_map[share_to_buy.company_id].name} at ${buy_order.order_maximum} with {buy_order.order_quantity} quantity[/bright_green]")
         
         
         
-    def decide_buy_order_max_price(self, share: CompanyShare, current_buy_orders: list[BuyOrder]) -> float:
+    def decide_buy_order_max_price(self, share: CompanyShare, current_buy_orders: list[BuyOrder], quantity_of_shares_to_buy: int) -> float:
         
         if current_buy_orders:
         
-            most_expensive_order = current_buy_orders[FIRST].order_maximum
+            most_expensive_order = max(current_buy_orders, key = lambda buy_order: buy_order.order_maximum)
             
-            if most_expensive_order / share.value > 1.1:
+            if most_expensive_order.order_maximum / share.value > 1.1:
                 return share.value * 1.1
             
             else:
-                return most_expensive_order * 1.01
+                return most_expensive_order.order_maximum  * 1.01
         
         else:
             return share.value 

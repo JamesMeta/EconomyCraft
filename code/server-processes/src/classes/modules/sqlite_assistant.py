@@ -5,6 +5,7 @@ from typing import Optional
 
 from supabase import Client
 
+from classes.classes.buy_order import BuyOrder
 from classes.classes.local_share import LocalShare
 from rich.progress import Progress
 
@@ -48,6 +49,18 @@ class SqliteAssistant:
             """)
             
             cursor.execute("""
+            CREATE TABLE IF NOT EXISTS buy_orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                expires_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                company_share_id INTEGER,
+                user_id INTEGER,
+                maximum_share_price REAL NOT NULL DEFAULT 0,
+                order_quantity INTEGER
+            ) STRICT;
+            """)
+            
+            cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_shares_share_id
             ON shares(share_id);
             """)
@@ -56,6 +69,17 @@ class SqliteAssistant:
             CREATE INDEX IF NOT EXISTS idx_shares_user_id
             ON shares(user_id);
             """)
+            
+            cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_buy_orders_company_share_id
+            ON buy_orders(company_share_id);
+            """)
+            
+            cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_buy_orders_user_id
+            ON buy_orders(user_id);
+            """)
+            
             cursor.close()
     
     def __enter__(self):
@@ -315,11 +339,6 @@ class SqliteAssistant:
         except sqlite3.Error as e:
             print("Transaction Failed for updating local shares owners --> Rolling back")
             return False
-   
-            
-        
-                
-
     
     def update_local_shares_purchased_price_post_transaction(self, share_ids: list[int],) -> bool:
         
@@ -346,10 +365,110 @@ class SqliteAssistant:
             return False
 
 
+    #
+    # I do not plan on using this infrastructure for buyorders but in the future I might so ill leave it here
+    #
+    def insert_buy_order(self, buy_order: BuyOrder) -> bool:
         
+        with self.conn:
         
+            cursor = self.conn.cursor()
+            
+            cursor.execute(
+                """
+                INSERT INTO buy_orders (
+                    id, created_at, expires_at, company_share_id, user_id, maximum_share_price, order_quantity
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (buy_order.id, buy_order.created_at, buy_order.expires_at, buy_order.company_share_id, buy_order.user_id, buy_order.order_maximum, buy_order.order_quantity)
+            )
+            cursor.close()
+           
+        return True
+    
+    #
+    # I do not plan on using this infrastructure for buyorders but in the future I might so ill leave it here
+    #
+    def delete_buy_order_by_order_id(self, order_id: int) -> bool:
         
-
+        with self.conn:
+            
+            cursor = self.conn.cursor()
+            
+            cur = cursor.execute(
+                """
+                DELETE FROM buy_orders
+                WHERE id = ?
+                """,
+                (order_id,)
+            )
+            
+            cursor.close()
+        
+        return cur.rowcount > 0
+    
+    #
+    # I do not plan on using this infrastructure for buyorders but in the future I might so ill leave it here
+    #
+    def get_all_buy_orders(self) -> list[BuyOrder]:
+        
+        cursor = self.conn.cursor()
+        
+        cursor.execute("SELECT * FROM buy_orders")
+        
+        buy_order_results = cursor.fetchall()
+        
+        cursor.close()
+        
+        buy_order_list = []
+        
+        for buy_order_raw in buy_order_results:
+        
+            buy_order = BuyOrder(
+                id = buy_order_raw ["id"],
+                created_at = buy_order_raw ["created_at"],
+                expires_at = buy_order_raw ["expires_at"],
+                company_share_id = buy_order_raw ["company_share_id"],
+                user_id = buy_order_raw ["user_id"],
+                order_maximum = buy_order_raw ["maximum_share_price"],
+                order_quantity = buy_order_raw ["order_quantity"]
+            )
+            
+            buy_order_list.append(buy_order)
+        
+        return buy_order_list
+    
+    #
+    # I do not plan on using this infrastructure for buyorders but in the future I might so ill leave it here
+    #    
+    def get_buy_orders_by_user_id(self, user_id: int) -> list[BuyOrder]:
+        
+        cursor = self.conn.cursor()
+        
+        cursor.execute("SELECT * FROM buy_orders WHERE user_id = ?", (user_id,))
+        
+        buy_order_results = cursor.fetchall()
+        
+        cursor.close()
+        
+        buy_order_list = []
+        
+        for buy_order_raw in buy_order_results:
+        
+            buy_order = BuyOrder(
+                id = buy_order_raw ["id"],
+                created_at = buy_order_raw ["created_at"],
+                expires_at = buy_order_raw ["expires_at"],
+                company_share_id = buy_order_raw ["company_share_id"],
+                user_id = buy_order_raw ["user_id"],
+                order_maximum = buy_order_raw ["maximum_share_price"],
+                order_quantity = buy_order_raw ["order_quantity"]
+            )
+            
+            buy_order_list.append(buy_order)
+        
+        return buy_order_list
 
     
     def insert_local_share(self, id: int, created_at: str, company_id : int, stake: float, purchased_price: float, purchasable: bool, user_id: int, sale_price: float, share_id: int):
@@ -422,6 +541,6 @@ class SqliteAssistant:
 
         print("All Shares Replicated")
             
-
+    
     
         
