@@ -509,7 +509,7 @@ class StocksAI:
     
     # TODO
     # This currently is pretty fixed on how AI price shares, it takes nothing into account for how much an AI might actually want the share to start a bidding war
-    # In the future this should be changed to 
+    # In the future this should be changed to allow for the users Share Score to play a part in the pricing aswell as the quanitity the bot wishes to buy
     def decide_buy_order_max_price(self, user: T_user, share: CompanyShare, current_buy_orders: list[BuyOrder], quantity_of_shares_to_buy: int) -> float:
         
         if current_buy_orders:
