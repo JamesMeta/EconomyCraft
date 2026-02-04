@@ -51,7 +51,7 @@ class StocksAI:
         ):
 
         self.supabase = supabase
-        self.users = users
+        self.ai_users = users
         self.company_shares = company_shares
         self.company_map = company_map
         self.company_performance_maps = company_performance_maps
@@ -68,8 +68,8 @@ class StocksAI:
 
     def make_ai_share_orders(self):
 
-        # Randomize order of users to prevent bias
-        user_copies = self.users.copy()
+        # Randomize order of ai_users to prevent bias
+        user_copies = self.ai_users.copy()
         random.shuffle(user_copies)
 
         with Progress() as progress:
@@ -362,7 +362,7 @@ class StocksAI:
         return filtered_shares
     
 
-    def score_shares(self,user: T_user, company_shares: list[CompanyShare],
+    def score_shares(self, user: T_user, company_shares: list[CompanyShare],
                      user_companies_statistics_maps: dict[str, dict[int, Any]],
                      TREND_ANALYSIS: float,
                      REPUTATION: float,
@@ -492,13 +492,13 @@ class StocksAI:
             print(f"[yellow][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} is returning without a buy order because they already have a buy order for {self.company_map[share_to_buy.company_id].name}[/yellow]")
             return 
         
-        buy_order_price = self.decide_buy_order_max_price(share_to_buy, current_buy_orders, quantity_of_shares_to_buy)
+        buy_order_price = self.decide_buy_order_max_price(user, share_to_buy, current_buy_orders, quantity_of_shares_to_buy)
         
         time_plus_one = datetime.datetime.now() + datetime.timedelta(hours=1)
         
         buy_order = BuyOrder(id = 0, created_at = "", expires_at = time_plus_one.isoformat(), company_share_id = share_to_buy.id, user_id = user.id, order_maximum = buy_order_price, order_quantity = quantity_of_shares_to_buy)
         
-        # Update local cache since many users will use it right after placing this order
+        # Update local cache since many ai_users will use it right after placing this order
         self.trade_helper.update_buy_orders_for_share(buy_order = buy_order)
         
         user.place_buy_order(buy_order = buy_order)
@@ -506,18 +506,26 @@ class StocksAI:
         print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} placed a buy order for {self.company_map[share_to_buy.company_id].name} at ${buy_order.order_maximum} with {buy_order.order_quantity} quantity[/bright_green]")
         
         
-        
-    def decide_buy_order_max_price(self, share: CompanyShare, current_buy_orders: list[BuyOrder], quantity_of_shares_to_buy: int) -> float:
+    
+    # TODO
+    # This currently is pretty fixed on how AI price shares, it takes nothing into account for how much an AI might actually want the share to start a bidding war
+    # In the future this should be changed to 
+    def decide_buy_order_max_price(self, user: T_user, share: CompanyShare, current_buy_orders: list[BuyOrder], quantity_of_shares_to_buy: int) -> float:
         
         if current_buy_orders:
         
             most_expensive_order = max(current_buy_orders, key = lambda buy_order: buy_order.order_maximum)
             
-            if most_expensive_order.order_maximum / share.value > 1.1:
+            isOrderAI = any(u.id == most_expensive_order.user_id for u in self.ai_users)
+            
+            if most_expensive_order.order_maximum / share.value > 1.1 and not isOrderAI:
+                
+                print(f"[blue] [{datetime.datetime.now().replace(second=0, microsecond=0)}] {user.minecraft_username} detected that the buy orders are possibly manipulated by a player[/blue]")
+                
                 return share.value * 1.1
             
             else:
-                return most_expensive_order.order_maximum  * 1.01
+                return most_expensive_order.order_maximum + ((share.value * user.randomness) * (0.005 * (user.randomness**2)))
         
         else:
             return share.value 

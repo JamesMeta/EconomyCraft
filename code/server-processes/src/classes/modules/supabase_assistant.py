@@ -22,7 +22,7 @@ class SupabaseAssistant:
 
     def __init__(self, supabase: Client):
         self.supabase = supabase
-        self.users: list[T_user] = self.get_all_users()
+        self.users: list[T_user] = self.get_all_AI_users()
         self.company_map = self.build_company_map()
         self.company_shares = self.get_all_stocks()
 
@@ -195,7 +195,7 @@ class SupabaseAssistant:
     def complete_all_ai_orders(self) -> None:
         self.supabase.rpc("complete_ai_orders").execute()
 
-    def get_all_users(self) -> list:
+    def get_all_AI_users(self) -> list:
         """
         Retrieve all AI users from the database and instantiate the appropriate AI class.
         
