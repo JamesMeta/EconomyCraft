@@ -1,4 +1,4 @@
-from classes.subAi.t_user import T_user
+from classes.classes.subAi.t_user import T_user
 
 
 class Utility:

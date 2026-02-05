@@ -4,25 +4,28 @@ from typing import Any
 
 from supabase import Client
 from classes.classes.company_share import CompanyShare
+from classes.classes.player import Player
 from classes.classes.share import Share
+from classes.classes.subAi import t_user
 from classes.modules.sqlite_assistant import SqliteAssistant
-from classes.subAi.james import James
-from classes.subAi.emily import Emily
-from classes.subAi.spencer import Spencer
-from classes.subAi.jehan import Jehan
-from classes.subAi.harsh import Harsh
-from classes.subAi.marcelino import Marcelino
+from classes.classes.subAi.james import James
+from classes.classes.subAi.emily import Emily
+from classes.classes.subAi.spencer import Spencer
+from classes.classes.subAi.jehan import Jehan
+from classes.classes.subAi.harsh import Harsh
+from classes.classes.subAi.marcelino import Marcelino
 from classes.classes.company import Company
 from rich.progress import Progress
 
-from classes.subAi.t_user import T_user
+from classes.classes.subAi.t_user import T_user
 
 
 class SupabaseAssistant:
 
     def __init__(self, supabase: Client):
         self.supabase = supabase
-        self.users: list[T_user] = self.get_all_AI_users()
+        self.player_users, self.AI_users = self.get_all_users()
+        
         self.company_map = self.build_company_map()
         self.company_shares = self.get_all_stocks()
 
@@ -195,43 +198,54 @@ class SupabaseAssistant:
     def complete_all_ai_orders(self) -> None:
         self.supabase.rpc("complete_ai_orders").execute()
 
-    def get_all_AI_users(self) -> list:
+    def get_all_users(self) -> tuple[list[Player], list[T_user]]:
         """
         Retrieve all AI users from the database and instantiate the appropriate AI class.
         
         Returns:
             List of AI user instances
         """
-        response = self.supabase.table("users").select("*").eq("ai", True).execute()
+        response = self.supabase.table("users").select("*").execute()
         data = response.data
-        users_list: list[Any] = []
+        AI_users_list: list[T_user] = []
+        player_users_list: list[Player] = []
+        
         ai: Any = None
         
         with Progress() as progress:
             task = progress.add_task("[grey50]Building User List...", total=len(data))
             for user in data:
                 try:
-                    if user['ai_type'] == 3:
-                        ai = James(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                    elif user['ai_type'] == 1:
-                        ai = Emily(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                    elif user['ai_type'] == 2:
-                        ai = Spencer(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                    elif user['ai_type'] == 4:
-                        ai = Jehan(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                    elif user['ai_type'] == 5:
-                        ai = Harsh(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
-                    elif user['ai_type'] == 6:
-                        ai = Marcelino(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                    
+                    if user["ai"]:
+                        if user['ai_type'] == 3:
+                            ai = James(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        elif user['ai_type'] == 1:
+                            ai = Emily(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        elif user['ai_type'] == 2:
+                            ai = Spencer(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        elif user['ai_type'] == 4:
+                            ai = Jehan(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        elif user['ai_type'] == 5:
+                            ai = Harsh(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        elif user['ai_type'] == 6:
+                            ai = Marcelino(self.supabase, user['id'], user['minecraft_username'], user['money'], user['delivery_address'], user['daily_income'], user['ai_type'])
+                        else:
+                            print(f"[yellow]Unknown AI type for {user} - skipping.[/yellow]")
+                            continue
+                        AI_users_list.append(ai)
+                    
                     else:
-                        print(f"[yellow]Unknown AI type for {user} - skipping.[/yellow]")
-                        continue
+                        player = Player(user["id"], user["user_id"], user["minecraft_username"], user["money"], user["avatar_url"], user["delivery_address"])
+                        player_users_list.append(player)
+                        
+                    
                     progress.advance(task, advance=1)
                     
-                    users_list.append(ai)
+                   
                 except Exception as e:
                     print(f"[bold red]Error creating AI for user {user['minecraft_username']}: {e} [/bold red]")
-        return users_list
+        return player_users_list, AI_users_list
     
     def build_company_map(self) -> dict[int, Company]:
         company_response = self.supabase.table("companies").select("*").eq("verified", True).execute()

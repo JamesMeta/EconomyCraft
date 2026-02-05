@@ -1,7 +1,7 @@
 from collections import Counter
 from typing import Optional, Iterable, Any
 
-from classes.subAi.t_user import T_user
+from classes.classes.subAi.t_user import T_user
 
 
 

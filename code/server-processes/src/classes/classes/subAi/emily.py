@@ -1,5 +1,5 @@
-from classes.AI import AI
-from classes.subAi.level_constants import *
+from classes.classes.AI import AI
+from classes.classes.subAi.level_constants import *
 import random
 class Emily(AI):
     def __init__(self, supabase, id: int, minecraft_username: str, money: int, delivery_address: str, daily_income: int, ai_type: int):

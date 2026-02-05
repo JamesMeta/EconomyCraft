@@ -1,7 +1,7 @@
 
 from cachetools import TTLCache
 from supabase import Client
-from classes.AI import AI
+from classes.classes.AI import AI
 from classes.classes import buy_order
 from classes.classes.buy_order import BuyOrder
 from typing import *

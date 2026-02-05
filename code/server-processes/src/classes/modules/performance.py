@@ -2,7 +2,7 @@ import datetime
 from typing import Any
 import numpy as np
 from supabase import Client
-from classes.AI import AI
+from classes.classes.AI import AI
 from classes.classes.company import Company
 from classes.classes.volatility import Volatility
 from classes.classes.line_of_best_fit import LineOfBestFit
@@ -10,14 +10,13 @@ from classes.modules.constants import TIME_PERIOD_SHORT, TIME_PERIOD_MEDIUM, TIM
 
 from rich.progress import Progress
 
-from classes.subAi.t_user import T_user
+from classes.classes.subAi.t_user import T_user
 
 class Performance:
 
-    def __init__(self, supabase: Client, users: list[T_user], company_map: dict[int, Company]):
+    def __init__(self, supabase: Client, company_map: dict[int, Company]):
         self.supabase = supabase
         self.company_map = company_map
-        self.users = users
         self.company_performance_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
         self.company_reputation_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}}
         self.company_stock_trend_maps: dict[int, dict[int, LineOfBestFit]] = {0:{}, TIME_PERIOD_SHORT:{}, TIME_PERIOD_MEDIUM:{}, TIME_PERIOD_LONG:{}, TIME_PERIOD_TREND_ANALYSIS:{}}

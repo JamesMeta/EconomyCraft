@@ -25,8 +25,8 @@ from rich.progress import Progress
 from classes.modules.local_cache_manager import LocalCacheManager
 from classes.modules.sqlite_assistant import SqliteAssistant
 from classes.modules.trade_helper import TradeHelper
-from classes.subAi.level_constants import FIRST, SECOND
-from classes.subAi.t_user import T_user
+from classes.classes.subAi.level_constants import FIRST, SECOND
+from classes.classes.subAi.t_user import T_user
 from classes.modules.constants import *
 from rich import print
 

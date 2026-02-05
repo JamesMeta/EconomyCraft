@@ -1,6 +1,7 @@
 from supabase import Client
 from classes.classes.data_log import DataLog
 from classes.modules import performance
+from classes.modules.dividend_manager import DividendManager
 from classes.modules.local_cache_manager import LocalCacheManager
 from classes.modules.performance import Performance
 from classes.modules.products_ai import ProductsAI
@@ -19,16 +20,16 @@ class Administration:
                       
     def __product_init__(self):
         self.supabase_assistant = SupabaseAssistant(self.supabase)
-        self.products_ai = ProductsAI(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
+        self.products_ai = ProductsAI(self.supabase, self.supabase_assistant.AI_users, self.supabase_assistant.company_map)
     
     def __stock_init__(self):
         self.supabase_assistant = SupabaseAssistant(self.supabase)
-        self.performance = Performance(self.supabase, self.supabase_assistant.users, self.supabase_assistant.company_map)
+        self.performance = Performance(self.supabase, self.supabase_assistant.company_map)
         self.logger = DataLog()
         self.local_cache_manager = LocalCacheManager()
         self.stocks_ai = StocksAI(
                 self.supabase,
-                self.supabase_assistant.users, 
+                self.supabase_assistant.AI_users, 
                 self.supabase_assistant.company_shares,
                 self.supabase_assistant.company_map, 
                 self.performance.company_performance_maps, 
@@ -40,15 +41,18 @@ class Administration:
                 self.logger,
                 self.local_cache_manager
                 )
-        
-        
     
+    def __dividend_init__(self):
+        self.supabase_assistant = SupabaseAssistant(self.supabase)
+        self.dividend_manager = DividendManager(
+            self.supabase,
+            self.supabase_assistant.AI_users,
+            self.supabase_assistant.player_users,
+            self.supabase_assistant.company_map
+        )
+        
     def __buy_order_init__(self):
         self.buy_order_manager = BuyOrderManager(self.supabase)
-    
-    def __utility_init__(self):
-        self.supabase_assistant = SupabaseAssistant(self.supabase)
-        self.utility = Utility(self.supabase_assistant.users)
         
     def make_ai_orders(self):
         self.products_ai.make_ai_orders()
@@ -89,6 +93,8 @@ class Administration:
         with SqliteAssistant(self.supabase) as sq:
             shares = sq.get_all_local_shares()
             print(shares)
-        
+    
+    def payout_dividends(self):
+        self.dividend_manager.payout_user_share_of_company_income()
     
         
