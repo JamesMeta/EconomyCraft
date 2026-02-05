@@ -56,7 +56,7 @@ class AI:
             
         except Exception as e:
             print(f"[bold red underline]Error placing share group sell order: {e}[/bold red underline]")
-        
+            
         
     def remove_share_for_sale(self, share_id: int):
         

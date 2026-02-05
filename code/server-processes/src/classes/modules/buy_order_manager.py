@@ -92,32 +92,21 @@ class BuyOrderManager:
     
     def attempt_to_fulfill_order(self, order: BuyOrder) -> None:
         max_quantity = min(order.order_quantity, 5000)
+        
         shares_response = self.supabase.table("shares").select("*").neq('user_id', order.user_id).eq("share_id", order.company_share_id).lt("sale_price", order.order_maximum).eq("purchasable", True).order("sale_price", desc=False).limit(max_quantity).execute()
         share_data: list[dict] = shares_response.data if shares_response.data is not None else []
         
         available_share_ids = list(map(lambda x: x["id"], share_data))
         
-        # # filtered_available_shares = filter(lambda x: x.user_id != order.user_id, available_shares)
-        # filtered_available_shares = available_shares
-        
         num_available_shares = len(available_share_ids)
         
         if num_available_shares == 0: return
         
+        if(num_available_shares > 1000):
+            print(f"[orange][Warning] Large Order Fulfillment In Progress...[/orange]")
+            print(f"[orange][Warning] {num_available_shares} Shares Ownership Being Updated...[/orange]")
+        
         self.place_share_order(order, available_share_ids)
-        
-        # for share in filtered_available_shares:
-        #     if order.order_quantity > 0:
-        #         self.place_share_order(order, share.id)
-        #         print(f"[blue][{datetime.datetime.now().replace(second=0, microsecond=0)}] Completing buy order for user: {order.user_id} and company share id: {order.company_share_id}[/blue]")
-        #     else:
-        #         self.cancel_buy_order(order.id)
-        #         try:
-        #             self.buy_orders.remove(order)
-        #             break
-        #         except ValueError:
-        #             print(f"[bold red underline] Order {order.id} already removed from list.[/bold red underline]")
-        
     
     def place_share_order(self, buy_order: BuyOrder, share_ids: list[int]) -> None:
         try:

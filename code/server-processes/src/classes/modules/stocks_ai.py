@@ -75,6 +75,9 @@ class StocksAI:
         with Progress() as progress:
 
             task = progress.add_task("[grey50]AI Share Trading Simulation...", total=len(user_copies))
+            
+            buy_order_decisions = []
+            sell_order_decision = []
 
             for user in user_copies:
                 try:

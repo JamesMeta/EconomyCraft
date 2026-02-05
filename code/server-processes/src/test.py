@@ -1,31 +1,38 @@
+from supabase import create_client, Client
+from classes.administration import Administration
+import schedule
+import time
 import matplotlib.pyplot as plt
+from dotenv import load_dotenv
+import os
 import random
+import datetime
+from rich import print
+
+if (__name__ == "__main__"):
+
+    load_dotenv()  # Load environment variables from .env file
+
+    SUPABASE_URL = os.getenv("url")  # Get the Supabase URL from environment variables
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("service_key")  # Get the Supabase service role key from environment variables
+
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+
+        supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    def job():
+        admin = Administration(supabase)
+        admin.__dividend_init__()
+        admin.payout_dividends()
+        
+    
+    job()
 
 
-money = 3040
-daily_income = 100
+
+        
+    
+    
 
 
-data = []
-for day in range(1, 360):
-    daily_income *= 1.01
-    money += daily_income
-    savings_spending_percentage = random.uniform(0.4, 0.6)  
-    ranges = [1, random.randint(1, 3)]
 
-    if random.randint(ranges[0],ranges[1]) == 1:
-        money -= money * savings_spending_percentage
-
-    data.append(money)
-
-print(f"Final money after 1 year: {money}")
-print(f"Final daily income after 1 year: {daily_income}")
-
-plt.figure(figsize=(10, 5))
-plt.plot(data, label='Money Over Time', color='blue')
-plt.title('Money Over Time with Daily Income and Spending')
-plt.xlabel('Days')
-plt.ylabel('Money')
-plt.grid(True)
-plt.legend()
-plt.show()
