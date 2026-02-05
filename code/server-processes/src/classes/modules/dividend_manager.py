@@ -159,7 +159,7 @@ class DividendManager:
                     payment_to_share_holder = {"payer_id": company_owner_id, "payee_id": shareholder_id, "amount": payment}
                     formatted_payments.append(payment_to_share_holder)
                     
-            progress.update(task, advance=1)
+                progress.update(task, advance=1)
         
         return formatted_payments
         
