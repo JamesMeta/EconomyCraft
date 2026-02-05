@@ -9,7 +9,7 @@ from classes.modules.constants import PRODUCT_BUCKET_SIZE
 from rich.progress import Progress
 from rich import print
 
-from classes.subAi.t_user import T_user
+from classes.classes.subAi.t_user import T_user
 
 class ProductsAI:
 

@@ -1,3 +1,4 @@
+from calendar import c
 from supabase import create_client, Client
 from classes.administration import Administration
 import schedule
@@ -25,8 +26,19 @@ if (__name__ == "__main__"):
         admin.__dividend_init__()
         admin.payout_dividends()
         
+    schedule.every(24).hours.do(job)
+    
+    counter = 0
     
     job()
+    while True:
+        schedule.run_pending()
+        time.sleep(1)  # Sleep for 1 second to avoid overwhelming the server
+        
+        if counter % 600 == 0:
+            print(f"[bright_green][{datetime.datetime.now().replace(second=0, microsecond=0)}] -------- Running Dividend Manager ---------- [/bright_green]")
+        
+        counter += 1
 
 
 
