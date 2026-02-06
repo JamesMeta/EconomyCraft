@@ -9,7 +9,7 @@ import 'package:economycraft/screens/login/login_screen.dart';
 import 'package:economycraft/screens/login/signup_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:economycraft/screens/holding/holdings_screen.dart';
-import 'package:economycraft/screens/player_overview_screen.dart';
+import 'package:economycraft/screens/player_overview/player_overview_screen.dart';
 import 'package:economycraft/screens/order/order_selection_screen.dart';
 import 'package:economycraft/screens/order/order_company_screen.dart';
 import 'package:economycraft/screens/order/order_user_screen.dart';

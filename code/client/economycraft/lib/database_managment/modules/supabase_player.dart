@@ -1,3 +1,4 @@
+import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' as developer;
 import 'package:economycraft/classes/player.dart';
@@ -107,6 +108,25 @@ class SupabasePlayer {
               .from('users')
               .select('money')
               .eq('user_id', user.id)
+              .limit(1)
+              .single();
+      if (response.isEmpty) {
+        return 0.0;
+      }
+      return response['money']?.toDouble() ?? 0.0;
+    } catch (e) {
+      developer.log('Error fetching user balance: $e');
+      return 0.0;
+    }
+  }
+
+  Future<double> getUserBalanceForUserRowId(int userRowId) async {
+    try {
+      final response =
+          await _client
+              .from('users')
+              .select('money')
+              .eq('id', userRowId)
               .limit(1)
               .single();
       if (response.isEmpty) {
@@ -236,6 +256,25 @@ class SupabasePlayer {
     }
   }
 
+  Future<double> getUsersAssetEvaluationForUserRowId(int userRowId) async {
+    try {
+      final shareEvaluations = await _client
+          .from('shares')
+          .select('company_share:share_id (value)')
+          .eq('user_id', userRowId);
+
+      double totalEvaluation = 0.0;
+      for (var evaluation in shareEvaluations) {
+        final companyShare = evaluation['company_share'];
+        totalEvaluation += companyShare['value']?.toDouble() ?? 0.0;
+      }
+      return totalEvaluation;
+    } catch (e) {
+      developer.log('Error fetching player asset evaluation: $e');
+      return 0.0;
+    }
+  }
+
   Future<int> getPlayerId() async {
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -276,6 +315,79 @@ class SupabasePlayer {
     } catch (e) {
       developer.log('Error fetching player name by user row ID: $e');
       return '';
+    }
+  }
+
+  Future<List<PriceVsTime>> getNetworthvsTimeForUserRowId(int userRowId) async {
+    try {
+      final response = await _client
+          .from('networth_history')
+          .select()
+          .eq('user_id', userRowId)
+          .order('created_at', ascending: false)
+          .limit(60);
+      if (response.isEmpty) {
+        developer.log('No net worth history found for user ID: $userRowId');
+        return [];
+      }
+      final List<PriceVsTime> networthHistory =
+          response.map<PriceVsTime>((entry) {
+            return PriceVsTime(
+              time: DateTime.parse(entry['created_at']),
+              price: entry['networth']?.toDouble().roundToDouble() ?? 0.0,
+            );
+          }).toList();
+
+      // add the current net worth to the history
+      final currentNetworth =
+          await getUsersAssetEvaluationForUserRowId(userRowId) +
+          await getUserBalanceForUserRowId(userRowId);
+      networthHistory.add(
+        PriceVsTime(time: DateTime.now(), price: currentNetworth),
+      );
+
+      networthHistory.sort((a, b) => a.time.compareTo(b.time)); // Sort by time
+      return networthHistory;
+    } catch (e) {
+      developer.log('Error fetching net worth history: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, double>> getUsersNetworthBreakdown(int userRowId) async {
+    try {
+      final shareEvaluations = await _client
+          .from('shares')
+          .select(
+            '*, company_share:share_id (value), companies:company_id (name)',
+          )
+          .eq('user_id', userRowId);
+
+      final Map<String, double> NetworthBreakdown = {};
+
+      for (var evaluation in shareEvaluations) {
+        final shareValue = evaluation['company_share']['value'] ?? 0.0;
+        final companyName = evaluation['companies']['name'] ?? "Unknown";
+
+        NetworthBreakdown.update(
+          companyName,
+          (existingValue) => existingValue + shareValue,
+          ifAbsent: () => shareValue,
+        );
+      }
+
+      final currentBalance = await getUserBalanceForUserRowId(userRowId);
+
+      NetworthBreakdown.update(
+        'Cash',
+        (existingValue) => existingValue + currentBalance,
+        ifAbsent: () => currentBalance,
+      );
+
+      return NetworthBreakdown;
+    } catch (e) {
+      developer.log('Error fetching player asset evaluation: $e');
+      return {};
     }
   }
 }
