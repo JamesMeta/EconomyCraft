@@ -32,7 +32,6 @@ class Linegraph2Widget extends StatelessWidget {
           yValueMapper: (PriceVsTime data, _) => data.price,
           name: subtitle ?? 'Price',
           markerSettings: const MarkerSettings(isVisible: true),
-          dataLabelSettings: const DataLabelSettings(isVisible: true),
         ),
       ],
     );

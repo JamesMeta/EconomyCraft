@@ -38,9 +38,11 @@ class SupabaseHome {
 
       final List<PriceVsTime> priceHistory =
           dailyPrices.entries.map((entry) {
+            final String rounded = entry.value.toStringAsFixed(2);
+
             return PriceVsTime(
               time: DateTime.parse('${entry.key}T00:00:00Z'),
-              price: entry.value,
+              price: double.parse(rounded),
             );
           }).toList();
 
@@ -197,9 +199,11 @@ class SupabaseHome {
       }
       final List<PriceVsTime> networthHistory =
           response.map<PriceVsTime>((entry) {
+            final String rounded = entry['networth']?.toStringAsFixed(2);
+
             return PriceVsTime(
               time: DateTime.parse(entry['created_at']),
-              price: entry['networth']?.toDouble() ?? 0.0,
+              price: double.parse(rounded) ?? 0.0,
             );
           }).toList();
 
