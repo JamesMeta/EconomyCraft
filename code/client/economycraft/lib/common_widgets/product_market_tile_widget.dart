@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:economycraft/classes/product.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -198,15 +199,33 @@ class _ProductTileWidgetState extends State<ProductMarketTileWidget> {
           builder: (context, setState) {
             // Update total when quantity changes
             void updateTotal(String value) {
-              setState(() {
-                quantity = int.tryParse(value) ?? 1;
-                if (quantity < 1) quantity = 1;
-                if (quantity > widget.product.quantity) {
-                  quantity = widget.product.quantity;
+              // Parse the input value
+              final parsedQuantity = int.tryParse(value);
+
+              // Only proceed if input is a valid number
+              if (parsedQuantity == null) {
+                return;
+              }
+
+              // Validate and clamp the quantity within acceptable bounds
+              int newQuantity = parsedQuantity;
+              if (newQuantity < 1) newQuantity = 1;
+              if (newQuantity > widget.product.quantity) {
+                newQuantity = widget.product.quantity;
+              }
+
+              // Only update state if the quantity actually changed
+              if (newQuantity != quantity) {
+                setState(() {
+                  quantity = newQuantity;
+                  totalPrice = widget.product.price * quantity;
+                });
+
+                // Update controller text only if validation changed the value
+                if (newQuantity != parsedQuantity) {
+                  _quantityController.text = newQuantity.toString();
                 }
-                _quantityController.text = quantity.toString();
-                totalPrice = widget.product.price * quantity;
-              });
+              }
             }
 
             return Dialog(
@@ -370,6 +389,9 @@ class _ProductTileWidgetState extends State<ProductMarketTileWidget> {
                               controller: _quantityController,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               onChanged: updateTotal,
                               decoration: const InputDecoration(
                                 border: OutlineInputBorder(),
