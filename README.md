@@ -82,7 +82,7 @@ _A Flutter Webapp designed to provide an amazon like shopping experience for com
 ---
 
 ## ⚙️ Hosted here:
-> *https://economycraft.onrender.com/#/*
+> *https://mineexchange.vercel.app/#/*
 
 ---
 
