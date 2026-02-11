@@ -272,8 +272,6 @@ class _BuyOrderDialogWidgetState extends State<BuyOrderDialogWidget> {
                                         double.parse(value) *
                                         double.parse(priceController.text);
 
-                                    developer.log(total as String);
-
                                     setState(() {
                                       totalController.text = total
                                           .toStringAsFixed(2);
