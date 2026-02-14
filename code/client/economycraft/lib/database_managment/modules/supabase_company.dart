@@ -447,14 +447,12 @@ class SupabaseCompany {
             .from('orders')
             .select("*")
             .eq("company_id", company.id)
-            .gt("created_at", DateTime.now().subtract(Duration(days: 120)))
             .then((value) => orderResponse = value),
         _client
             .from('company_history')
             .select("*")
             .eq("company_id", company.id)
             .order("created_at", ascending: false)
-            .limit(120)
             .then((value) => companyHistoryResponse = value),
         _client
             .from('company_share')
@@ -535,18 +533,6 @@ class SupabaseCompany {
       final thisYear = now.year;
       final today = now.day;
 
-      List<Map<String, dynamic>> concatenatedShareHistory = [];
-
-      for (final shareHistoryHour in shareHistory) {
-        if (today != DateTime.parse(shareHistoryHour["created_at"]).day) {
-          if (DateTime.parse(shareHistoryHour["created_at"]).hour == 23) {
-            concatenatedShareHistory.add(shareHistoryHour);
-          }
-        } else {
-          concatenatedShareHistory.add(shareHistoryHour);
-        }
-      }
-
       final Map<String, double> thisMonthFiltered = Map.fromEntries(
         dailyOrderTotals.entries.where((entry) {
           final date = DateTime.parse(entry.key);
@@ -599,7 +585,7 @@ class SupabaseCompany {
         );
       }
 
-      for (final entry in concatenatedShareHistory) {
+      for (final entry in shareHistory) {
         stockPrice.add(
           PriceVsTime(
             time: DateTime.parse(entry["created_at"]),

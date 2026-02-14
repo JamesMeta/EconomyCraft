@@ -25,7 +25,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
   late CompanyInfo _selectedCompanyInfo;
   late List<Company> _companies;
   final List<List<ShareChanges>> chunks = [];
-  late final List<List<PriceVsTime>> _data = [];
+  late List<List<PriceVsTime>> _data = [];
   late final Map<String, CompanyInfo> _companyInfoMap = {};
 
   late Company? _selectedCompany;
@@ -50,8 +50,8 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     _selectedCompany = _companies.first;
 
     _data.addAll([
-      _selectedCompanyInfo.stockPrice,
       _selectedCompanyInfo.companyEvaluation,
+      _selectedCompanyInfo.stockPrice,
       _selectedCompanyInfo.sales,
       _selectedCompanyInfo.reputation,
     ]);
@@ -144,6 +144,8 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                     companies: _companies,
                                     data: _data,
                                     localSetState: localSetState,
+                                    modifySelectedCompany:
+                                        _changeSelectedCompanyAndSelectedCompanyInfo,
                                   ),
                                 ],
                               ),
@@ -221,5 +223,16 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
     final companyInfo = await SupabaseHelper.company.getCompanyInfo(company);
     _companyInfoMap[company.name] = companyInfo!;
     return companyInfo;
+  }
+
+  void _changeSelectedCompanyAndSelectedCompanyInfo(
+    Company newCompany,
+    CompanyInfo newSelectedCompany,
+    List<List<PriceVsTime>> newData,
+  ) {
+    _selectedCompany = newCompany;
+    _selectedCompanyInfo = newSelectedCompany;
+    _data.clear();
+    _data = newData;
   }
 }
