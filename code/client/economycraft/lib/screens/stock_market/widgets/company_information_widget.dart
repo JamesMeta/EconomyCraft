@@ -14,6 +14,8 @@ class CompanyInformationWidget extends StatefulWidget {
   final List<Company> companies;
   final List<List<PriceVsTime>> data;
   final void Function(void Function()) localSetState;
+  final void Function(Company, CompanyInfo, List<List<PriceVsTime>>)
+  modifySelectedCompany;
 
   const CompanyInformationWidget({
     super.key,
@@ -23,6 +25,7 @@ class CompanyInformationWidget extends StatefulWidget {
     required this.companies,
     required this.data,
     required this.localSetState,
+    required this.modifySelectedCompany,
   });
 
   @override
@@ -110,10 +113,20 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
                               }).toList(),
                           onChanged: (Company? newCompany) async {
                             if (_companyInfoMap.containsKey(newCompany!.name)) {
+                              final List<List<PriceVsTime>> newData = [];
+
+                              newData.addAll([
+                                _selectedCompanyInfo.companyEvaluation,
+                                _selectedCompanyInfo.stockPrice,
+                                _selectedCompanyInfo.sales,
+                                _selectedCompanyInfo.reputation,
+                              ]);
+
                               widget.localSetState(
                                 () => _changeCompany(
                                   newCompany,
                                   _companyInfoMap[newCompany.name],
+                                  newData,
                                 ),
                               );
                             } else {
@@ -130,8 +143,21 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
 
                               _selectedCompany.name = companyNameCopy;
 
+                              final List<List<PriceVsTime>> newData = [];
+
+                              newData.addAll([
+                                _selectedCompanyInfo.companyEvaluation,
+                                _selectedCompanyInfo.stockPrice,
+                                _selectedCompanyInfo.sales,
+                                _selectedCompanyInfo.reputation,
+                              ]);
+
                               widget.localSetState(
-                                () => _changeCompany(newCompany, companyInfo),
+                                () => _changeCompany(
+                                  newCompany,
+                                  companyInfo,
+                                  newData,
+                                ),
                               );
                             }
                           },
@@ -292,16 +318,10 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
     );
   }
 
-  void _changeCompany(final company, final companyInfo) {
+  void _changeCompany(final company, final companyInfo, final data) {
     _selectedCompany = company;
     _selectedCompanyInfo = companyInfo;
-    widget.data.clear();
-    widget.data.addAll([
-      _selectedCompanyInfo.stockPrice,
-      _selectedCompanyInfo.companyEvaluation,
-      _selectedCompanyInfo.sales,
-      _selectedCompanyInfo.reputation,
-    ]);
+    widget.modifySelectedCompany(company, companyInfo, data);
   }
 
   Widget _loadingDialog() {
