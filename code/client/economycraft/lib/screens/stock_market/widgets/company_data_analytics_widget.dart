@@ -1,15 +1,19 @@
+import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
+import 'package:economycraft/screens/stock_market/classes/time_button_state.dart';
 import 'package:flutter/material.dart';
 
 class CompanyDataAnalyticsWidget extends StatefulWidget {
   final List<List<PriceVsTime>> data;
   final DateTime? lastDataRefreshed;
+  final Company? selectedCompany;
 
   const CompanyDataAnalyticsWidget({
     super.key,
     required this.data,
     required this.lastDataRefreshed,
+    required this.selectedCompany,
   });
 
   @override
@@ -19,7 +23,44 @@ class CompanyDataAnalyticsWidget extends StatefulWidget {
 
 class _CompanyDataAnalyticsWidgetState
     extends State<CompanyDataAnalyticsWidget> {
-  int _buttonState = 0;
+  // Starts at Stock Price Screen
+  int _buttonState = 1;
+  int _timeButtonState = 2;
+
+  // Starts at 1 Month Button
+
+  final _timeButtonStates = [
+    TimeButtonState(daysAgoRange: 1, dataPointsPerDay: 24),
+    TimeButtonState(daysAgoRange: 7, dataPointsPerDay: 12),
+    TimeButtonState(daysAgoRange: 30, dataPointsPerDay: 3),
+    TimeButtonState(daysAgoRange: 90, dataPointsPerDay: 2),
+    TimeButtonState(daysAgoRange: 180, dataPointsPerDay: 1),
+    TimeButtonState(daysAgoRange: 365, dataPointsPerDay: 1),
+    TimeButtonState(daysAgoRange: 1825, dataPointsPerDay: 1),
+  ];
+
+  late List<List<PriceVsTime>> filteredData;
+
+  @override
+  void initState() {
+    _setDataSelection(days: 28, dataPointsPerDay: 3);
+    super.initState();
+  }
+
+  @override
+  void didUpdateWidget(covariant CompanyDataAnalyticsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.selectedCompany?.id != oldWidget.selectedCompany?.id) {
+      setState(() {
+        _setDataSelection(
+          days: _timeButtonStates[_timeButtonState].daysAgoRange,
+          dataPointsPerDay:
+              _timeButtonStates[_timeButtonState].dataPointsPerDay,
+        );
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +68,8 @@ class _CompanyDataAnalyticsWidgetState
     final screenWidth = MediaQuery.of(context).size.width;
 
     final List<String> labels = [
-      "Stock Price",
       "Evaluation",
+      "Stock Price",
       "Sales",
       "Reputation",
     ];
@@ -76,8 +117,8 @@ class _CompanyDataAnalyticsWidgetState
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _sectionButton(setState, labels[1], 1)),
                       Expanded(child: _sectionButton(setState, labels[0], 0)),
+                      Expanded(child: _sectionButton(setState, labels[1], 1)),
 
                       Expanded(child: _sectionButton(setState, labels[2], 2)),
                       Expanded(child: _sectionButton(setState, labels[3], 3)),
@@ -87,9 +128,46 @@ class _CompanyDataAnalyticsWidgetState
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(border: Border.all()),
-                      child: Linegraph2Widget(
-                        title: "",
-                        data: widget.data[_buttonState],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.fromLTRB(0, 4, 10, 0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                _timeframeButton(
+                                  "1D",
+                                  0,
+
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(8),
+                                    bottomLeft: Radius.circular(8),
+                                  ),
+                                ),
+                                _timeframeButton("7D", 1),
+                                _timeframeButton("1M", 2),
+                                _timeframeButton("3M", 3),
+                                _timeframeButton("6M", 4),
+                                _timeframeButton("1Y", 5),
+                                _timeframeButton(
+                                  "All",
+                                  6,
+                                  borderRadius: const BorderRadius.only(
+                                    topRight: Radius.circular(8),
+                                    bottomRight: Radius.circular(8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Linegraph2Widget(
+                              title: "",
+                              data: filteredData[_buttonState],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -157,5 +235,86 @@ class _CompanyDataAnalyticsWidgetState
         ],
       ),
     );
+  }
+
+  Widget _timeframeButton(
+    String label,
+    int buttonStateIndex, {
+    BorderRadius? borderRadius,
+  }) {
+    return ElevatedButton(
+      onPressed: () => _updateTimeButtonStates(buttonStateIndex),
+      style: ButtonStyle(
+        shadowColor: WidgetStatePropertyAll(Colors.transparent),
+        backgroundColor: WidgetStatePropertyAll(
+          buttonStateIndex == _timeButtonState
+              ? Colors.grey[400]
+              : Colors.transparent,
+        ),
+        side: WidgetStatePropertyAll(BorderSide(color: Colors.grey[400]!)),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: borderRadius ?? BorderRadius.zero,
+          ),
+        ),
+      ),
+      child: Text(label),
+    );
+  }
+
+  void _updateTimeButtonStates(int buttonIndex) {
+    setState(() {
+      for (int i = 0; i < _timeButtonStates.length; i++) {
+        _timeButtonState = buttonIndex;
+      }
+
+      _setDataSelection(
+        days: _timeButtonStates[buttonIndex].daysAgoRange,
+        dataPointsPerDay: _timeButtonStates[buttonIndex].dataPointsPerDay,
+      );
+    });
+  }
+
+  void _setDataSelection({required int days, int dataPointsPerDay = 1}) {
+    final now = DateTime.now();
+    final DateTime xDaysAgo = now.subtract(Duration(days: days));
+    final int dataPointEveryXHours = (24 / dataPointsPerDay).round();
+
+    filteredData =
+        widget.data.map<List<PriceVsTime>>((dataList) {
+          final filteredDataList =
+              dataList
+                  .where((dataPoint) => dataPoint.time.isAfter(xDaysAgo))
+                  .toList();
+
+          final daySum = <Record, List<PriceVsTime>>{};
+          for (final dataPoint in filteredDataList) {
+            final dataPointRecord = (
+              dataPoint.time.year,
+              dataPoint.time.month,
+              dataPoint.time.day,
+            );
+
+            final nowRecord = (now.year, now.month, now.day);
+
+            const oneHour = 1;
+
+            final containsKey = daySum.containsKey(dataPointRecord);
+            final dataPointExistsOnInterval =
+                dataPoint.time.hour % dataPointEveryXHours == 0;
+            final dataPointIsToday = dataPointRecord == nowRecord;
+            final dataPointIsThisOrPreviousHour =
+                dataPoint.time.hour >= now.hour - oneHour;
+
+            if (!containsKey) {
+              daySum[dataPointRecord] = [dataPoint];
+            } else if ((containsKey && dataPointExistsOnInterval) ||
+                (dataPointIsToday && dataPointIsThisOrPreviousHour)) {
+              daySum[dataPointRecord]!.add(dataPoint);
+            }
+          }
+
+          return daySum.values.expand((element) => element).toList();
+        }).toList();
   }
 }

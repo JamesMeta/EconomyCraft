@@ -128,7 +128,7 @@ class SupabaseHome {
             .select()
             .eq('share_id', companyShare['id'])
             .order('created_at', ascending: false)
-            .limit(2);
+            .limit(5);
         if (response.isEmpty) {
           developer.log(
             'No share history found for share ID: ${companyShare['id']}',
@@ -154,9 +154,9 @@ class SupabaseHome {
         }
         // Assuming the response is sorted by created_at in descending order
         // and contains at least two entries for latest and previous prices
-        final double? latestPrice = response[0]['value']?.toDouble();
+        final double? latestPrice = response.first['value']?.toDouble();
         final double? previousPrice =
-            response.length > 1 ? response[1]['value']?.toDouble() : null;
+            response.length > 1 ? response.last['value']?.toDouble() : null;
         if (latestPrice != null) {
           final double change =
               previousPrice != null
