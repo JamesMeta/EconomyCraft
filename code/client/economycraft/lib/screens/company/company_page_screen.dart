@@ -140,11 +140,6 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
 
                         const Divider(height: 32),
                         _buildReputationIndicator(widget.company.reputation),
-
-                        if (widget.company.isPublic) ...[
-                          const Divider(height: 32),
-                          _buildStockInfo(screenWidth, screenHeight),
-                        ],
                         const Divider(height: 32),
                         _buildInfoRow(
                           'Company Type:',
@@ -178,12 +173,59 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
                       children: [
                         // Products and Shares section with resize handle
                         Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              return _buildResizableSections(
-                                constraints.maxHeight,
-                              );
-                            },
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color.fromARGB(255, 201, 201, 201),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Row(
+                                    children: [
+                                      const Text(
+                                        'Available Products',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      const Icon(
+                                        Icons.drag_handle,
+                                        color: Colors.grey,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${(_topSectionHeight * 100).toInt()}%',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 16,
+                                      right: 16,
+                                      bottom: 16,
+                                    ),
+                                    child: _buildProductsList(),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -264,292 +306,11 @@ class _CompanyPageScreenState extends State<CompanyPageScreen> {
 
   // Add this method to build the resizable sections
   Widget _buildResizableSections(double totalHeight) {
-    final double dividerHeight = 16.0; // Height of the resize handle
-    final double actualTopHeight = totalHeight * _topSectionHeight;
-    final double actualBottomHeight =
-        totalHeight - actualTopHeight - dividerHeight;
-
     return Column(
       children: [
         // Top section - Products
-        Container(
-          height: actualTopHeight,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: const Color.fromARGB(255, 201, 201, 201),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Available Products',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    const Icon(Icons.drag_handle, color: Colors.grey, size: 20),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${(_topSectionHeight * 100).toInt()}%',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                  ),
-                  child: _buildProductsList(),
-                ),
-              ),
-            ],
-          ),
-        ),
 
-        // Resize handle
-        MouseRegion(
-          cursor: SystemMouseCursors.resizeUpDown,
-          child: GestureDetector(
-            onVerticalDragStart: (details) {
-              _dragStartY = details.globalPosition.dy;
-              _dragStartTopHeight = _topSectionHeight;
-            },
-            onVerticalDragUpdate: (details) {
-              final double dragDistance =
-                  details.globalPosition.dy - _dragStartY;
-              final double dragFraction = dragDistance / totalHeight;
-              setState(() {
-                _topSectionHeight = (_dragStartTopHeight + dragFraction).clamp(
-                  _minSectionHeight,
-                  1 - _minSectionHeight,
-                );
-              });
-            },
-            child: Container(
-              height: dividerHeight,
-              color: Colors.transparent,
-              child: Center(
-                child: Container(
-                  height: 4,
-                  width: 80,
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 74, 237, 217),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // Bottom section - Shares (only for public companies)
-        Container(
-          height: actualBottomHeight,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: const Color.fromARGB(255, 201, 201, 201),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Text(
-                      'Available Shares',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    const Icon(Icons.drag_handle, color: Colors.grey, size: 20),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${((1 - _topSectionHeight) * 100).toInt()}%',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                  ),
-                  child: _buildAvailableStock(),
-                ),
-              ),
-            ],
-          ),
-        ),
         // Empty widget when company is not public
-      ],
-    );
-  }
-
-  Widget _buildAvailableStock() {
-    return FutureBuilder<List<Share>>(
-      future: _getShares(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return const Center(child: Text('Error loading shares'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No shares available'));
-        } else {
-          final shares = snapshot.data!;
-          return ListView.builder(
-            itemCount: shares.length,
-            itemBuilder: (context, index) {
-              final share = shares[index];
-              return ShareMarketTileWidget(share: share);
-            },
-          );
-        }
-      },
-    );
-  }
-
-  Widget _buildStockInfo(screenWidth, screenHeight) {
-    // Placeholder for stock price chart
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Current Stock Price:',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          height: screenHeight * 0.25,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey[200]!, width: 1),
-            color: const Color.fromARGB(255, 250, 250, 250),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child:
-                !_isbuilt
-                    ? FutureBuilder<List<PriceVsTime>>(
-                      future: _getPriceVsTimeData(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Color.fromARGB(255, 74, 237, 217),
-                              ),
-                            ),
-                          );
-                        } else if (snapshot.hasError) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.error_outline,
-                                  color: Colors.red,
-                                  size: 60,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Error: ${snapshot.error}',
-                                  style: const TextStyle(color: Colors.red),
-                                ),
-                                const SizedBox(height: 20),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      _isbuilt = false;
-                                    });
-                                  },
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text('Try Again'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color.fromARGB(
-                                      255,
-                                      74,
-                                      237,
-                                      217,
-                                    ),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else if (!snapshot.hasData ||
-                            snapshot.data!.isEmpty) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.show_chart,
-                                  size: 60,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No price history available',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
-                          _priceVsTimeData = snapshot.data!;
-                          _isbuilt = true;
-                          return Linegraph2Widget(
-                            title: 'Share Price History',
-                            subtitle: widget.company.name,
-                            data: snapshot.data!,
-                            xAxisLabel: 'Time',
-                            yAxisLabel: 'Price',
-                          );
-                        }
-                      },
-                    )
-                    : Linegraph2Widget(
-                      title: 'Share Price History',
-                      subtitle: '${widget.company.name} ',
-                      data: _priceVsTimeData,
-                      xAxisLabel: 'Time',
-                      yAxisLabel: 'Price',
-                    ),
-          ),
-        ),
       ],
     );
   }
