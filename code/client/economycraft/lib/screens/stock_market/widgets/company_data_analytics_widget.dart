@@ -1,3 +1,4 @@
+import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
 import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
 import 'package:economycraft/screens/stock_market/classes/time_button_state.dart';
@@ -6,11 +7,13 @@ import 'package:flutter/material.dart';
 class CompanyDataAnalyticsWidget extends StatefulWidget {
   final List<List<PriceVsTime>> data;
   final DateTime? lastDataRefreshed;
+  final Company? selectedCompany;
 
   const CompanyDataAnalyticsWidget({
     super.key,
     required this.data,
     required this.lastDataRefreshed,
+    required this.selectedCompany,
   });
 
   @override
@@ -39,26 +42,29 @@ class _CompanyDataAnalyticsWidgetState
 
   @override
   void initState() {
-    filteredData = widget.data;
-
     _setDataSelection(days: 28, dataPointsPerDay: 3);
     super.initState();
   }
 
-  // @override
-  // void didUpdateWidget(covariant CompanyDataAnalyticsWidget oldWidget) {
+  @override
+  void didUpdateWidget(covariant CompanyDataAnalyticsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
 
-  //   super.didUpdateWidget(oldWidget);
+    if (widget.selectedCompany?.id != oldWidget.selectedCompany?.id) {
+      final timeButton =
+          _timeButtonStates
+              .where((timeButton) => timeButton.enabled == true)
+              .toList()
+              .first;
 
-  //   if (widget.data != oldWidget.data) {
-  //     _setDataSelection(days: 28, dataPointsPerDay: 3);
-  //   }
-  // }
+      setState(() {
+        _setDataSelection(days: timeButton.daysAgoRange);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    print("rebuilt2");
-
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
@@ -123,17 +129,13 @@ class _CompanyDataAnalyticsWidgetState
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(border: Border.all()),
-                      child: Stack(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Linegraph2Widget(
-                            title: "",
-                            data: filteredData[_buttonState],
-                          ),
-
-                          Positioned(
-                            top: 10,
-                            right: 10,
+                          Container(
+                            padding: EdgeInsets.fromLTRB(0, 4, 10, 0),
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 _timeframeButton(
                                   "1D",
@@ -158,6 +160,12 @@ class _CompanyDataAnalyticsWidgetState
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Linegraph2Widget(
+                              title: "",
+                              data: filteredData[_buttonState],
                             ),
                           ),
                         ],
@@ -288,10 +296,21 @@ class _CompanyDataAnalyticsWidgetState
               dataPoint.time.day,
             );
 
-            if (!daySum.containsKey(dataPointRecord)) {
+            final nowRecord = (now.year, now.month, now.day);
+
+            const oneHour = 1;
+
+            final containsKey = daySum.containsKey(dataPointRecord);
+            final dataPointExistsOnInterval =
+                dataPoint.time.hour % dataPointEveryXHours == 0;
+            final dataPointIsToday = dataPointRecord == nowRecord;
+            final dataPointIsThisOrPreviousHour =
+                dataPoint.time.hour >= now.hour - oneHour;
+
+            if (!containsKey) {
               daySum[dataPointRecord] = [dataPoint];
-            } else if (daySum.containsKey(dataPointRecord) &&
-                dataPoint.time.hour % dataPointEveryXHours == 0) {
+            } else if ((containsKey && dataPointExistsOnInterval) ||
+                (dataPointIsToday && dataPointIsThisOrPreviousHour)) {
               daySum[dataPointRecord]!.add(dataPoint);
             }
           }

@@ -136,6 +136,7 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
                                   CompanyDataAnalyticsWidget(
                                     data: _data,
                                     lastDataRefreshed: _lastDataRefresh,
+                                    selectedCompany: _selectedCompany,
                                   ),
                                   CompanyInformationWidget(
                                     selectedCompany: _selectedCompany,
