@@ -14,8 +14,7 @@ class CompanyInformationWidget extends StatefulWidget {
   final List<Company> companies;
   final List<List<PriceVsTime>> data;
   final void Function(void Function()) localSetState;
-  final void Function(Company, CompanyInfo, List<List<PriceVsTime>>)
-  modifySelectedCompany;
+  final void Function(Company, CompanyInfo) modifySelectedCompany;
 
   const CompanyInformationWidget({
     super.key,
@@ -34,18 +33,8 @@ class CompanyInformationWidget extends StatefulWidget {
 }
 
 class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
-  late Company _selectedCompany;
-  late CompanyInfo _selectedCompanyInfo;
-  late Map<String, CompanyInfo> _companyInfoMap;
-  late List<Company> _companies;
-
   @override
   void initState() {
-    _selectedCompany = widget.selectedCompany!;
-    _selectedCompanyInfo = widget.selectedCompanyInfo;
-    _companyInfoMap = widget.companyInfoMap;
-    _companies = widget.companies;
-
     super.initState();
   }
 
@@ -101,63 +90,33 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
                       SizedBox(
                         width: double.infinity,
                         child: DropdownButton<Company>(
-                          value: _selectedCompany,
+                          value: widget.selectedCompany,
                           hint: const Text('Select a company'),
                           isExpanded: true,
                           items:
-                              _companies.map((company) {
+                              widget.companies.map((company) {
                                 return DropdownMenuItem<Company>(
                                   value: company,
                                   child: Text(company.name),
                                 );
                               }).toList(),
                           onChanged: (Company? newCompany) async {
-                            if (_companyInfoMap.containsKey(newCompany!.name)) {
-                              final List<List<PriceVsTime>> newData = [];
-
-                              newData.addAll([
-                                _selectedCompanyInfo.companyEvaluation,
-                                _selectedCompanyInfo.stockPrice,
-                                _selectedCompanyInfo.sales,
-                                _selectedCompanyInfo.reputation,
-                              ]);
-
+                            if (widget.companyInfoMap.containsKey(
+                              newCompany!.name,
+                            )) {
                               widget.localSetState(
                                 () => _changeCompany(
                                   newCompany,
-                                  _companyInfoMap[newCompany.name],
-                                  newData,
+                                  widget.companyInfoMap[newCompany.name],
                                 ),
                               );
                             } else {
-                              final String companyNameCopy =
-                                  _selectedCompany.name;
-
-                              widget.localSetState(() {
-                                _selectedCompany.name = "Loading...";
-                              });
-
                               final companyInfo = await getCompanyInfo(
                                 newCompany,
                               );
 
-                              _selectedCompany.name = companyNameCopy;
-
-                              final List<List<PriceVsTime>> newData = [];
-
-                              newData.addAll([
-                                _selectedCompanyInfo.companyEvaluation,
-                                _selectedCompanyInfo.stockPrice,
-                                _selectedCompanyInfo.sales,
-                                _selectedCompanyInfo.reputation,
-                              ]);
-
                               widget.localSetState(
-                                () => _changeCompany(
-                                  newCompany,
-                                  companyInfo,
-                                  newData,
-                                ),
+                                () => _changeCompany(newCompany, companyInfo),
                               );
                             }
                           },
@@ -165,19 +124,19 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
                       ),
                       _buildInfoRow(
                         "Company Name:",
-                        _selectedCompanyInfo.company.name,
+                        widget.selectedCompanyInfo.company.name,
                         textColor: Colors.black,
                       ),
                       const SizedBox(height: 8),
                       _buildInfoRow(
                         "Current Owner:",
-                        _selectedCompanyInfo.ownerName,
+                        widget.selectedCompanyInfo.ownerName,
                         textColor: Colors.black,
                       ),
                       const SizedBox(height: 8),
                       _buildInfoRow(
                         "Founded:",
-                        _selectedCompanyInfo.company.createdAt
+                        widget.selectedCompanyInfo.company.createdAt
                             .toIso8601String()
                             .substring(0, 10),
                         textColor: Colors.black,
@@ -185,31 +144,31 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
                       const SizedBox(height: 8),
                       _buildInfoRow(
                         "Current Reputation:",
-                        "${_selectedCompanyInfo.company.reputation.toString()}/1000",
+                        "${widget.selectedCompanyInfo.company.reputation.toString()}/1000",
                         textColor: Colors.black,
                       ),
                       const SizedBox(height: 8),
                       _buildInfoRow(
                         "Current Evaluation:",
-                        "${_selectedCompanyInfo.company.evaluation.toStringAsFixed(2)}\$",
+                        "${widget.selectedCompanyInfo.company.evaluation.toStringAsFixed(2)}\$",
                         textColor: Colors.black,
                       ),
                       const SizedBox(height: 8),
                       _buildInfoRow(
                         "Current Month Sales:",
-                        "${_selectedCompanyInfo.thisMonthTotalSales.toStringAsFixed(2)}\$",
+                        "${widget.selectedCompanyInfo.thisMonthTotalSales.toStringAsFixed(2)}\$",
                         textColor: Colors.black,
                       ),
                       const SizedBox(height: 8),
                       _buildInfoRow(
                         "Last Month Sales:",
-                        "${_selectedCompanyInfo.lastMonthTotalSales.toStringAsFixed(2)}\$",
+                        "${widget.selectedCompanyInfo.lastMonthTotalSales.toStringAsFixed(2)}\$",
                         textColor: Colors.black,
                       ),
                       const SizedBox(height: 8),
                       _buildInfoRow(
                         "Last 120 Days Sales:",
-                        "${_selectedCompanyInfo.total120DaySales.toStringAsFixed(2)}\$",
+                        "${widget.selectedCompanyInfo.total120DaySales.toStringAsFixed(2)}\$",
                         textColor: Colors.black,
                       ),
                     ],
@@ -230,7 +189,7 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
                                     if (snapshot.hasData) {
                                       final orders = snapshot.data!;
                                       return ViewBuyOrderDialogWidget(
-                                        companyInfoMap: _companyInfoMap,
+                                        companyInfoMap: widget.companyInfoMap,
                                         userBuyOrders: orders,
                                       );
                                     } else {
@@ -263,7 +222,7 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
                               context: context,
                               builder: (BuildContext context) {
                                 return BuyOrderDialogWidget(
-                                  companyInfo: _selectedCompanyInfo,
+                                  companyInfo: widget.selectedCompanyInfo,
                                 );
                               },
                             );
@@ -294,7 +253,7 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
 
   Future<CompanyInfo?> getCompanyInfo(Company company) async {
     final companyInfo = await SupabaseHelper.company.getCompanyInfo(company);
-    _companyInfoMap[company.name] = companyInfo!;
+    widget.companyInfoMap[company.name] = companyInfo!;
     return companyInfo;
   }
 
@@ -318,10 +277,8 @@ class _CompanyInformationWidgetState extends State<CompanyInformationWidget> {
     );
   }
 
-  void _changeCompany(final company, final companyInfo, final data) {
-    _selectedCompany = company;
-    _selectedCompanyInfo = companyInfo;
-    widget.modifySelectedCompany(company, companyInfo, data);
+  void _changeCompany(final company, final companyInfo) {
+    widget.modifySelectedCompany(company, companyInfo);
   }
 
   Widget _loadingDialog() {

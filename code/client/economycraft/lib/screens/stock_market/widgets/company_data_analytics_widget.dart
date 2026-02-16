@@ -25,17 +25,18 @@ class _CompanyDataAnalyticsWidgetState
     extends State<CompanyDataAnalyticsWidget> {
   // Starts at Stock Price Screen
   int _buttonState = 1;
+  int _timeButtonState = 2;
 
   // Starts at 1 Month Button
 
   final _timeButtonStates = [
-    TimeButtonState(daysAgoRange: 1, dataPointsPerDay: 24, enabled: false),
-    TimeButtonState(daysAgoRange: 7, dataPointsPerDay: 12, enabled: false),
-    TimeButtonState(daysAgoRange: 30, dataPointsPerDay: 3, enabled: true),
-    TimeButtonState(daysAgoRange: 90, dataPointsPerDay: 2, enabled: false),
-    TimeButtonState(daysAgoRange: 180, dataPointsPerDay: 1, enabled: false),
-    TimeButtonState(daysAgoRange: 365, dataPointsPerDay: 1, enabled: false),
-    TimeButtonState(daysAgoRange: 1825, dataPointsPerDay: 1, enabled: false),
+    TimeButtonState(daysAgoRange: 1, dataPointsPerDay: 24),
+    TimeButtonState(daysAgoRange: 7, dataPointsPerDay: 12),
+    TimeButtonState(daysAgoRange: 30, dataPointsPerDay: 3),
+    TimeButtonState(daysAgoRange: 90, dataPointsPerDay: 2),
+    TimeButtonState(daysAgoRange: 180, dataPointsPerDay: 1),
+    TimeButtonState(daysAgoRange: 365, dataPointsPerDay: 1),
+    TimeButtonState(daysAgoRange: 1825, dataPointsPerDay: 1),
   ];
 
   late List<List<PriceVsTime>> filteredData;
@@ -51,14 +52,12 @@ class _CompanyDataAnalyticsWidgetState
     super.didUpdateWidget(oldWidget);
 
     if (widget.selectedCompany?.id != oldWidget.selectedCompany?.id) {
-      final timeButton =
-          _timeButtonStates
-              .where((timeButton) => timeButton.enabled == true)
-              .toList()
-              .first;
-
       setState(() {
-        _setDataSelection(days: timeButton.daysAgoRange);
+        _setDataSelection(
+          days: _timeButtonStates[_timeButtonState].daysAgoRange,
+          dataPointsPerDay:
+              _timeButtonStates[_timeButtonState].dataPointsPerDay,
+        );
       });
     }
   }
@@ -248,7 +247,7 @@ class _CompanyDataAnalyticsWidgetState
       style: ButtonStyle(
         shadowColor: WidgetStatePropertyAll(Colors.transparent),
         backgroundColor: WidgetStatePropertyAll(
-          _timeButtonStates[buttonStateIndex].enabled
+          buttonStateIndex == _timeButtonState
               ? Colors.grey[400]
               : Colors.transparent,
         ),
@@ -266,7 +265,7 @@ class _CompanyDataAnalyticsWidgetState
   void _updateTimeButtonStates(int buttonIndex) {
     setState(() {
       for (int i = 0; i < _timeButtonStates.length; i++) {
-        _timeButtonStates[i].enabled = i == buttonIndex;
+        _timeButtonState = buttonIndex;
       }
 
       _setDataSelection(

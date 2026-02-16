@@ -229,11 +229,16 @@ class _StockMarketScreenState extends State<StockMarketScreen> {
   void _changeSelectedCompanyAndSelectedCompanyInfo(
     Company newCompany,
     CompanyInfo newSelectedCompany,
-    List<List<PriceVsTime>> newData,
   ) {
     _selectedCompany = newCompany;
     _selectedCompanyInfo = newSelectedCompany;
+
     _data.clear();
-    _data = newData;
+    _data.addAll([
+      _selectedCompanyInfo.companyEvaluation,
+      _selectedCompanyInfo.stockPrice,
+      _selectedCompanyInfo.sales,
+      _selectedCompanyInfo.reputation,
+    ]);
   }
 }
