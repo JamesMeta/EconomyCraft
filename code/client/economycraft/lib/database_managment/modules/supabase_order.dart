@@ -1,3 +1,5 @@
+import 'package:economycraft/classes/company.dart';
+import 'package:economycraft/classes/product.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' as developer;
@@ -105,46 +107,63 @@ class SupabaseOrder {
   }
 
   Future<List<Order>> getOrdersMadeByUser(int userId) async {
-    final user = _client.auth.currentUser;
-    if (user == null) {
-      developer.log('Error: User not authenticated');
-      return [];
-    }
     try {
-      // If userid is provided, use it; otherwise, get the current user's ID
       final userRowId = userId;
       final response = await _client
           .from('orders')
-          .select()
+          .select('''
+            *,
+            companies:company_id(id, created_at, name, reputation, avatar_url, evaluation, slogan, is_public, user_id, verified, lot_number),
+            products:product_id(id, created_at, company_id, name, description, avatar_url, price, quantity, value, niche_coefficient, verified, minecraft_tag)"''')
           .eq('user_id', userRowId)
           .order('created_at', ascending: false);
       if (response.isEmpty) {
         return [];
       }
-      final List<Order> orders = await Future.wait(
-        response.map<Future<Order>>((order) async {
-          return Order(
-            id: order['id'],
-            productId: order['product_id'] ?? 0,
-            companyId: order['company_id'] ?? 0,
-            userId: order['user_id'],
-            quantity: order['quantity'],
-            payment: order['payment'],
-            deliveryAddress: order['delivery_address'],
-            orderTimeout: DateTime.parse(order['order_timeout']),
-            createdAt: DateTime.parse(order['created_at']),
-            complete: order['complete'] ?? false,
-            received: order['received'] ?? false,
 
-            product: await SupabaseHelper.product.getProductById(
-              order['product_id'],
-            ),
-            company: await SupabaseHelper.company.getCompanyById(
-              order['company_id'],
-            ),
-          );
-        }).toList(),
-      );
+      final List<Order> orders =
+          response.map<Order>((order) {
+            final product = order["products"];
+            final company = order["companies"];
+
+            return Order(
+              id: order['id'],
+              productId: order['product_id'] ?? 0,
+              companyId: order['company_id'] ?? 0,
+              userId: order['user_id'],
+              quantity: order['quantity'],
+              payment: order['payment'],
+              deliveryAddress: order['delivery_address'],
+              orderTimeout: DateTime.parse(order['order_timeout']),
+              createdAt: DateTime.parse(order['created_at']),
+              complete: order['complete'] ?? false,
+              received: order['received'] ?? false,
+              product: Product(
+                id: product['id'],
+                name: product['name'],
+                description: product['description'],
+                price: product['price'],
+                quantity: product['quantity'],
+                avatarUrl: product['avatar_url'],
+                companyId: product['company_id'],
+                minecraftTag: product['minecraft_tag'],
+                createdAt: DateTime.parse(product['created_at']),
+              ),
+              company: Company(
+                id: company['id'],
+                name: company['name'],
+                slogan: company['slogan'],
+                avatarUrl: company['avatar_url'],
+                reputation: company['reputation'],
+                evaluation: company['evaluation'],
+                isPublic: company['is_public'],
+                userId: company['user_id'],
+                createdAt: DateTime.parse(company['created_at']),
+                lotNumber: company['lot_number'],
+                verified: company['verified'],
+              ),
+            );
+          }).toList();
       return orders;
     } catch (e) {
       developer.log('Error fetching orders made by user: $e');
@@ -156,36 +175,58 @@ class SupabaseOrder {
     try {
       final response = await _client
           .from('orders')
-          .select()
+          .select('''
+            *,
+            companies:company_id(id, created_at, name, reputation, avatar_url, evaluation, slogan, is_public, user_id, verified, lot_number),
+            products:product_id(id, created_at, company_id, name, description, avatar_url, price, quantity, value, niche_coefficient, verified, minecraft_tag)"''')
           .eq('company_id', companyId)
           .order('created_at', ascending: false);
       if (response.isEmpty) {
         return [];
       }
-      final List<Order> orders = await Future.wait(
-        response.map<Future<Order>>((order) async {
-          return Order(
-            id: order['id'],
-            productId: order['product_id'],
-            companyId: order['company_id'],
-            userId: order['user_id'],
-            quantity: order['quantity'],
-            payment: order['payment'],
-            deliveryAddress: order['delivery_address'],
-            orderTimeout: DateTime.parse(order['order_timeout']),
-            createdAt: DateTime.parse(order['created_at']),
-            complete: order['complete'] ?? false,
-            received: order['received'] ?? false,
+      final List<Order> orders =
+          response.map<Order>((order) {
+            final product = order["products"];
+            final company = order["companies"];
 
-            product: await SupabaseHelper.product.getProductById(
-              order['product_id'],
-            ),
-            company: await SupabaseHelper.company.getCompanyById(
-              order['company_id'],
-            ),
-          );
-        }).toList(),
-      );
+            return Order(
+              id: order['id'],
+              productId: order['product_id'] ?? 0,
+              companyId: order['company_id'] ?? 0,
+              userId: order['user_id'],
+              quantity: order['quantity'],
+              payment: order['payment'],
+              deliveryAddress: order['delivery_address'],
+              orderTimeout: DateTime.parse(order['order_timeout']),
+              createdAt: DateTime.parse(order['created_at']),
+              complete: order['complete'] ?? false,
+              received: order['received'] ?? false,
+              product: Product(
+                id: product['id'],
+                name: product['name'],
+                description: product['description'],
+                price: product['price'],
+                quantity: product['quantity'],
+                avatarUrl: product['avatar_url'],
+                companyId: product['company_id'],
+                minecraftTag: product['minecraft_tag'],
+                createdAt: DateTime.parse(product['created_at']),
+              ),
+              company: Company(
+                id: company['id'],
+                name: company['name'],
+                slogan: company['slogan'],
+                avatarUrl: company['avatar_url'],
+                reputation: company['reputation'],
+                evaluation: company['evaluation'],
+                isPublic: company['is_public'],
+                userId: company['user_id'],
+                createdAt: DateTime.parse(company['created_at']),
+                lotNumber: company['lot_number'],
+                verified: company['verified'],
+              ),
+            );
+          }).toList();
       return orders;
     } catch (e) {
       developer.log('Error fetching orders made for company: $e');
