@@ -1,6 +1,5 @@
 import 'package:economycraft/classes/company.dart';
 import 'package:economycraft/classes/product.dart';
-import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:developer' as developer;
 import 'package:economycraft/classes/order.dart';
@@ -66,14 +65,16 @@ class SupabaseOrder {
     return a * (log(k * (x - h)) / log(b)) + c;
   }
 
-  Future<bool> cancelOrderOwner(Order order, int companyId) async {
+  Future<bool> cancelOrderOwner(Order order) async {
     final user = _client.auth.currentUser;
     if (user == null) {
       return false;
     }
     try {
       await _client.rpc('cancel_order', params: {'order_row_id': order.id});
-      developer.log('Order canceled: ${order.id} for company $companyId');
+      developer.log(
+        'Order canceled: ${order.id} for company ${order.company!.name}',
+      );
 
       // Calculate the multiplier based on the order quantity
       final decreaseAmount = f(order.payment);
@@ -87,14 +88,14 @@ class SupabaseOrder {
 
       //log the decrease amount
       developer.log(
-        'Decrease amount for company $companyId based on order payment ${order.payment}: $decreaseAmount',
+        'Decrease amount for company ${order.company!.name} based on order payment ${order.payment}: $decreaseAmount',
       );
 
       // Decrease the company's reputation
       await _client.rpc(
         'modify_company_reputation',
         params: {
-          'input_company_id': companyId,
+          'input_company_id': order.companyId,
           'change_amount': decreaseAmount * -1,
         },
       );

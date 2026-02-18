@@ -1,39 +1,39 @@
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
-import 'package:economycraft/screens/order/widgets/order_details_dialog.dart';
-import 'package:economycraft/screens/order/widgets/user_order_card.dart';
+import 'package:economycraft/screens/order/company/widgets/company_order_card.dart';
+import 'package:economycraft/screens/order/company/widgets/company_order_details_dialog.dart';
 import 'package:flutter/material.dart';
 
-class UserOrderList extends StatefulWidget {
-  final bool showPastOrders;
-  final List<Order> ordersList;
+class CompanyOrderListWidget extends StatefulWidget {
+  final List<Order> orders;
+  final bool showCompletedOrders;
 
-  const UserOrderList({
+  const CompanyOrderListWidget({
     super.key,
-    required this.showPastOrders,
-    required this.ordersList,
+    required this.orders,
+    required this.showCompletedOrders,
   });
 
   @override
-  State<UserOrderList> createState() => _UserOrderListState();
+  State<CompanyOrderListWidget> createState() => _CompanyOrderListWidgetState();
 }
 
-class _UserOrderListState extends State<UserOrderList> {
+class _CompanyOrderListWidgetState extends State<CompanyOrderListWidget> {
   late List<Order> _orders;
 
   @override
-  void didUpdateWidget(covariant UserOrderList oldWidget) {
-    if (oldWidget.showPastOrders != widget.showPastOrders) {}
-
-    super.didUpdateWidget(oldWidget);
+  void initState() {
+    _orders = widget.orders.where((order) => true).toList(); // make copy
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    _orders = widget.ordersList.where((order) => true).toList();
-
-    if (!widget.showPastOrders) {
-      _orders = widget.ordersList.where((order) => !order.received).toList();
+    if (!widget.showCompletedOrders) {
+      _orders =
+          _orders
+              .where((order) => !(order.complete && order.received))
+              .toList();
     }
 
     if (_orders.isEmpty) {
@@ -42,7 +42,7 @@ class _UserOrderListState extends State<UserOrderList> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              widget.showPastOrders
+              widget.showCompletedOrders
                   ? Icons.history
                   : Icons.shopping_bag_outlined,
               color: Colors.grey[400],
@@ -50,29 +50,30 @@ class _UserOrderListState extends State<UserOrderList> {
             ),
             const SizedBox(height: 16),
             Text(
-              widget.showPastOrders
-                  ? 'No orders history found'
-                  : 'No active orders found',
+              widget.showCompletedOrders
+                  ? 'No order history found'
+                  : 'No pending orders found',
               style: const TextStyle(fontSize: 18, color: Colors.grey),
             ),
           ],
         ),
       );
-    } else {
-      return ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _orders.length,
-        itemBuilder: (context, index) {
-          final order = _orders[index];
-          return OrderCard(
-            order: order,
-            onTap: () => _showOrderDetails(order),
-            onMarkReceived: () => _confirmMarkReceived(order),
-            isReceived: order.received,
-          );
-        },
-      );
     }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _orders.length,
+      itemBuilder: (context, index) {
+        final order = _orders[index];
+        return CompanyOrderCard(
+          order: order,
+          onTap: () => _showOrderDetails(order),
+          onMarkComplete: () => _confirmMarkComplete(order),
+          isReceived: order.received,
+          isDelivered: order.complete,
+        );
+      },
+    );
   }
 
   void _showOrderDetails(Order order) {
@@ -84,13 +85,13 @@ class _UserOrderListState extends State<UserOrderList> {
             borderRadius: BorderRadius.circular(20),
           ),
           contentPadding: EdgeInsets.zero,
-          content: OrderDetailsDialog(
+          content: CompanyOrderDetailsDialog(
             order: order,
-            // Fix: Properly handle async operations with dialogs
-            onMarkReceived: () {
+            onMarkComplete: () {
               Navigator.of(context).pop();
-              _confirmMarkReceived(order);
+              _confirmMarkComplete(order);
             },
+
             onCancelOrder:
                 order.complete
                     ? null
@@ -104,16 +105,16 @@ class _UserOrderListState extends State<UserOrderList> {
     );
   }
 
-  // Confirm mark as received
-  Future<void> _confirmMarkReceived(Order order) async {
+  // Confirm mark as completed
+  Future<void> _confirmMarkComplete(Order order) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
-            title: const Text('Confirm Receipt'),
+            title: const Text('Confirm Delivery'),
             content: const Text(
-              'Are you sure you want to mark this order as received? '
-              'This action cannot be undone.',
+              'Are you sure you want to mark this order as completed? '
+              'This will notify the customer that their order is delivered to the listed delivery address.',
             ),
             actions: [
               TextButton(
@@ -135,10 +136,11 @@ class _UserOrderListState extends State<UserOrderList> {
     );
 
     if (confirmed == true) {
-      await markOrderAsReceived(order);
+      await markOrderAsCompleted(order);
     }
   }
 
+  // Confirm cancel order
   Future<void> _confirmCancelOrder(Order order) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -147,7 +149,7 @@ class _UserOrderListState extends State<UserOrderList> {
             title: const Text('Cancel Order'),
             content: const Text(
               'Are you sure you want to cancel this order? '
-              'This action cannot be undone.',
+              'This action cannot be undone and will notify the customer.',
             ),
             actions: [
               TextButton(
@@ -171,17 +173,17 @@ class _UserOrderListState extends State<UserOrderList> {
     }
   }
 
-  Future<void> cancelOrder(Order order) async {
-    await SupabaseHelper.order.cancelOrderUser(order.id);
+  Future<void> markOrderAsCompleted(Order order) async {
+    await SupabaseHelper.order.markOrderAsComplete(order);
     setState(() {
-      widget.ordersList.remove(order);
+      order.complete = true;
     });
   }
 
-  Future<void> markOrderAsReceived(Order order) async {
-    await SupabaseHelper.order.markOrderAsReceived(order.id);
+  Future<void> cancelOrder(Order order) async {
+    await SupabaseHelper.order.cancelOrderOwner(order);
     setState(() {
-      order.received = true;
+      _orders.remove(order);
     });
   }
 }

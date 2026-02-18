@@ -531,7 +531,6 @@ class SupabaseCompany {
       final thisMonth = now.month;
       final lastMonth = now.month - 1;
       final thisYear = now.year;
-      final today = now.day;
 
       final Map<String, double> thisMonthFiltered = Map.fromEntries(
         dailyOrderTotals.entries.where((entry) {

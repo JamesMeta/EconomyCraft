@@ -203,7 +203,7 @@ class SupabaseHome {
 
             return PriceVsTime(
               time: DateTime.parse(entry['created_at']),
-              price: double.parse(rounded) ?? 0.0,
+              price: double.parse(rounded),
             );
           }).toList();
 

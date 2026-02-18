@@ -1,7 +1,6 @@
 import 'package:economycraft/classes/order.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
-import 'package:economycraft/screens/order/widgets/order_details_dialog.dart';
-import 'package:economycraft/screens/order/widgets/user_order_list.dart';
+import 'package:economycraft/screens/order/user/widgets/user_order_list.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
