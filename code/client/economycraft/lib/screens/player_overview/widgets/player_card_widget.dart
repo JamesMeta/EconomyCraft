@@ -241,7 +241,7 @@ class PlayerCardWidget extends StatelessWidget {
                             if (snapshot.hasData) {
                               final List<PieChartData> pieChartData = [];
 
-                              final double total = snapshot!.data!.values.fold(
+                              final double total = snapshot.data!.values.fold(
                                 0,
                                 (value, element) => value + element,
                               );

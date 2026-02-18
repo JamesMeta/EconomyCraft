@@ -7,10 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:economycraft/database_managment/supabase_helper.dart';
 import 'package:economycraft/common_widgets/product_market_tile_widget.dart';
-import 'package:economycraft/common_widgets/share_market_tile_widget.dart';
 import 'package:economycraft/common_widgets/shopping_cart_widget.dart';
 import 'package:economycraft/classes/price_vs_time.dart';
-import 'package:economycraft/common_widgets/linegraph_2_widget.dart';
 
 class CompanyPageScreen extends StatefulWidget {
   final Company company;
